@@ -3368,6 +3368,7 @@ ZEND_DLEXPORT zend_op_array* eaccelerator_compile_file(zend_file_handle *file_ha
 #ifdef ZEND_ENGINE_2
     if (file_handle->opened_path == NULL && file_handle->type != ZEND_HANDLE_STREAM) {
       file_handle->handle.stream.handle = (void*)1;
+      file_handle->opened_path = MMCG(mem);
 #else
     if (file_handle->opened_path == NULL && file_handle->type != ZEND_HANDLE_FP) {
       int dummy = 1;
@@ -6270,7 +6271,7 @@ static void dump_cache_entry(mm_cache_entry *p TSRMLS_DC) {
       if (class[0] == '\000') class[0] = '-';
       if (x->type == ZEND_USER_CLASS) {
 #ifdef ZEND_ENGINE_2
-        zend_printf("<tr><td><a href=\"?file=%s&class=%s\"&Horde=22c8f7474b79194f32569fc1af447f5b>%s</a> [\n",
+        zend_printf("<tr><td><a href=\"?file=%s&class=%s\">%s</a> [\n",
         p->realfilename, class, class);
         if (x->ce_flags & ZEND_ACC_FINAL_CLASS) {
           ZEND_PUTS("final ");
@@ -6288,7 +6289,7 @@ static void dump_cache_entry(mm_cache_entry *p TSRMLS_DC) {
         }
         ZEND_PUTS("]</td></tr>");
 #else
-        zend_printf("<tr><td><a href=\"?file=%s&class=%s\"&Horde=22c8f7474b79194f32569fc1af447f5b>%s</a></td></tr>\n",
+        zend_printf("<tr><td><a href=\"?file=%s&class=%s\">%s</a></td></tr>\n",
           p->realfilename, class, class);
 #endif
       } else {
@@ -6309,7 +6310,7 @@ static void dump_cache_entry(mm_cache_entry *p TSRMLS_DC) {
       func[fc->htablen] = '\0';
       if (func[0] == '\000' && fc->htablen > 0) func[0] = '-';
       if (((zend_function*)(fc->fc))->type == ZEND_USER_FUNCTION) {
-        zend_printf("<tr><td><a href=\"?file=%s&func=%s\"&Horde=22c8f7474b79194f32569fc1af447f5b>%s</a></td></tr>\n",
+        zend_printf("<tr><td><a href=\"?file=%s&func=%s\">%s</a></td></tr>\n",
           p->realfilename, func, func);
       } else {
         zend_printf("<tr><td>%s [internal]</td></tr>\n", func);
@@ -6428,7 +6429,7 @@ static void dump_class(mm_cache_entry *p, char* class TSRMLS_DC) {
       eaccelerator_op_array* x = (eaccelerator_op_array*)q->pData;
       if (x->type == ZEND_USER_FUNCTION) {
 #ifdef ZEND_ENGINE_2
-        zend_printf("<tr><td><a href=\"?file=%s&class=%s&func=%s\"&Horde=22c8f7474b79194f32569fc1af447f5b>%s</a> [", p->realfilename, class, q->arKey, q->arKey);
+        zend_printf("<tr><td><a href=\"?file=%s&class=%s&func=%s\">%s</a> [", p->realfilename, class, q->arKey, q->arKey);
         if (x->fn_flags & ZEND_ACC_STATIC) {
           ZEND_PUTS("static ");
         }
@@ -6447,7 +6448,7 @@ static void dump_class(mm_cache_entry *p, char* class TSRMLS_DC) {
         }
         ZEND_PUTS("]</td></tr>");
 #else
-        zend_printf("<tr><td><a href=\"?file=%s&class=%s&func=%s\"&Horde=22c8f7474b79194f32569fc1af447f5b>%s</a></td></tr>\n", p->realfilename, class, q->arKey, q->arKey);
+        zend_printf("<tr><td><a href=\"?file=%s&class=%s&func=%s\">%s</a></td></tr>\n", p->realfilename, class, q->arKey, q->arKey);
 #endif
       } else {
         zend_printf("<tr><td>%s [internal]</td></tr>\n", q->arKey);
@@ -7013,7 +7014,7 @@ PHP_FUNCTION(eaccelerator) {
   available = mm_available(eaccelerator_mm_instance->mm);
   EACCELERATOR_LOCK_RD();
   EACCELERATOR_PROTECT();
-  ZEND_PUTS("<form method=\"POST\"><input type=\"hidden\" name=\"Horde\" value=\"22c8f7474b79194f32569fc1af447f5b\" /><center>\n");
+  ZEND_PUTS("<form method=\"POST\"><center>\n");
   if (MMCG(enabled) && eaccelerator_mm_instance->enabled) {
     ZEND_PUTS("<input type=\"submit\" name=\"disable\" value=\"Disable\" title=\"Disable caching of PHP scripts\" style=\"width:100px\">\n");
   } else {
@@ -7066,7 +7067,7 @@ PHP_FUNCTION(eaccelerator) {
     p = slots[i];
     format_size(s, p->size, 0);
 #ifdef WITH_EACCELERATOR_DISASSEMBLER
-    zend_printf("<tr valign=\"bottom\" bgcolor=\"#cccccc\"><td bgcolor=\"#ccccff\"><b><a href=\"%s?file=%s\"&Horde=22c8f7474b79194f32569fc1af447f5b>",
+    zend_printf("<tr valign=\"bottom\" bgcolor=\"#cccccc\"><td bgcolor=\"#ccccff\"><b><a href=\"%s?file=%s\">",
       php_self?(*php_self)->value.str.val:"",
       p->realfilename);
     eaccelerator_puts_filename(p->realfilename);
