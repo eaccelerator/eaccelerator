@@ -4,7 +4,7 @@
    +----------------------------------------------------------------------+
    | Copyright (c) 2004 eAccelerator                                      |
    | http://eaccelerator.sourceforge.net                                  |
-+----------------------------------------------------------------------+
+   +----------------------------------------------------------------------+
    | This program is free software; you can redistribute it and/or        |
    | modify it under the terms of the GNU General Public License          |
    | as published by the Free Software Foundation; either version 2       |
@@ -22,7 +22,7 @@
    |                                                                      |
    | A copy is availble at http://www.gnu.org/copyleft/gpl.txt            |
    +----------------------------------------------------------------------+
-   | Author: Dmitry Stogov <mmcache@turckware.ru>                         |
+   | Author(s): Dmitry Stogov <mmcache@turckware.ru>                      |
    +----------------------------------------------------------------------+
    $Id$
 */

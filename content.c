@@ -1,9 +1,9 @@
 /*
    +----------------------------------------------------------------------+
-   | Turck MMCache for PHP Version 4                                      |
+   | eAccelerator project                                                 |
    +----------------------------------------------------------------------+
-   | Copyright (c) 2002-2003 TurckSoft, St. Petersburg                    |
-   | http://www.turcksoft.com                                             |
+   | Copyright (c) 2004 eAccelerator                                      |
+   | http://eaccelerator.sourceforge.net                                  |
    +----------------------------------------------------------------------+
    | This program is free software; you can redistribute it and/or        |
    | modify it under the terms of the GNU General Public License          |
@@ -22,7 +22,7 @@
    |                                                                      |
    | A copy is availble at http://www.gnu.org/copyleft/gpl.txt            |
    +----------------------------------------------------------------------+
-   | Author: Dmitry Stogov <mmcache@turckware.ru>                         |
+   | Author(s): Dmitry Stogov <mmcache@turckware.ru>                      |
    +----------------------------------------------------------------------+
    $Id$
 */
