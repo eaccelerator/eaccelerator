@@ -34,18 +34,10 @@
 #ifdef WITH_EACCELERATOR_LOADER
 
 #include "opcodes.h"
-
 #include "zend.h"
 #include "zend_API.h"
 #include "php.h"
-
 #include <math.h>
-
-#define MMC_ENCODER_VERSION   0x00000002
-#define MMC_ENCODER_END       0x00
-#define MMC_ENCODER_NAMESPACE 0x01
-#define MMC_ENCODER_CLASS     0x02
-#define MMC_ENCODER_FUNCTION  0x03
 
 typedef struct loader_data {
   long  version;
@@ -1050,15 +1042,15 @@ zend_op_array* eaccelerator_load(char* src, int src_len TSRMLS_DC) {
               }
             } else {
               error_reported = 1;
-              zend_error(E_ERROR, "MMCache Loader can't load code. Icorrect Zend Engine version");
+              zend_error(E_ERROR, "eAccelerator Loader can't load code. Icorrect Zend Engine version");
             }
           } else {
             error_reported = 1;
-            zend_error(E_ERROR, "MMCache Loader can't load code. Icorrect MMCache encoder version (%u)", v);
+            zend_error(E_ERROR, "eAccelerator Loader can't load code. Icorrect eAccelerator encoder version (%u)", v);
           }
         } else {
           error_reported = 1;
-          zend_error(E_ERROR, "MMCache Loader can't load code. Icorrect code");
+          zend_error(E_ERROR, "eAccelerator Loader can't load code. Icorrect code");
         }
       } zend_catch {
         CG(in_compilation) = old_in_compilation;

@@ -34,19 +34,10 @@
 #ifdef WITH_EACCELERATOR_ENCODER
 
 #include "opcodes.h"
-
 #include "zend.h"
 #include "zend_API.h"
 #include "php.h"
-
 #include <math.h>
-
-#define MMC_ENCODER_VERSION   0x00000003
-
-#define MMC_ENCODER_END       0x00
-#define MMC_ENCODER_NAMESPACE 0x01
-#define MMC_ENCODER_CLASS     0x02
-#define MMC_ENCODER_FUNCTION  0x03
 
 #ifndef WITHOUT_FILE_FILTER
 #define IEQ(need)  (ch == (need) || \

@@ -1,3 +1,9 @@
+2004-12-27  Everaldo Canuto <everaldo_canuto at yahoo.com.br>
+
+        * Move encoder version information to eaccelerator.h, today
+        this information are in two places, encoder.h and loader.h
+        now it is unified.
+
 2004-12-27  Reiner Jung <r.jung at think-e.com.br>
 
         * eAccelerator 0.9.2 release.
