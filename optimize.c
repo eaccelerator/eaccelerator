@@ -2461,6 +2461,10 @@ static void optimize_bb(BB* bb, zend_op_array* op_array, char* global, int pass 
         zend_hash_clean(&fetch_dim);
         if ((op->result.u.EA.type & EXT_TYPE_UNUSED) != 0 &&
             op->op1.op_type == IS_VAR &&
+#ifdef  ZEND_ENGINE_2
+            op->extended_value != ZEND_ASSIGN_DIM &&
+            op->extended_value != ZEND_ASSIGN_OBJ &&
+#endif
             IS_DEFINED(op->op1)) {
           zend_op *x = DEFINED_OP(op->op1);
           if ((x->opcode == ZEND_FETCH_W || x->opcode == ZEND_FETCH_RW) &&
