@@ -2376,6 +2376,11 @@ static void call_op_array_ctor_handler(zend_extension *extension, zend_op_array 
 static zend_op_array* restore_op_array(zend_op_array *to, eaccelerator_op_array *from TSRMLS_DC) {
   zend_function* function;
 
+#ifdef ZEND_ENGINE_2
+  int    fname_len;
+  char  *fname_lc;
+#endif
+
 #ifdef DEBUG
   pad(TSRMLS_C);
   fprintf(F_fp, "[%d] restore_op_array: %s\n", getpid(),
@@ -2440,9 +2445,6 @@ static zend_op_array* restore_op_array(zend_op_array *to, eaccelerator_op_array 
   to->function_name    = from->function_name;
 
 #ifdef ZEND_ENGINE_2
-  
-  int    fname_len;
-  char  *fname_lc;
 
   if (to->function_name)
   {
@@ -2715,6 +2717,11 @@ static zend_class_entry* restore_class_entry(zend_class_entry* to, eaccelerator_
   zend_function     *f;
   int   fname_len;
   char *fname_lc;
+#ifdef ZEND_ENGINE_2
+  int   cname_len;
+  char *cname_lc;
+  Bucket *p;
+#endif
 
 #ifdef DEBUG
   pad(TSRMLS_C);
@@ -2873,10 +2880,10 @@ static zend_class_entry* restore_class_entry(zend_class_entry* to, eaccelerator_
   to->function_table.pDestructor = ZEND_FUNCTION_DTOR;
 
 #ifdef ZEND_ENGINE_2
-  int   cname_len = to->name_length;
-  char *cname_lc  = zend_str_tolower_dup(to->name, cname_len);
+  cname_len = to->name_length;
+  cname_lc  = zend_str_tolower_dup(to->name, cname_len);
 
-  Bucket *p = to->function_table.pListHead;
+  p = to->function_table.pListHead;
   while (p != NULL) {
     f         = p->pData;
     fname_len = strlen(f->common.function_name);

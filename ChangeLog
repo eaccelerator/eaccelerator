@@ -1,6 +1,7 @@
 2004-12-23  Everaldo Canuto <everaldo_canuto at yahoo.com.br>
 
         * COPYING license file fixed.
+        * Fixed compilation errors under Win32 and old versions of gcc.
 
 2004-12-22 ReinerJ <reinerj at users.sourceforge.net>
 
