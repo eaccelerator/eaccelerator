@@ -22,7 +22,7 @@
    |                                                                      |
    | A copy is availble at http://www.gnu.org/copyleft/gpl.txt            |
    +----------------------------------------------------------------------+
-   | Author(s): Dmitry Stogov <mmcache@turckware.ru>                      |
+   | Author(s): Dmitry Stogov <dstogov@users.sourceforge.net>             |
    |            Seung Woo <segv@sayclub.com>                              |
    |            Everaldo Canuto <everaldo_canuto@yahoo.com.br>            |
    +----------------------------------------------------------------------+
