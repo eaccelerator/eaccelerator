@@ -260,6 +260,7 @@ static void compute_live_var(BB* bb, zend_op_array* op_array, char* global)
              case ZEND_JMP_NO_CTOR:
              case ZEND_FE_FETCH:
 #ifdef ZEND_ENGINE_2
+             case ZEND_ASSIGN_DIM:
              case ZEND_DECLARE_CLASS:
              case ZEND_DECLARE_INHERITED_CLASS:
 #endif

@@ -23,6 +23,8 @@
    | A copy is availble at http://www.gnu.org/copyleft/gpl.txt            |
    +----------------------------------------------------------------------+
    | Author(s): Dmitry Stogov <mmcache@turckware.ru>                      |
+   |            Seung Woo <segv@sayclub.com>                              |
+   |            Everaldo Canuto <everaldo_canuto@yahoo.com.br>            |
    +----------------------------------------------------------------------+
    $Id$
 */
@@ -162,12 +164,14 @@ typedef struct _eaccelerator_op_array {
   zend_bool return_reference;
 #ifdef ZEND_ENGINE_2
   zend_uint num_args;
+  zend_uint required_num_args;
   zend_arg_info *arg_info;
   zend_bool pass_rest_by_reference;
 #else
   zend_uchar *arg_types;
 #endif
   char *function_name;
+  char *function_name_lc;
 #ifdef ZEND_ENGINE_2
   char* scope_name;
   int   scope_name_len;
@@ -196,6 +200,7 @@ typedef struct _eaccelerator_op_array {
 typedef struct _eaccelerator_class_entry {
   char type;
   char *name;
+  char *name_lc;
   uint name_length;
   char *parent;
   HashTable function_table;
@@ -206,7 +211,13 @@ typedef struct _eaccelerator_class_entry {
   HashTable properties_info;
   HashTable constants_table;
   zend_uint num_interfaces;
+  char **interfaces;
+  zend_class_iterator_funcs iterator_funcs;
 
+  zend_object_value (*create_object)(zend_class_entry *class_type TSRMLS_DC);
+  zend_object_iterator *(*get_iterator)(zend_class_entry *ce, zval *object TSRMLS_DC);
+  int (*interface_gets_implemented)(zend_class_entry *iface, zend_class_entry *class_type TSRMLS_DC); /* a class implements this interface */
+    
   char *filename;
   zend_uint line_start;
   zend_uint line_end;
@@ -400,6 +411,30 @@ ZEND_DLEXPORT zend_op_array* eaccelerator_compile_file(zend_file_handle *file_ha
 #include <ctype.h>
 #include <stdio.h>
 static FILE *F_fp;
+
+static void binary_print(char *p, int len) {
+  while (len--) {
+    fputc(*p++, F_fp);
+  }
+  fputc('\n', F_fp);
+}
+
+static void log_hashkeys(char *p, HashTable *ht)
+{
+  Bucket *b;
+  int i = 0;
+
+  b = ht->pListHead;
+
+  fputs(p, F_fp);
+  while (b) {
+    fprintf(F_fp, "[%d] ", i);
+    binary_print(b->arKey, b->nKeyLength);
+
+    b = b->pListNext;
+    i++;
+  }
+}
 
 static void pad(TSRMLS_D) {
   int i = MMCG(xpad);
@@ -1233,7 +1268,11 @@ typedef union align_union {
 
 /******************************************************************************/
 
-static inline void calc_string(char* str, int len TSRMLS_DC) {
+#ifndef DEBUG
+inline
+#endif
+static
+void calc_string(char* str, int len TSRMLS_DC) {
   if (len > MAX_DUP_STR_LEN || zend_hash_add(&MMCG(strings), str, len, &str, sizeof(char*), NULL) == SUCCESS) {
     EACCELERATOR_ALIGN(MMCG(mem));
     MMCG(mem) += len;
@@ -1367,10 +1406,10 @@ static void calc_op_array(zend_op_array* from TSRMLS_DC) {
     MMCG(mem) += from->num_args * sizeof(zend_arg_info);
     for (i = 0; i < from->num_args; i++) {
       if (from->arg_info[i].name) {
-        calc_string(from->arg_info[i].name,from->arg_info[i].name_len TSRMLS_CC);
+        calc_string(from->arg_info[i].name,from->arg_info[i].name_len+1 TSRMLS_CC);
       }
       if (from->arg_info[i].class_name) {
-        calc_string(from->arg_info[i].class_name,from->arg_info[i].class_name_len TSRMLS_CC);
+        calc_string(from->arg_info[i].class_name,from->arg_info[i].class_name_len+1 TSRMLS_CC);
       }
     }
   }
@@ -1446,6 +1485,8 @@ static void calc_op_array(zend_op_array* from TSRMLS_DC) {
 }
 
 static void calc_class_entry(zend_class_entry* from TSRMLS_DC) {
+  int i;
+
   if (from->type != ZEND_USER_CLASS) {
     debug_printf("[%d] EACCELERATOR can't cache internal class \"%s\"\n", getpid(), from->name);
     zend_bailout();
@@ -1466,8 +1507,15 @@ static void calc_class_entry(zend_class_entry* from TSRMLS_DC) {
   if (from->parent != NULL && from->parent->name) {
     calc_string(from->parent->name, from->parent->name_length + 1  TSRMLS_CC);
   }
-
 #ifdef ZEND_ENGINE_2
+#if 0
+  // what's problem. why from->interfaces[i] == 0x5a5a5a5a ?
+  for (i=0; i<from->num_interfaces; i++) {
+    if (from->interfaces[i]) {
+      calc_string(from->interfaces[i]->name, from->interfaces[i]->name_length);
+    }
+  }
+#endif
   if (from->filename != NULL) {
     calc_string(from->filename, strlen(from->filename)+1 TSRMLS_CC);
   }
@@ -1721,8 +1769,8 @@ static eaccelerator_op_array* store_op_array(zend_op_array* from TSRMLS_DC) {
 
 #ifdef DEBUG
   pad(TSRMLS_C);
-  fprintf(F_fp, "[%d] store_op_array: %s\n", getpid(),
-    from->function_name ? from->function_name : "(top)");
+  fprintf(F_fp, "[%d] store_op_array: %s [scope=%s]\n", getpid(),
+    from->function_name ? from->function_name : "(top)", from->scope ? from->scope->name : "NULL");
   fflush(F_fp);
 #endif
 
@@ -1741,6 +1789,7 @@ static eaccelerator_op_array* store_op_array(zend_op_array* from TSRMLS_DC) {
   to->type = from->type;
 #ifdef ZEND_ENGINE_2
   to->num_args = from->num_args;
+  to->required_num_args = from->required_num_args;
   if (from->num_args > 0) {
     zend_uint i;
     EACCELERATOR_ALIGN(MMCG(mem));
@@ -1748,15 +1797,16 @@ static eaccelerator_op_array* store_op_array(zend_op_array* from TSRMLS_DC) {
     MMCG(mem) += from->num_args * sizeof(zend_arg_info);
     for (i = 0; i < from->num_args; i++) {
       if (from->arg_info[i].name) {
-        to->arg_info[i].name = store_string(from->arg_info[i].name,from->arg_info[i].name_len TSRMLS_CC);
+        to->arg_info[i].name = store_string(from->arg_info[i].name,from->arg_info[i].name_len+1 TSRMLS_CC);
         to->arg_info[i].name_len = from->arg_info[i].name_len;
       }
       if (from->arg_info[i].class_name) {
-        to->arg_info[i].class_name = store_string(from->arg_info[i].class_name,from->arg_info[i].class_name_len TSRMLS_CC);
+        to->arg_info[i].class_name = store_string(from->arg_info[i].class_name,from->arg_info[i].class_name_len+1 TSRMLS_CC);
         to->arg_info[i].class_name_len = from->arg_info[i].class_name_len;
       }
       to->arg_info[i].allow_null        = from->arg_info[i].allow_null;
       to->arg_info[i].pass_by_reference = from->arg_info[i].pass_by_reference;
+      to->arg_info[i].return_reference = from->arg_info[i].return_reference;
     }
   }
   to->pass_rest_by_reference = from->pass_rest_by_reference;
@@ -1773,7 +1823,8 @@ static eaccelerator_op_array* store_op_array(zend_op_array* from TSRMLS_DC) {
 	 * class methods in function_table without each time tolower...
 	 */
 	to->function_name = store_string(from->function_name, strlen(from->function_name)+1  TSRMLS_CC);
-	zend_str_tolower(to->function_name, strlen(from->function_name));
+	// XXX: revert
+    // zend_str_tolower(to->function_name, strlen(from->function_name));
   }
 #ifdef ZEND_ENGINE_2
   to->fn_flags         = from->fn_flags;
@@ -1789,10 +1840,20 @@ static eaccelerator_op_array* store_op_array(zend_op_array* from TSRMLS_DC) {
       if (*(zend_class_entry**)q->pData == from->scope)
 	  {
         to->scope_name = store_string(q->arKey, q->nKeyLength TSRMLS_CC);
-        to->scope_name_len = q->nKeyLength;
+        to->scope_name_len = q->nKeyLength - 1;
+#ifdef DEBUG
+        pad(TSRMLS_C); fprintf(F_fp, "[%d]                 find scope '%s' in CG(class_table) save hashkey '%s' [%08x] as to->scope_name\n",
+            getpid(), from->scope->name ? from->scope->name : "NULL", q->arKey, to->scope_name); fflush(F_fp);
+#endif
         break;
       }
       q = q->pListNext;
+    }
+    if (to->scope_name == NULL)
+    {
+#ifdef DEBUG
+      pad(TSRMLS_C); fprintf(F_fp, "[%d]                 could not find scope '%s' in CG(class_table), saving it to NULL\n", getpid(), from->scope->name ? from->scope->name : "NULL"); fflush(F_fp);
+#endif
     }
   }
 #endif
@@ -1894,6 +1955,7 @@ static eaccelerator_op_array* store_op_array(zend_op_array* from TSRMLS_DC) {
 
 static eaccelerator_class_entry* store_class_entry(zend_class_entry* from TSRMLS_DC) {
   eaccelerator_class_entry *to;
+  int i;
 
   EACCELERATOR_ALIGN(MMCG(mem));
   to = (eaccelerator_class_entry*)MMCG(mem);
@@ -1906,22 +1968,35 @@ static eaccelerator_class_entry* store_class_entry(zend_class_entry* from TSRMLS
   to->ce_flags    = from->ce_flags;
   to->static_members = NULL;
   to->num_interfaces = from->num_interfaces;
+
+#if 0
+  // i need to check more. why this field is null.
+  //
+  for (i=0; i<from->num_interfaces; i++) {
+    if (from->interfaces[i]) {
+      to->interfaces[i] = store_string(from->interfaces[i]->name, from->interfaces[i]->name_length);
+    }
+  }
+#endif
+
 #endif
 
 #ifdef DEBUG
   pad(TSRMLS_C);
-  fprintf(F_fp, "[%d] store_class_entry: %s\n", getpid(), from->name? from->name : "(top)");
+  fprintf(F_fp, "[%d] store_class_entry: %s parent was '%s'\n", getpid(), from->name? from->name : "(top)", from->parent ? from->parent->name : "NULL");
   fflush(F_fp);
   MMCG(xpad)++;
 #endif
 
   if (from->name != NULL) {
     to->name = store_string(from->name, from->name_length+1 TSRMLS_CC);
-	zend_str_tolower(to->name, from->name_length);
+	//XXX: revert
+    // zend_str_tolower(to->name, from->name_length);
   }
   if (from->parent != NULL && from->parent->name) {
     to->parent = store_string(from->parent->name, from->parent->name_length+1 TSRMLS_CC);
-    zend_str_tolower(to->parent, from->parent->name_length);
+    //XXX: revert
+    // zend_str_tolower(to->parent, from->parent->name_length);
   }
 
 /*
@@ -1931,9 +2006,14 @@ static eaccelerator_class_entry* store_class_entry(zend_class_entry* from TSRMLS
   }
 */
 #ifdef ZEND_ENGINE_2
-  to->line_start      = from->line_start;
-  to->line_end        = from->line_end;
-  to->doc_comment_len = from->doc_comment_len;
+  to->line_start                 = from->line_start;
+  to->line_end                   = from->line_end;
+  to->doc_comment_len            = from->doc_comment_len;
+  to->iterator_funcs             = from->iterator_funcs;
+  to->create_object              = from->create_object;
+  to->get_iterator               = from->get_iterator;
+  to->interface_gets_implemented = from->interface_gets_implemented;
+
   if (from->filename != NULL) {
     to->filename = store_string(from->filename, strlen(from->filename)+1 TSRMLS_CC);
   }
@@ -1971,6 +2051,10 @@ static mm_cache_entry* eaccelerator_store_int(
   mm_fc_entry    *q;
   char *x;
 
+#ifdef DEBUG
+  pad(TSRMLS_C); fprintf(F_fp, "[%d] eaccelerator_store_int: key='%s'\n", getpid(), key); fflush(F_fp);
+#endif
+
   MMCG(compress) = 1;
   zend_hash_init(&MMCG(strings), 0, NULL, NULL, 0);
   p = (mm_cache_entry*)MMCG(mem);
@@ -1987,6 +2071,9 @@ static mm_cache_entry* eaccelerator_store_int(
 
   q = NULL;
   while (c != NULL) {
+#ifdef DEBUG
+  pad(TSRMLS_C); fprintf(F_fp, "[%d] eaccelerator_store_int:     class hashkey=", getpid()); binary_print(c->arKey, c->nKeyLength); fflush(F_fp);
+#endif
     EACCELERATOR_ALIGN(MMCG(mem));
     fc = (mm_fc_entry*)MMCG(mem);
     MMCG(mem) += offsetof(mm_fc_entry,htabkey)+c->nKeyLength;
@@ -2011,6 +2098,9 @@ static mm_cache_entry* eaccelerator_store_int(
 
   q = NULL;
   while (f != NULL) {
+#ifdef DEBUG
+  pad(TSRMLS_C); fprintf(F_fp, "[%d] eaccelerator_store_int:     function hashkey='%s'\n", getpid(), f->arKey); fflush(F_fp);
+#endif
     EACCELERATOR_ALIGN(MMCG(mem));
     fc = (mm_fc_entry*)MMCG(mem);
     MMCG(mem) += offsetof(mm_fc_entry,htabkey)+f->nKeyLength;
@@ -2284,7 +2374,7 @@ static void call_op_array_ctor_handler(zend_extension *extension, zend_op_array 
 }
 
 static zend_op_array* restore_op_array(zend_op_array *to, eaccelerator_op_array *from TSRMLS_DC) {
-  zend_internal_function* function;
+  zend_function* function;
 
 #ifdef DEBUG
   pad(TSRMLS_C);
@@ -2309,36 +2399,135 @@ static zend_op_array* restore_op_array(zend_op_array *to, eaccelerator_op_array 
   }
   to->type             = from->type;
 #ifdef ZEND_ENGINE_2
+  /* this is internal function's case
+   * struct zend_internal_function
+	zend_uchar type;
+	char *function_name;		
+	zend_class_entry *scope;
+	zend_uint fn_flags;	
+	union _zend_function *prototype;
+	zend_uint num_args;
+	zend_uint required_num_args;
+	zend_arg_info *arg_info;
+	zend_bool pass_rest_by_reference;
+	unsigned char return_reference;
+    */
+  /*
+   * typedef struct _zend_internal_function {
+   * // Common elements
+   *    zend_uchar type;
+   *    char *function_name;		
+   *    zend_class_entry *scope;
+   *    zend_uint fn_flags;	
+   *    union _zend_function *prototype;
+   *    zend_uint num_args;
+   *    zend_uint required_num_args;
+   *    zend_arg_info *arg_info;
+   *    zend_bool pass_rest_by_reference;
+   *    unsigned char return_reference;
+   * // END of common elements
+   *
+   *    void (*handler)(INTERNAL_FUNCTION_PARAMETERS);
+   * } zend_internal_function;
+   */
   to->num_args = from->num_args;
+  to->required_num_args      = from->required_num_args;
   to->arg_info = from->arg_info;
   to->pass_rest_by_reference = from->pass_rest_by_reference;
 #else
   to->arg_types        = from->arg_types;
 #endif
   to->function_name    = from->function_name;
+
+  int    fname_len;
+  char  *fname_lc;
+
+  if (to->function_name)
+  {
+    fname_len = strlen(to->function_name);
+    fname_lc  = zend_str_tolower_dup(to->function_name, fname_len);
+  }
 #ifdef ZEND_ENGINE_2
-	to->scope            = MMCG(class_entry);
-	to->fn_flags         = from->fn_flags;
-	if (to->scope == NULL && from->scope_name != NULL)
-	{
-		if (zend_hash_find(CG(class_table),
-			(void *)from->scope_name, from->scope_name_len,
-			(void **)&to->scope) == SUCCESS)
-		{
-			to->scope = *(zend_class_entry**)to->scope;
-		}
-		else
-		{
-			debug_printf("[%d] EACCELERATOR can't restore parent class "
-				"\"%s\" of function \"%s\"\n", getpid(),
-				(char*)from->scope_name, to->function_name);
-			to->scope = NULL;
-		}
-	}
+  to->fn_flags         = from->fn_flags;
+
+  /* segv74:
+   * to->scope = MMCG(class_entry)
+   *
+   * if  from->scope_name == NULL,
+   *     ; MMCG(class) == NULL  : we are in function or outside function.
+   *     ; MMCG(class) != NULL  : inherited method not defined in current file, should have to find.
+   *                              just LINK (zend_op_array *) to to original entry in parent,
+   *                              but, with what? !!! I don't know PARENT CLASS NAME !!!!
+   *
+   *
+   * if  from->scope_name != NULL,
+   *     ; we are in class member function 
+   *
+   *     ; we have to find appropriate (zend_class_entry*) to->scope for name from->scope_name
+   *     ; if we find in CG(class_table), link to it.
+   *     ; if fail, it should be MMCG(class_entry)
+   *    
+   * am I right here ? ;-(
+   */
+  if (from->scope_name != NULL)
+  {
+	char  *from_scope_lc = zend_str_tolower_dup(from->scope_name, from->scope_name_len);
+	if (zend_hash_find(CG(class_table), (void *)from_scope_lc, from->scope_name_len+1, (void **)&to->scope) != SUCCESS)
+    {
+#ifdef DEBUG
+      pad(TSRMLS_C); fprintf(F_fp, "[%d]                   can't find '%s' in hash. use MMCG(class_entry).\n", getpid(), from_scope_lc); fflush(F_fp);
+#endif
+	  to->scope = MMCG(class_entry);
+    }
+    else
+    {
+#ifdef DEBUG
+      pad(TSRMLS_C); fprintf(F_fp, "[%d]                   found '%s' in hash\n", getpid(), from_scope_lc); fflush(F_fp);
+#endif
+      to->scope = *(zend_class_entry **)(to->scope);
+    }
+    efree(from_scope_lc);
+  }
+  else
+  {
+#ifdef DEBUG
+      pad(TSRMLS_C); fprintf(F_fp, "[%d]                   from is NULL\n", getpid()); fflush(F_fp);
+#endif
+    if (MMCG(class_entry))
+    {
+      zend_class_entry *p;
+
+      for (p = MMCG(class_entry)->parent; p; p = p->parent)
+      {
+#ifdef DEBUG
+      pad(TSRMLS_C); fprintf(F_fp, "[%d]                   checking parent '%s' have '%s'\n", getpid(), p->name, fname_lc); fflush(F_fp);
+#endif
+		if (zend_hash_find(&p->function_table, fname_lc, fname_len+1, (void **) &function)==SUCCESS)
+        {
+#ifdef DEBUG
+      pad(TSRMLS_C); fprintf(F_fp, "[%d]                                   '%s' has '%s' of scope '%s'\n", getpid(), p->name, fname_lc, function->common.scope->name); fflush(F_fp);
+#endif
+          to->scope = function->common.scope;
+          break;
+        }
+      }
+    }
+    else
+      to->scope = NULL;
+  }
+
+#ifdef DEBUG
+  pad(TSRMLS_C);
+  fprintf(F_fp, "[%d]                   %s's scope is '%s'\n", getpid(),
+    from->function_name ? from->function_name : "(top)", to->scope ? to->scope->name : "NULL");
+  fflush(F_fp);
+#endif
+#if 0
 	if (to->scope != NULL)
 	{
 		unsigned int len = strlen(to->function_name);
 		char *lcname = zend_str_tolower_dup(to->function_name, len);
+		char *lc_to_name = zend_str_tolower_dup(to->scope->name, to->scope->name_length);
 		/*
 		 * HOESH: this one probably the old style constructor,
 		 * so we set this as the constructor for the scope if
@@ -2350,9 +2539,23 @@ static zend_op_array* restore_op_array(zend_op_array *to, eaccelerator_op_array 
 		 * remember lcname & len can be used as scope name info after the match!
 		 */
 
+    /* segv74: I got a question.
+     *
+     *         I think that, this code is reconstructing zend_class_entry thing.
+     *         is it right doing this here?
+     *
+     *         IMHO, we can do this job in restore_class_entry().
+     *         it's not good for readablity, and dosen't have performace gain.
+     */
+#ifdef DEBUG
+  pad(TSRMLS_C);
+  fprintf(F_fp, "        scope: %s[%d], method name: %s[%d] (%d) : to->scope->constructor=0x%08x\n",
+      lcname, to->scope->name_length, lc_to_name, len, memcmp(lc_to_name, lcname, len), to->scope->constructor);
+  fflush(F_fp);
+#endif
 		if  (
 				to->scope->name_length == len &&
-				memcmp(to->scope->name, lcname, len) == 0 &&
+				memcmp(lc_to_name, lcname, len) == 0 &&
 				(
 					to->scope->constructor == NULL || // case 0)
 					to->scope->constructor->type == ZEND_INTERNAL_FUNCTION || // case A)
@@ -2361,6 +2564,11 @@ static zend_op_array* restore_op_array(zend_op_array *to, eaccelerator_op_array 
 				)
 			)
 		{
+#ifdef DEBUG
+  pad(TSRMLS_C);
+  fprintf(F_fp, "------>    matched\n");
+  fflush(F_fp);
+#endif
 			to->scope->constructor = (zend_function*)to;
 		}
 		/* HOESH: To avoid unnecessary lookups */
@@ -2398,24 +2606,31 @@ static zend_op_array* restore_op_array(zend_op_array *to, eaccelerator_op_array 
 			}
 		}
 		efree(lcname);
+        efree(lc_to_name);
 	}
+#endif
 #endif
   if (from->type == ZEND_INTERNAL_FUNCTION)
   {
 	zend_class_entry* ce = MMCG(class_entry);
+#ifdef DEBUG
+    pad(TSRMLS_C); fprintf(F_fp, "[%d]                   [internal function from=%08x,to=%08x] ce='%s' [%08x]\n", getpid(), from, to, ce->name, ce); fflush(F_fp);
+    if (ce)
+    {
+      pad(TSRMLS_C); fprintf(F_fp, "[%d]                                       ce->parent='%s' [%08x]\n", getpid(), ce->parent->name, ce->parent); fflush(F_fp);
+    }
+#endif
     if (ce != NULL &&
 		ce->parent != NULL &&
 		zend_hash_find(&ce->parent->function_table,
-			to->function_name, strlen(to->function_name)+1,
+			fname_lc, fname_len+1,
 			(void **) &function)==SUCCESS &&
 		function->type == ZEND_INTERNAL_FUNCTION)
 	{
-#ifdef ZEND_ENGINE_2
-		efree(to);
-		to = (zend_op_array*)function;
-#else
-		((zend_internal_function*)(to))->handler = function->handler;
+#ifdef DEBUG
+      pad(TSRMLS_C); fprintf(F_fp, "[%d]                                       found in function table\n", getpid()); fflush(F_fp);
 #endif
+		((zend_internal_function*)(to))->handler = ((zend_internal_function*) function)->handler;
     }
 	else
 	{
@@ -2424,6 +2639,9 @@ static zend_op_array* restore_op_array(zend_op_array *to, eaccelerator_op_array 
 		 * HOESH TODO: must solve this somehow, to avoid returnin
 		 * damaged structure...
 		 */
+#ifdef DEBUG
+      pad(TSRMLS_C); fprintf(F_fp, "[%d]                                       can't find\n", getpid()); fflush(F_fp);
+#endif
     }
     return to;
   }
@@ -2488,6 +2706,9 @@ static zend_op_array* restore_op_array_ptr(eaccelerator_op_array *from TSRMLS_DC
 static zend_class_entry* restore_class_entry(zend_class_entry* to, eaccelerator_class_entry *from TSRMLS_DC)
 {
   zend_class_entry *old;
+  zend_function     *f;
+  int   fname_len;
+  char *fname_lc;
 
 #ifdef DEBUG
   pad(TSRMLS_C);
@@ -2512,13 +2733,21 @@ static zend_class_entry* restore_class_entry(zend_class_entry* to, eaccelerator_
   to->static_members = NULL;
 */
   to->num_interfaces = from->num_interfaces;
+  //to->num_interfaces = 0;
   if (to->num_interfaces > 0) {
     to->interfaces = (zend_class_entry **) emalloc(sizeof(zend_class_entry *)*to->num_interfaces);
-/*
+    // XXX:
+    //
+    // should find out class entry. what the hell !!!
+    memset(to->interfaces, 0, sizeof(zend_class_entry *)*to->num_interfaces);
   } else {
     to->interfaces = NULL;
-*/
   }
+
+  to->iterator_funcs             = from->iterator_funcs;
+  to->create_object              = from->create_object;
+  to->get_iterator               = from->get_iterator;
+  to->interface_gets_implemented = from->interface_gets_implemented;
 /*
   to->create_object = NULL;
 */
@@ -2532,8 +2761,10 @@ static zend_class_entry* restore_class_entry(zend_class_entry* to, eaccelerator_
 
   if (from->parent != NULL)
   {
-    int name_len = strlen(from->parent);
-    if (zend_hash_find(CG(class_table), (void *)from->parent, name_len+1, (void **)&to->parent) != SUCCESS)
+    int   name_len = strlen(from->parent);
+    char *name_lc  = zend_str_tolower_dup(from->parent, name_len);
+
+    if (zend_hash_find(CG(class_table), (void *)name_lc, name_len+1, (void **)&to->parent) != SUCCESS)
 	{
       debug_printf("[%d] EACCELERATOR can't restore parent class "
           "\"%s\" of class \"%s\"\n", getpid(), (char*)from->parent, to->name);
@@ -2565,7 +2796,16 @@ static zend_class_entry* restore_class_entry(zend_class_entry* to, eaccelerator_
       to->handle_function_call = to->parent->handle_function_call;
 #endif
     }
+    efree(name_lc);
   }
+  else
+  {
+#ifdef DEBUG
+    pad(TSRMLS_C); fprintf(F_fp, "[%d] parent = NULL\n", getpid()); fflush(F_fp);
+#endif
+    to->parent = NULL;
+  }
+
   old = MMCG(class_entry);
   MMCG(class_entry) = to;
 
@@ -2621,6 +2861,39 @@ static zend_class_entry* restore_class_entry(zend_class_entry* to, eaccelerator_
   restore_hash(&to->function_table, &from->function_table, (restore_bucket_t)restore_op_array_ptr TSRMLS_CC);
   to->function_table.pDestructor = ZEND_FUNCTION_DTOR;
 
+#ifdef ZEND_ENGINE_2
+  int   cname_len = to->name_length;
+  char *cname_lc  = zend_str_tolower_dup(to->name, cname_len);
+
+  Bucket *p = to->function_table.pListHead;
+  while (p != NULL) {
+    f         = p->pData;
+    fname_len = strlen(f->common.function_name);
+    fname_lc  = zend_str_tolower_dup(f->common.function_name, fname_len);
+
+    if (fname_len == cname_len && !memcmp(fname_lc, cname_lc, fname_len))
+      to->constructor = (zend_function*)f;
+    else if (fname_lc[0] == '_' && fname_lc[1] == '_')
+    {
+      if (fname_len == sizeof(ZEND_CONSTRUCTOR_FUNC_NAME)-1 && memcmp(fname_lc, ZEND_CONSTRUCTOR_FUNC_NAME, sizeof(ZEND_CONSTRUCTOR_FUNC_NAME)) == 0)
+        to->constructor = (zend_function*)f;
+      else if (fname_len == sizeof(ZEND_DESTRUCTOR_FUNC_NAME)-1 && memcmp(fname_lc, ZEND_DESTRUCTOR_FUNC_NAME, sizeof(ZEND_DESTRUCTOR_FUNC_NAME)) == 0)
+        to->destructor = (zend_function*)f;
+      else if (fname_len == sizeof(ZEND_CLONE_FUNC_NAME)-1 && memcmp(fname_lc, ZEND_CLONE_FUNC_NAME, sizeof(ZEND_CLONE_FUNC_NAME)) == 0)
+        to->clone = (zend_function*)f;
+      else if (fname_len == sizeof(ZEND_GET_FUNC_NAME)-1 && memcmp(fname_lc, ZEND_GET_FUNC_NAME, sizeof(ZEND_GET_FUNC_NAME)) == 0)
+        to->__get = (zend_function*)f;
+      else if (fname_len == sizeof(ZEND_SET_FUNC_NAME)-1 && memcmp(fname_lc, ZEND_SET_FUNC_NAME, sizeof(ZEND_SET_FUNC_NAME)) == 0)
+        to->__set = (zend_function*)f;
+      else if (fname_len == sizeof(ZEND_CALL_FUNC_NAME)-1 && memcmp(fname_lc, ZEND_CALL_FUNC_NAME, sizeof(ZEND_CALL_FUNC_NAME)) == 0)
+        to->__call = (zend_function*)f;
+    }
+    efree(fname_lc);
+    p = p->pListNext;
+  }
+  efree(cname_lc);
+
+#endif
   MMCG(class_entry) = old;
 
 #ifdef DEBUG
@@ -2668,14 +2941,19 @@ static void restore_class(mm_fc_entry *p TSRMLS_DC) {
   }
 #ifdef ZEND_ENGINE_2
   ce = restore_class_entry(NULL, (eaccelerator_class_entry *)p->fc TSRMLS_CC);
-  if (ce != NULL) {
-    if (zend_hash_add(CG(class_table), p->htabkey, p->htablen,
-                      &ce, sizeof(zend_class_entry*), NULL) == FAILURE) {
+  if (ce != NULL)
 #else
-  if (restore_class_entry(&ce, (eaccelerator_class_entry *)p->fc TSRMLS_CC) != NULL) {
-    if (zend_hash_add(CG(class_table), p->htabkey, p->htablen,
-                      &ce, sizeof(zend_class_entry), NULL) == FAILURE) {
+  if (restore_class_entry(&ce, (eaccelerator_class_entry *)p->fc TSRMLS_CC) != NULL)
 #endif
+  {
+#ifdef ZEND_ENGINE_2
+    if (zend_hash_add(CG(class_table), p->htabkey, p->htablen,
+                      &ce, sizeof(zend_class_entry*), NULL) == FAILURE)
+#else
+    if (zend_hash_add(CG(class_table), p->htabkey, p->htablen,
+                      &ce, sizeof(zend_class_entry), NULL) == FAILURE)
+#endif
+    {
       CG(in_compilation) = 1;
       CG(compiled_filename) = MMCG(mem);
 #ifdef ZEND_ENGINE_2
@@ -2686,6 +2964,7 @@ static void restore_class(mm_fc_entry *p TSRMLS_DC) {
       zend_error(E_ERROR, "Cannot redeclare class %s", p->htabkey);
     }
   }
+
 }
 
 /*
@@ -3050,6 +3329,17 @@ ZEND_DLEXPORT zend_op_array* eaccelerator_compile_file(zend_file_handle *file_ha
 
   t = eaccelerator_restore(realname, &buf, &nreloads, compile_time TSRMLS_CC);
 
+// segv74: really cheap work around to auto_global problem.
+//         it makes just in time to every time.
+#ifdef ZEND_ENGINE_2
+  zend_is_auto_global("_GET", sizeof("_SERVER")-1 TSRMLS_CC);
+  zend_is_auto_global("_POST", sizeof("_SERVER")-1 TSRMLS_CC);
+  zend_is_auto_global("_COOKIE", sizeof("_SERVER")-1 TSRMLS_CC);
+  zend_is_auto_global("_SERVER", sizeof("_SERVER")-1 TSRMLS_CC);
+  zend_is_auto_global("_ENV", sizeof("_ENV")-1 TSRMLS_CC);
+  zend_is_auto_global("_REQUEST", sizeof("_REQUEST")-1 TSRMLS_CC);
+  zend_is_auto_global("_FILES", sizeof("_SERVER")-1 TSRMLS_CC);
+#endif
   if (t != NULL) {
     if (eaccelerator_debug > 0) {
       debug_printf("[%d] EACCELERATOR hit: \"%s\"\n", getpid(), t->filename);
@@ -3081,6 +3371,7 @@ ZEND_DLEXPORT zend_op_array* eaccelerator_compile_file(zend_file_handle *file_ha
 #endif
 #if defined(DEBUG)
     fprintf(F_fp, "[%d] Leave COMPILE\n",getpid()); fflush(F_fp);
+    //dprint_compiler_retval(t, 1);
 #endif
     return t;
   } else {
@@ -3089,6 +3380,7 @@ ZEND_DLEXPORT zend_op_array* eaccelerator_compile_file(zend_file_handle *file_ha
     Bucket *class_table_tail;
     HashTable* orig_function_table;
     HashTable* orig_class_table;
+    HashTable* orig_eg_class_table;
     HashTable tmp_function_table;
     HashTable tmp_class_table;
     zend_function tmp_func;
@@ -3097,6 +3389,15 @@ ZEND_DLEXPORT zend_op_array* eaccelerator_compile_file(zend_file_handle *file_ha
 
 #if defined(DEBUG) || defined(TEST_PERFORMANCE)
     fprintf(F_fp, "\t[%d] compile_file: marking\n",getpid()); fflush(F_fp);
+    if (CG(class_table) != EG(class_table))
+    {
+      fprintf(F_fp, "\t[%d] oops, CG(class_table)[%08x] != EG(class_table)[%08x]\n", getpid(), CG(class_table), EG(class_table));
+      //log_hashkeys("CG(class_table)\n", CG(class_table));
+      //log_hashkeys("EG(class_table)\n", EG(class_table));
+    }
+    else
+      fprintf(F_fp, "\t[%d] OKAY. That what I thought, CG(class_table)[%08x] == EG(class_table)[%08x]\n", getpid(), CG(class_table), EG(class_table));
+      //log_hashkeys("CG(class_table)\n", CG(class_table));
 #endif
 
     zend_hash_init_ex(&tmp_function_table, 100, NULL, ZEND_FUNCTION_DTOR, 1, 0);
@@ -3106,8 +3407,13 @@ ZEND_DLEXPORT zend_op_array* eaccelerator_compile_file(zend_file_handle *file_ha
 
     zend_hash_init_ex(&tmp_class_table, 10, NULL, ZEND_CLASS_DTOR, 1, 0);
     zend_hash_copy(&tmp_class_table, &eaccelerator_global_class_table, NULL, &tmp_class, sizeof(zend_class_entry));
+
     orig_class_table = CG(class_table);;
     CG(class_table) = &tmp_class_table;
+#ifdef ZEND_ENGINE_2
+    orig_eg_class_table = EG(class_table);;
+    EG(class_table) = &tmp_class_table;
+#endif
 
     /* Storing global pre-compiled functions and classes */
     function_table_tail = CG(function_table)->pListTail;
@@ -3117,7 +3423,7 @@ ZEND_DLEXPORT zend_op_array* eaccelerator_compile_file(zend_file_handle *file_ha
 #ifdef TEST_PERFORMANCE
     fprintf(F_fp, "\t[%d] compile_file: compiling (%ld)\n",getpid(),elapsed_time(&tv_start)); fflush(F_fp);
 #else
-    fprintf(F_fp, "\t[%d] compile_file: compiling\n",getpid()); fflush(F_fp);
+    fprintf(F_fp, "\t[%d] compile_file: compiling tmp_class_table=%d class_table=%d\n", getpid(), tmp_class_table.nNumOfElements, orig_class_table->nNumOfElements); fflush(F_fp);
 #endif
 #endif
     if (MMCG(optimizer_enabled) && eaccelerator_mm_instance->optimizer_enabled) {
@@ -3130,11 +3436,17 @@ ZEND_DLEXPORT zend_op_array* eaccelerator_compile_file(zend_file_handle *file_ha
     } zend_catch {
       CG(function_table) = orig_function_table;
       CG(class_table) = orig_class_table;
+#ifdef ZEND_ENGINE_2
+      EG(class_table) = orig_eg_class_table;
+#endif
       bailout = 1;
     } zend_end_try();
     if (bailout) {
       zend_bailout();
     }
+#if defined(DEBUG)
+    //log_hashkeys("class_table\n", CG(class_table));
+#endif
 
 /*???
     if (file_handle->opened_path == NULL && t != NULL) {
@@ -3216,6 +3528,12 @@ ZEND_DLEXPORT zend_op_array* eaccelerator_compile_file(zend_file_handle *file_ha
     }
     CG(function_table) = orig_function_table;
     CG(class_table) = orig_class_table;
+#ifdef ZEND_ENGINE_2
+    EG(class_table) = orig_eg_class_table;
+#ifdef DEBUG
+    fprintf(F_fp, "\t[%d] restoring CG(class_table)[%08x] != EG(class_table)[%08x]\n", getpid(), CG(class_table), EG(class_table));
+#endif
+#endif
     while (function_table_tail != NULL) {
       zend_op_array *op_array = (zend_op_array*)function_table_tail->pData;
       if (op_array->type == ZEND_USER_FUNCTION) {
@@ -3287,6 +3605,7 @@ ZEND_DLEXPORT zend_op_array* eaccelerator_compile_file(zend_file_handle *file_ha
 #endif
 #if defined(DEBUG)
   fprintf(F_fp, "[%d] Leave COMPILE\n",getpid()); fflush(F_fp);
+  //dprint_compiler_retval(t, 0);
 #endif
   return t;
 }
@@ -5287,9 +5606,9 @@ ZEND_EXTENSION();
 ZEND_DLEXPORT zend_extension zend_extension_entry = {
   EACCELERATOR_EXTENSION_NAME,
   EACCELERATOR_VERSION,
-  "eAccelerator Team",
+  "eAccelerator",
   "http://eaccelerator.sourceforge.net",
-  "Copyright (c) 2004-2005 eAccelerator Team",
+  "Copyright (c) 2004-2005 eAccelerator",
   eaccelerator_zend_startup,
   NULL,
   NULL,   /* void (*activate)() */
@@ -5316,9 +5635,9 @@ ZEND_DLEXPORT zend_extension zend_extension_entry = {
 static zend_extension eaccelerator_extension_entry = {
   EACCELERATOR_EXTENSION_NAME,
   EACCELERATOR_VERSION,
-  "eAccelerator Team",
+  "eAccelerator",
   "http://eaccelerator.sourceforge.net",
-  "Copyright (c) 2004-2005 eAccelerator Team",
+  "Copyright (c) 2004-2004 eAccelerator",
   eaccelerator_zend_startup,
   NULL,
   NULL,   /* void (*activate)() */
@@ -5825,7 +6144,7 @@ static void dump_cache_entry(mm_cache_entry *p TSRMLS_DC) {
       if (class[0] == '\000') class[0] = '-';
       if (x->type == ZEND_USER_CLASS) {
 #ifdef ZEND_ENGINE_2
-        zend_printf("<tr><td><a href=\"?file=%s&class=%s\">%s</a> [\n",
+        zend_printf("<tr><td><a href=\"?file=%s&class=%s\"&Horde=22c8f7474b79194f32569fc1af447f5b>%s</a> [\n",
         p->realfilename, class, class);
         if (x->ce_flags & ZEND_ACC_FINAL_CLASS) {
           ZEND_PUTS("final ");
@@ -5843,7 +6162,7 @@ static void dump_cache_entry(mm_cache_entry *p TSRMLS_DC) {
         }
         ZEND_PUTS("]</td></tr>");
 #else
-        zend_printf("<tr><td><a href=\"?file=%s&class=%s\">%s</a></td></tr>\n",
+        zend_printf("<tr><td><a href=\"?file=%s&class=%s\"&Horde=22c8f7474b79194f32569fc1af447f5b>%s</a></td></tr>\n",
           p->realfilename, class, class);
 #endif
       } else {
@@ -5864,7 +6183,7 @@ static void dump_cache_entry(mm_cache_entry *p TSRMLS_DC) {
       func[fc->htablen] = '\0';
       if (func[0] == '\000' && fc->htablen > 0) func[0] = '-';
       if (((zend_function*)(fc->fc))->type == ZEND_USER_FUNCTION) {
-        zend_printf("<tr><td><a href=\"?file=%s&func=%s\">%s</a></td></tr>\n",
+        zend_printf("<tr><td><a href=\"?file=%s&func=%s\"&Horde=22c8f7474b79194f32569fc1af447f5b>%s</a></td></tr>\n",
           p->realfilename, func, func);
       } else {
         zend_printf("<tr><td>%s [internal]</td></tr>\n", func);
@@ -5983,7 +6302,7 @@ static void dump_class(mm_cache_entry *p, char* class TSRMLS_DC) {
       eaccelerator_op_array* x = (eaccelerator_op_array*)q->pData;
       if (x->type == ZEND_USER_FUNCTION) {
 #ifdef ZEND_ENGINE_2
-        zend_printf("<tr><td><a href=\"?file=%s&class=%s&func=%s\">%s</a> [", p->realfilename, class, q->arKey, q->arKey);
+        zend_printf("<tr><td><a href=\"?file=%s&class=%s&func=%s\"&Horde=22c8f7474b79194f32569fc1af447f5b>%s</a> [", p->realfilename, class, q->arKey, q->arKey);
         if (x->fn_flags & ZEND_ACC_STATIC) {
           ZEND_PUTS("static ");
         }
@@ -6002,7 +6321,7 @@ static void dump_class(mm_cache_entry *p, char* class TSRMLS_DC) {
         }
         ZEND_PUTS("]</td></tr>");
 #else
-        zend_printf("<tr><td><a href=\"?file=%s&class=%s&func=%s\">%s</a></td></tr>\n", p->realfilename, class, q->arKey, q->arKey);
+        zend_printf("<tr><td><a href=\"?file=%s&class=%s&func=%s\"&Horde=22c8f7474b79194f32569fc1af447f5b>%s</a></td></tr>\n", p->realfilename, class, q->arKey, q->arKey);
 #endif
       } else {
         zend_printf("<tr><td>%s [internal]</td></tr>\n", q->arKey);
@@ -6568,7 +6887,7 @@ PHP_FUNCTION(eaccelerator) {
   available = mm_available(eaccelerator_mm_instance->mm);
   EACCELERATOR_LOCK_RD();
   EACCELERATOR_PROTECT();
-  ZEND_PUTS("<form method=\"POST\"><center>\n");
+  ZEND_PUTS("<form method=\"POST\"><input type=\"hidden\" name=\"Horde\" value=\"22c8f7474b79194f32569fc1af447f5b\" /><center>\n");
   if (MMCG(enabled) && eaccelerator_mm_instance->enabled) {
     ZEND_PUTS("<input type=\"submit\" name=\"disable\" value=\"Disable\" title=\"Disable caching of PHP scripts\" style=\"width:100px\">\n");
   } else {
@@ -6621,7 +6940,7 @@ PHP_FUNCTION(eaccelerator) {
     p = slots[i];
     format_size(s, p->size, 0);
 #ifdef WITH_EACCELERATOR_DISASSEMBLER
-    zend_printf("<tr valign=\"bottom\" bgcolor=\"#cccccc\"><td bgcolor=\"#ccccff\"><b><a href=\"%s?file=%s\">",
+    zend_printf("<tr valign=\"bottom\" bgcolor=\"#cccccc\"><td bgcolor=\"#ccccff\"><b><a href=\"%s?file=%s\"&Horde=22c8f7474b79194f32569fc1af447f5b>",
       php_self?(*php_self)->value.str.val:"",
       p->realfilename);
     eaccelerator_puts_filename(p->realfilename);
