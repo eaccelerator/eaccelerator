@@ -866,6 +866,7 @@ scope_stored:
           case EXT_SEND_NOREF:
           case EXT_INIT_FCALL:
           case EXT_FETCH:
+          case EXT_FE:
           case EXT_CAST:
           case EXT_DECLARE:
           case EXT_FCLASS:

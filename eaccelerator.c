@@ -5766,6 +5766,12 @@ static const char* fetchtypename[] = {
 #endif
 };
 
+static const char* extopnames_fe[] = {
+  "",                         /* 0 */
+  "FE_FETCH_BYREF",           /* 1 */
+  "FE_FETCH_WITH_KEY"         /* 2 */
+};
+
 static void dump_write(const char* s, uint len) {
   uint i = 0;
   while (i < len) {
@@ -5887,14 +5893,81 @@ array_dump:
   }
 }
 
+static const char *color_list[] = {
+  "#FF0000",
+  "#00FF00",
+  "#0000FF",
+  "#FFFF00",
+  "#00FFFF",
+  "#FF00FF",
+  "#800000",
+  "#008000",
+  "#000080",
+  "#808000",
+  "#008080",
+  "#800080"
+};
+
+static char *color(int num) {
+  return color_list[num % (sizeof(color_list)/sizeof(char *))];
+}
+
+static char *get_file_contents(char *filename)
+{
+  struct stat st;
+  char *buf;
+  FILE *fp;
+
+  if (stat(filename, &st) == -1)
+    return NULL;
+
+  buf = emalloc(st.st_size);
+  if (buf == NULL)
+    return NULL;
+
+  fp = fopen(filename, "rb");
+  fread(buf, 1, st.st_size, fp);
+  fclose(fp);
+
+  return buf;
+}
+
+static void print_file_line(char *p, int line)
+{
+  char *s;
+
+  if (p == NULL) {
+    zend_printf("..can't open file..");
+    return;
+  }
+
+  while (line > 0 && *p) {
+    if (*p == '\n') {
+      line --;
+    }
+    else if (line == 1) {
+      if (*p == '<')
+        zend_printf("&lt;");
+      else if (*p == '>')
+        zend_printf("&gt;");
+      else
+        zend_printf("%c", *p);
+    }
+
+    p++;
+  }
+}
+
 static void dump_op_array(eaccelerator_op_array* p TSRMLS_DC) {
   zend_op *opline;
   zend_op *end;
+  char *filebuf;
+  unsigned last_line = 0;
 
 #ifdef ZEND_ENGINE_2
-  zend_printf("T = %u, size = %u\n, brk_count = %u<br>\n", p->T, p->last, p->last_brk_cont);
+  zend_printf("T = %u, size = %u\n, brk_count = %u, file = %s<br>\n", p->T, p->last, p->last_brk_cont, p->filename);
 #else
-  zend_printf("T = %u, size = %u\n, uses_globals = %d, brk_count = %u<br>\n", p->T, p->last ,p->uses_globals, p->last_brk_cont);
+  zend_printf("T = %u, size = %u\n, uses_globals = %d, brk_count = %u, file = %s<br>\n", p->T, p->last ,p->uses_globals, p->last_brk_cont, p->filename);
 #endif
 
   if (p->static_variables) {
@@ -5918,15 +5991,25 @@ static void dump_op_array(eaccelerator_op_array* p TSRMLS_DC) {
     opline = p->opcodes;
     end = opline + p->last;
 
+    filebuf = get_file_contents(p->filename);
+
     ZEND_PUTS("<table border=\"0\" cellpadding=\"3\" cellspacing=\"1\" width=\"900\" bgcolor=\"#000000\" align=\"center\" style=\"table-layout:fixed\">\n");
     ZEND_PUTS("<thead valign=\"middle\" bgcolor=\"#9999cc\"><tr><th width=\"40\">N</th><th width=\"160\">OPCODE</th><th width=\"160\">EXTENDED_VALUE</th><th width=\"220\">OP1</th><th width=\"220\">OP2</th><th width=\"80\">RESULT</th></tr></thead>\n");
     ZEND_PUTS("<tbody valign=\"top\" bgcolor=\"#cccccc\" style=\"word-break:break-all; font-size: x-small\">\n");
     for (;opline < end; opline++) {
       const opcode_dsc* op = get_opcode_dsc(opline->opcode);
+
+      while (last_line < opline->lineno) {
+        last_line++;
+        zend_printf("<tr><td colspan=6 bgcolor=black><pre><font color=#80ff80>");
+        print_file_line(filebuf, last_line);
+        zend_printf("</font></pre></td></tr>\n");
+      }
+
       if (op != NULL) {
-        zend_printf("<tr><td>%d </td><td>%s </td>",n, op->opname);
+        zend_printf("<tr><td><font color=%s>%d</font> </td><td>%s </td>",color(n), n, op->opname);
         if ((op->ops & EXT_MASK) == EXT_OPLINE) {
-          zend_printf("<td>opline(%lu) </td>",opline->extended_value);
+          zend_printf("<td><font color=%s>opline(%lu)</font> </td>",color(opline->extended_value),opline->extended_value);
         } else if ((op->ops & EXT_MASK) == EXT_FCALL) {
           zend_printf("<td>args(%lu) </td>",opline->extended_value);
         } else if ((op->ops & EXT_MASK) == EXT_ARG) {
@@ -5939,6 +6022,8 @@ static void dump_op_array(eaccelerator_op_array* p TSRMLS_DC) {
           zend_printf("<td>%s </td>", extopnames_init_fcall[opline->extended_value]);
         } else if ((op->ops & EXT_MASK) == EXT_FETCH) {
           zend_printf("<td>%s </td>", extopnames_fetch[opline->extended_value]);
+        } else if ((op->ops & EXT_MASK) == EXT_FE) {
+          zend_printf("<td>%s </td>", extopnames_fe[opline->extended_value]);
         } else if ((op->ops & EXT_MASK) == EXT_DECLARE) {
           zend_printf("<td>%s </td>", extopnames_declare[opline->extended_value]);
         } else if ((op->ops & EXT_MASK) == EXT_SEND_NOREF) {
@@ -5950,7 +6035,7 @@ static void dump_op_array(eaccelerator_op_array* p TSRMLS_DC) {
         } else if ((op->ops & EXT_MASK) == EXT_CLASS) {
           zend_printf("<td>$class%u </td>",VAR_NUM(opline->extended_value));
         } else if ((op->ops & EXT_MASK) == EXT_BIT) {
-          zend_printf("<td>%d </td>",opline->extended_value?1:0);
+          zend_printf("<td>%s </td>",opline->extended_value?"true":"false");
         } else if ((op->ops & EXT_MASK) == EXT_ISSET) {
           if (opline->extended_value == ZEND_ISSET) {
             ZEND_PUTS("<td>ZEND_ISSET </td>");
@@ -5988,10 +6073,12 @@ static void dump_op_array(eaccelerator_op_array* p TSRMLS_DC) {
       }
 
       if ((op->ops & OP1_MASK) == OP1_OPLINE) {
-        zend_printf("<td>opline(%d) </td>",opline->op1.u.opline_num);
+        zend_printf("<td><font color=%s>opline(%d)</font> </td>", color(opline->op1.u.opline_num), opline->op1.u.opline_num);
 #ifdef ZEND_ENGINE_2
       } else if ((op->ops & OP1_MASK) == OP1_JMPADDR) {
-        zend_printf("<td>opline(%u) </td>",(unsigned int)(opline->op1.u.jmp_addr - p->opcodes));
+        zend_printf("<td><font color=%s>opline(%u)</font> </td>",
+            color((unsigned int)(opline->op1.u.jmp_addr - p->opcodes)),
+            (unsigned int)(opline->op1.u.jmp_addr - p->opcodes));
       } else if ((op->ops & OP1_MASK) == OP1_CLASS) {
         zend_printf("<td>$class%u </td>",VAR_NUM(opline->op1.u.var));
       } else if ((op->ops & OP1_MASK) == OP1_UCLASS) {
@@ -6015,7 +6102,7 @@ static void dump_op_array(eaccelerator_op_array* p TSRMLS_DC) {
             jmp_to = &p->brk_cont_array[offset];
             offset = jmp_to->parent;
           } while (--level > 0);
-          zend_printf("<td>opline(%d) </td>",jmp_to->brk);
+          zend_printf("<td><font color=%s>opline(%d)</font> </td>",color(jmp_to->brk),jmp_to->brk);
         } else {
 brk_failed:
           zend_printf("<td>brk_cont(%u) </td>",opline->op1.u.opline_num);
@@ -6034,7 +6121,7 @@ brk_failed:
             jmp_to = &p->brk_cont_array[offset];
             offset = jmp_to->parent;
           } while (--level > 0);
-          zend_printf("<td>opline(%d) </td>",jmp_to->cont);
+          zend_printf("<td><font color=%s>opline(%d)</font> </td>",color(jmp_to->cont),jmp_to->cont);
         } else {
 cont_failed:
           zend_printf("<td>brk_cont(%u) </td>",opline->op1.u.opline_num);
@@ -6042,18 +6129,18 @@ cont_failed:
       } else if ((op->ops & OP1_MASK) == OP1_ARG) {
         zend_printf("<td>arg(%ld) </td>",opline->op1.u.constant.value.lval);
       } else if ((op->ops & OP1_MASK) == OP1_VAR) {
-        zend_printf("<td>$var%u </td>",VAR_NUM(opline->op1.u.var));
+        zend_printf("<td><font color=%s>$var%u</font> </td>", color(VAR_NUM(opline->op1.u.var)), VAR_NUM(opline->op1.u.var));
       } else if ((op->ops & OP1_MASK) == OP1_TMP) {
-        zend_printf("<td>$tmp%u </td>",VAR_NUM(opline->op1.u.var));
+        zend_printf("<td><font color=%s>$tmp%u</font> </td>", color(VAR_NUM(opline->op1.u.var)), VAR_NUM(opline->op1.u.var));
       } else {
         if (opline->op1.op_type == IS_CONST) {
           ZEND_PUTS("<td>");
           dump_zval(&opline->op1.u.constant, 0);
           ZEND_PUTS(" </td>");
         } else if (opline->op1.op_type == IS_TMP_VAR) {
-          zend_printf("<td>$tmp%u </td>",VAR_NUM(opline->op1.u.var));
+          zend_printf("<td><font color=%s>$tmp%u</font> </td>", color(VAR_NUM(opline->op1.u.var)), VAR_NUM(opline->op1.u.var));
         } else if (opline->op1.op_type == IS_VAR) {
-          zend_printf("<td>$var%u </td>",VAR_NUM(opline->op1.u.var));
+          zend_printf("<td><font color=%s>$var%u</font> </td>", color(VAR_NUM(opline->op1.u.var)), VAR_NUM(opline->op1.u.var));
         } else if (opline->op1.op_type == IS_UNUSED) {
           ZEND_PUTS("<td>&nbsp;</td>");
         } else {
@@ -6062,15 +6149,15 @@ cont_failed:
       }
 
       if ((op->ops & OP2_MASK) == OP2_OPLINE) {
-        zend_printf("<td>opline(%d) </td>",opline->op2.u.opline_num);
+        zend_printf("<td><font color=%s>opline(%d)</font> </td>",color(opline->op2.u.opline_num),opline->op2.u.opline_num);
 #ifdef ZEND_ENGINE_2
       } else if ((op->ops & OP2_MASK) == OP2_JMPADDR) {
-        zend_printf("<td>opline(%u) </td>",(unsigned int)(opline->op2.u.jmp_addr - p->opcodes));
+        zend_printf("<td><font color=%s>opline(%u)</font> </td>",color((unsigned int)(opline->op2.u.jmp_addr - p->opcodes)),(unsigned int)(opline->op2.u.jmp_addr - p->opcodes));
       } else if ((op->ops & OP2_MASK) == OP2_CLASS) {
           zend_printf("<td>$class%u </td>",VAR_NUM(opline->op2.u.var));
 #endif
       } else if ((op->ops & OP2_MASK) == OP2_VAR) {
-          zend_printf("<td>$var%u </td>",VAR_NUM(opline->op2.u.var));
+          zend_printf("<td><font color=%s>$var%u</font> </td>", color(VAR_NUM(opline->op2.u.var)), VAR_NUM(opline->op2.u.var));
       } else if ((op->ops & OP2_MASK) == OP2_FETCH) {
 #ifdef ZEND_ENGINE_2
         if (opline->op2.u.EA.type == ZEND_FETCH_STATIC_MEMBER) {
@@ -6111,9 +6198,9 @@ cont_failed:
           dump_zval(&opline->op2.u.constant, 0);
           ZEND_PUTS(" </td>");
         } else if (opline->op2.op_type == IS_TMP_VAR) {
-          zend_printf("<td>$tmp%u </td>",VAR_NUM(opline->op2.u.var));
+          zend_printf("<td><font color=%s>$tmp%u</font> </td>", color(VAR_NUM(opline->op2.u.var)), VAR_NUM(opline->op2.u.var));
         } else if (opline->op2.op_type == IS_VAR) {
-          zend_printf("<td>$var%u </td>",VAR_NUM(opline->op2.u.var));
+          zend_printf("<td><font color=%s>$var%u</font> </td>", color(VAR_NUM(opline->op2.u.var)), VAR_NUM(opline->op2.u.var));
         } else if (opline->op2.op_type == IS_UNUSED) {
           ZEND_PUTS("<td>&nbsp; </td>");
         } else {
@@ -6128,12 +6215,12 @@ cont_failed:
             dump_zval(&opline->result.u.constant, 0);
             ZEND_PUTS("</td>");
           } else if (opline->result.op_type == IS_TMP_VAR) {
-            zend_printf("<td>$tmp%u</td>",VAR_NUM(opline->result.u.var));
+            zend_printf("<td><font color=%s>$tmp%u</font> </td>", color(VAR_NUM(opline->op2.u.var)), VAR_NUM(opline->op2.u.var));
           } else if (opline->result.op_type == IS_VAR) {
             if ((opline->result.u.EA.type & EXT_TYPE_UNUSED) != 0)
-              zend_printf("<td>$var%u <small>(unused)</small></td>",VAR_NUM(opline->result.u.var));
+              zend_printf("<td><font color=%s>$var%u <small>(unused)</small></font> </td>", color(VAR_NUM(opline->result.u.var)), VAR_NUM(opline->result.u.var));
             else
-              zend_printf("<td>$var%u</td>",VAR_NUM(opline->result.u.var));
+              zend_printf("<td><font color=%s>$var%u</font> </td>", color(VAR_NUM(opline->result.u.var)), VAR_NUM(opline->result.u.var));
           } else if (opline->result.op_type == IS_UNUSED) {
             ZEND_PUTS("<td>&nbsp;</td>");
           } else {
@@ -6144,13 +6231,13 @@ cont_failed:
           zend_printf("<td>$class%u</td>",VAR_NUM(opline->result.u.var));
           break;
         case RES_TMP:
-          zend_printf("<td>$tmp%u</td>",VAR_NUM(opline->result.u.var));
+          zend_printf("<td><font color=%s>$tmp%u</font> </td>", color(VAR_NUM(opline->result.u.var)), VAR_NUM(opline->result.u.var));
           break;
         case RES_VAR:
           if ((opline->result.u.EA.type & EXT_TYPE_UNUSED) != 0) {
-            zend_printf("<td>$var%u <small>(unused)</small></td>",VAR_NUM(opline->result.u.var));
+            zend_printf("<td><font color=%s>$var%u <small>(unused)</small></font> </td>", color(VAR_NUM(opline->result.u.var)), VAR_NUM(opline->result.u.var));
           } else {
-            zend_printf("<td>$var%u</td>",VAR_NUM(opline->result.u.var));
+            zend_printf("<td><font color=%s>$var%u</font> </td>", color(VAR_NUM(opline->result.u.var)), VAR_NUM(opline->result.u.var));
           }
           break;
         case RES_UNUSED:
@@ -6164,6 +6251,8 @@ cont_failed:
       n++;
     }
     ZEND_PUTS("</tbody></table>\n");
+
+    efree(filebuf);
   }
 }
 

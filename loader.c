@@ -605,6 +605,7 @@ static zend_op_array* decode_op_array(zend_op_array *to, char** p, unsigned int*
           case EXT_SEND_NOREF:
           case EXT_INIT_FCALL:
           case EXT_FETCH:
+          case EXT_FE:
           case EXT_CAST:
           case EXT_DECLARE:
           case EXT_FCLASS:
