@@ -1,6 +1,7 @@
 2004-12-27  Everaldo Canuto <everaldo_canuto at yahoo.com.br>
 
         * encoder.c Increment encoder version.
+        * encoder.php Fix name of standalone loader "eloader".
 
 2004-12-27  Shin Seung Woo <segv74 at gmail.com>
 
