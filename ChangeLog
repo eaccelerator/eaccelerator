@@ -3,6 +3,7 @@
         * encoder.c Increment encoder version.
         * encoder.php Fix name of standalone loader "eloader".
         * win32/* build files for VS6, Thanks to Lyle Arnot.
+        * accelerator_version.h Release updated to 0.9.2.
 
 2004-12-27  Shin Seung Woo <segv74 at gmail.com>
 
