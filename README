@@ -3,40 +3,41 @@ eAccelerator for PHP
 
 What is eAccelerator?
 ----------------------
-eAccelerator is a free open source PHP accelerator, optimizer, encoder and
-dynamic content cache for PHP. It increases performance of PHP scripts
-by caching them in compiled state, so that the overhead of compiling is almost
-completely eliminated. Also it uses some optimizations to speed up execution
-of PHP scripts. eAccelerator typically reduces server load and increases
-the speed of your PHP code by 1-10 times.
+eAccelerator is a free open source PHP  accelerator,  optimizer,  encoder  and
+dynamic content cache for PHP. It increases  performance  of  PHP  scripts  by 
+caching them in compiled state, so that the overhead of  compiling  is  almost
+completely eliminated. Also it uses some optimizations to speed  up  execution
+of PHP scripts. eAccelerator typically reduces server load and  increases  the
+speed of your PHP code by 1-10 times.
 
-eAccelerator stores compiled PHP scripts in shared memory and executes code
-directly from it. It creates locks only for short time, while searching
+eAccelerator stores compiled PHP scripts in shared memory  and  executes  code
+directly from it. It creates  locks  only  for  short  time,  while  searching 
 compiled PHP script in the cache, so one script can be executed simultaneously
-by several engines. MM shared memory library (http://www.engelschall.com/sw/mm/)
-was used by eAccelerator before version 2.3.13 for management of the shared
-memory and locking. Files that can't fit in shared memory are cached on disk only.
+by several engines. MM shared memory library http://www.engelschall.com/sw/mm/
+was used by eAccelerator before version 2.3.13 for management  of  the  shared
+memory and locking. Files that can't fit in shared memory are cached  on  disk
+only.
 
 eAccelerator was first launched in 2001 to speed up the www.guestbooks4all.com
 service. It has been tested with PHP 4.1.0 - 4.3.3 under GNU/Linux and Windows
-with Apache 1.3 and 2.0.
-Patches for ports to other OSs and PHP versions are welcome.
+with Apache 1.3 and 2.0. Patches for ports to other OSs and PHP  versions  are 
+welcome.
 
-Since version 2.3.10, eAccelerator contains a PHP encoder and loader.
-You can encode PHP scripts using encoder.php in order to distribute them without
-sources. Encoded files can be run on any site which runs PHP with eAccelerator
-2.3.10 or above. The sources of encoded scripts can't be restored because
-they are stored in a compiled form and the encoded version doesn't contain
-the source. Of course, some internals of the scripts can be restored with
-different reverse engineering tools (disassemblers, debuggers, etc), but it is
-not trivial.
+eAccelerator contains a PHP encoder and loader. You  can  encode  PHP  scripts
+using encoder.php in order to distribute them without sources.  Encoded  files 
+can be run on any site which  runs  PHP  with  eAccelerator.  The  sources  of
+encoded scripts can't be restored because they are stored in a  compiled  form
+and the encoded version doesn't contain the source. Of course, some  internals
+of the scripts can  be  restored  with  different  reverse  engineering  tools
+(disassemblers, debuggers, etc), but it is not trivial.
 
-Since version 2.3.15, eAccelerator is compatible with Zend Optimizer's
-loader. Zend Optimizer must be installed after eAccelerator in php.ini.
-If you don't use scripts encoded with Zend Encoder then we do not recommend
-you install Zend Optimizer with eAccelerator.
+eAccelerator is compatible with Zend Optimizer's loader. Zend  Optimizer  must
+be installed after eAccelerator in php.ini. If you don't use  scripts  encoded
+with Zend Encoder then we do not recommend you  install  Zend  Optimizer  with
+eAccelerator.
 
 eAccelerator does not work in CGI mode.
+
 
 Here are some other products that provide the same functionality:
 
@@ -48,8 +49,8 @@ Here are some other products that provide the same functionality:
 
 Where is eAccelerator already used?
 -----------------------------------
-The following you will find a list of sites that use eAccelerator
-If you want to be added, please send e-mail to frankalcantara@users.sourceforge.net
+The following you will find a list of sites that use eAccelerator. If you want
+to be added, please send e-mail to frankalcantara at users.sourceforge.net
 
  - HomePage Title (http://www.xxx.com)
    homepage description
@@ -69,8 +70,8 @@ apache 1.3, mod_php 4.1, autoconf, automake, libtool, m4
 Compatibility
 -------------
 This version of the eAccelerator has been successfully tested on PHP
-4.1.0-4.3.3 under RedHat Linux 7.0, 7.3, 8.0 and Windows
-with Apache 1.3 and 2.0.
+4.1.0-4.3.3 under RedHat Linux 7.0, 7.3, 8.0 and Windows with Apache 1.3 
+and Apache 2.0.
 
 
 Quick install
@@ -78,8 +79,13 @@ Quick install
 Step 1. Compiling eAccelerator
 
   export PHP_PREFIX="/usr"
+  
   $PHP_PREFIX/bin/phpize
-  ./configure --enable-eaccelerator=shared --with-php-config=$PHP_PREFIX/bin/php-config
+  
+  ./configure \
+  --enable-eaccelerator=shared \
+  --with-php-config=$PHP_PREFIX/bin/php-config
+  
   make
 
   You must specify the real prefix where PHP is installed in the "export"
@@ -146,65 +152,64 @@ eaccelerator.shm_size
 
 eaccelerator.cache_dir
     The directory that is used for disk cache. eAccelerator stores precompiled
-    code, session data, content and user entries  here. The same data can be
+    code, session data, content and user entries  here. The same data  can  be
     stored in shared memory also (for more quick access). Default value is
     "/tmp/eaccelerator".
 
 eaccelerator.enable
-    Enables or disables eAccelerator. Should be "1" for enabling or
-    "0" for disabling. Default value is "1".
+    Enables or disables eAccelerator. Should be "1" for enabling  or  "0"  for
+    disabling. Default value is "1".
 
 eaccelerator.optimizer
-    Enables or disables internal peephole optimizer which may speed up code
-    execution. Should be "1" for enabling or "0" for disabling.
-    Default value is "1".
+    Enables or disables internal peephole optimizer which may  speed  up  code
+    execution. Should be "1" for enabling or "0" for disabling. Default  value
+    is "1".
 
 eaccelerator.debug
-    Enables or disables debug logging. Should be "1" for enabling or
-    "0" for disabling. Default value is "0".
+    Enables or disables debug logging. Should be "1" for enabling or  "0"  for
+    disabling. Default value is "0".
 
 eaccelerator.check_mtime
-    Enables or disables PHP file modification checking. Should be "1"
-    for enabling or "0" for disabling. You should set it to "1" if you want
-    to recompile PHP files after modification. Default value is "1".
+    Enables or disables PHP file modification checking .  Should  be  "1"  for
+    enabling or "0" for disabling. You should set it to "1"  if  you  want  to
+    recompile PHP files after modification. Default value is "1".
 
 eaccelerator.filter
-    Determine which PHP files must be cached. You may specify the number of
-    patterns (for example "*.php *.phtml") which specifies to cache or
-    not to cache. If pattern starts with the character "!", it means to ignore
-    files which are matched by the following pattern. Default value is "" that
-    means - all PHP scripts will be cached.
+    Determine which PHP files must be cached. You may specify  the  number  of
+    patterns (for example "*.php *.phtml") which specifies to cache or not  to
+    cache. If pattern starts with the character "!", it means to ignore  files
+    which are matched by the following pattern. Default value is "" that means 
+    all PHP scripts will be cached.
 
 eaccelerator.shm_max
-    Disables putting large values into shared memory by "eaccelerator_put()"
-    function.
-    It indicates the largest allowed size in bytes (10240, 10K, 1M). The "0"
-    disables the limit. Default value is "0".
+    Disables putting large values into shared memory by " eaccelerator_put() "
+    function. It indicates the largest allowed size in bytes (10240, 10K, 1M). 
+    The "0" disables the limit. Default value is "0".
 
 eaccelerator.shm_ttl
     When eaccelerator fails to get shared memory for new script it removes all
-    scripts which were not accessed at last "shm_ttl" seconds from shared
-    memory. Default value is "0" that means - don't remove any files from
+    scripts which were not accessed  at  last "shm_ttl"  seconds  from  shared
+    memory. Default value is "0" that means -  don't  remove  any  files  from
     shared memory.
 
 eaccelerator.shm_prune_period
-    When eaccelerator fails to get shared memory for new script it tryes to 
-    remove old script if the previous try was made more then "shm_prune_period"
-    seconds ago. Default value is "0" that means - don't try to remove any
-    files from shared memory.
+    When eaccelerator fails to get shared memory for new script  it  tryes  to
+    remove  old  script   if   the   previous   try   was   made   more   then
+    "shm_prune_period" seconds ago. Default value is "0" that  means  -  don't
+    try to remove any files from shared memory.
 
 eaccelerator.shm_only
-    Enables or disables caching of compiled scripts on disk. It has no effect
-    on session data and content caching. Default value is "0" that means -
-    use disk and shared memory for caching.
+    Enables or disables caching of compiled scripts on disk. It has  no  effect
+    on session data and content caching. Default value is "0" that means -  use
+    disk and shared memory for caching.
 
 eaccelerator.compress
-    Enables or disables cached content compression. Default value is "1" that
+    Enables or disables cached content compression. Default value is  "1"  that
     means enable compression.
 
 eaccelerator.compress_level
-    Compression level used for content caching.  Default value is "9" which
-    is the maximum value
+    Compression level used for content caching.  Default value is "9" which  is
+    the maximum value
     
 eaccelerator.keys
 eaccelerator.sessions
@@ -226,8 +231,8 @@ eaccelerator_put($key, $value, $ttl=0)
   puts the $value into shard memory for $ttl seconds.
 
 eaccelerator_get($key)
-  returns the value from shared memory which was stored by eaccelerator_put() or
-  null if it is not exists or was expired.
+  returns the value from shared memory which was stored by  eaccelerator_put()
+  or null if it is not exists or was expired.
 
 eaccelerator_rm($key)
   removres the $key from shared memory
@@ -236,7 +241,7 @@ eaccelerator_gc()
   removes all expired keys from shared memory
 
 eaccelerator_lock($lock)
-  creates a lock with specified name. The lock can be released by function
+  creates a lock with specified name. The lock can  be  released  by  function
   eaccelerator_unlock() or automatic on the end of request.
   For Example:
   <?php
@@ -268,13 +273,13 @@ eaccelerator_cache_page($key, $ttl=0)
   caches the full page for $ttl seconds.
   For Example:
   <?php
-    eaccelerator_cache_page($_SERVER['PHP_SELF'].'?GET='.serialize($_GET), 30);
+    eaccelerator_cache_page($_SERVER['PHP_SELF'].'?GET='.serialize($_GET),30);
     echo time();
     phpinfo();
   ?>
 
 eaccelerator_rm_page($key)
-  removes the page which was cached by eaccelerator_cache_page() with the same 
+  removes the page which was cached by eaccelerator_cache_page() with the same
   $key from cache
 
 eaccelerator_encode($filename)
@@ -285,13 +290,13 @@ eaccelerator_load($code)
 
 WEB interface
 -------------
-eAccelerator can be managed through web interface script eaccelerator.php.
-So you need to put this file on your web site. For security reasons it is
+eAccelerator can be managed through web interface script  eaccelerator.php. So
+you need to put this file on  your  web  site.  For  security  reasons  it  is
 recommended to restrict the usage of this script by your local IP.
 
-Since version 2.3.18 admin interface may be protected by password.
-To generate password run the eaccelerator_password.php from command line and
-follow the instruction.
+Since version 2.3.18 admin interface may be protected by password. To generate
+password run the eaccelerator_password.php from command line  and  follow  the 
+instruction.
 
   $ php -q eaccelerator_password.php
   Changing password for eAccelerator Web Interface (eaccelerator.php)
@@ -305,7 +310,7 @@ follow the instruction.
   eaccelerator.admin.name="admin"
   eaccelerator.admin.password="$1$0ScD9gkb$nOEmFerNMvQ576hELeLrG0"
 
-If you use eaccelerator.php in directory that is password-protected by HTTPD 
+If you use eaccelerator.php in directory that is password-protected  by  HTTPD
 then eaccelerator's admin name and password must be the same.
 
 
