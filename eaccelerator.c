@@ -2439,6 +2439,8 @@ static zend_op_array* restore_op_array(zend_op_array *to, eaccelerator_op_array 
 #endif
   to->function_name    = from->function_name;
 
+#ifdef ZEND_ENGINE_2
+  
   int    fname_len;
   char  *fname_lc;
 
@@ -2447,7 +2449,7 @@ static zend_op_array* restore_op_array(zend_op_array *to, eaccelerator_op_array 
     fname_len = strlen(to->function_name);
     fname_lc  = zend_str_tolower_dup(to->function_name, fname_len);
   }
-#ifdef ZEND_ENGINE_2
+
   to->fn_flags         = from->fn_flags;
 
   /* segv74:
@@ -2623,7 +2625,11 @@ static zend_op_array* restore_op_array(zend_op_array *to, eaccelerator_op_array 
     if (ce != NULL &&
 		ce->parent != NULL &&
 		zend_hash_find(&ce->parent->function_table,
+#ifdef ZEND_ENGINE_2
 			fname_lc, fname_len+1,
+#else
+			to->function_name, strlen(to->function_name)+1,
+#endif
 			(void **) &function)==SUCCESS &&
 		function->type == ZEND_INTERNAL_FUNCTION)
 	{
@@ -2762,10 +2768,14 @@ static zend_class_entry* restore_class_entry(zend_class_entry* to, eaccelerator_
   if (from->parent != NULL)
   {
     int   name_len = strlen(from->parent);
+#ifdef ZEND_ENGINE_2    
     char *name_lc  = zend_str_tolower_dup(from->parent, name_len);
 
     if (zend_hash_find(CG(class_table), (void *)name_lc, name_len+1, (void **)&to->parent) != SUCCESS)
-	{
+#else
+    if (zend_hash_find(CG(class_table), (void *)from->parent, name_len+1, (void **)&to->parent) != SUCCESS)
+#endif
+    {
       debug_printf("[%d] EACCELERATOR can't restore parent class "
           "\"%s\" of class \"%s\"\n", getpid(), (char*)from->parent, to->name);
       to->parent = NULL;
@@ -2790,13 +2800,14 @@ static zend_class_entry* restore_class_entry(zend_class_entry* to, eaccelerator_
       to->__set  = to->parent->__set;
       to->__call = to->parent->__call;
 	  to->create_object = to->parent->create_object;
+    }
+    efree(name_lc);
 #else
 	  to->handle_property_get  = to->parent->handle_property_get;
       to->handle_property_set  = to->parent->handle_property_set;
       to->handle_function_call = to->parent->handle_function_call;
-#endif
     }
-    efree(name_lc);
+#endif
   }
   else
   {
