@@ -3507,9 +3507,19 @@ ZEND_DLEXPORT zend_op_array* eaccelerator_compile_file(zend_file_handle *file_ha
         CG(in_compilation) = 1;
         zend_set_compiled_filename(t->filename TSRMLS_CC);
         CG(zend_lineno) = t->opcodes[1].lineno;
-        new_t = eaccelerator_load(
-          t->opcodes[0].op1.u.constant.value.str.val,
-          t->opcodes[0].op1.u.constant.value.str.len TSRMLS_CC);
+
+        zend_try {
+          new_t = eaccelerator_load(
+            t->opcodes[0].op1.u.constant.value.str.val,
+            t->opcodes[0].op1.u.constant.value.str.len TSRMLS_CC);
+        } zend_catch {
+            CG(function_table)	= orig_function_table;
+            CG(class_table)		= orig_class_table;
+            bailout				= 1;
+        } zend_end_try();
+        if (bailout) {
+          zend_bailout ();
+        }
         CG(in_compilation) = old_in_compilation;
         CG(compiled_filename) = old_filename;
         CG(zend_lineno) = old_lineno;
