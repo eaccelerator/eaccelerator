@@ -22,7 +22,7 @@
    |                                                                      |
    | A copy is availble at http://www.gnu.org/copyleft/gpl.txt            |
    +----------------------------------------------------------------------+
-   | Author(s): Dmitry Stogov <dstogov at users.sourceforge.net>          |
+   | Author(s): Dmitry Stogov <dstogov@users.sourceforge.net>             |
    +----------------------------------------------------------------------+
    $Id$
 */
