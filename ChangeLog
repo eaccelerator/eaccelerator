@@ -2,6 +2,7 @@
 
         * win32/* build files for Visual Studio, now works in Win32. Thanks 
         Lyle Arnot for provide this files.
+        * eLoader added eLoader is a standalone loader for encode files.
 
 2004-12-24  Everaldo Canuto <everaldo_canuto at yahoo.com.br>
 

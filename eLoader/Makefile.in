@@ -1,0 +1,7 @@
+LTLIBRARY_NAME        = libeloader.la
+LTLIBRARY_SOURCES     = loader.c opcodes.c
+LTLIBRARY_SHARED_NAME = eloader.la
+
+EXTRA_CFLAGS = -O3
+
+include $(top_srcdir)/build/dynlib.mk
