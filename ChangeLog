@@ -3,7 +3,8 @@
         * win32/* build files for Visual Studio, now works in Win32. Thanks 
         Lyle Arnot for provide this files.
         * eLoader added eLoader is a standalone loader for encode files.
-        * eaccelerator.name_space config parameter added. Patch 1090379
+        * eaccelerator.name_space config parameter added. Patch 1090379.
+        * fix foreach error in PHP 4.3.10. Thanks to Ilkka Huotari.
 
 2004-12-24  Everaldo Canuto <everaldo_canuto at yahoo.com.br>
 

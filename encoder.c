@@ -855,7 +855,12 @@ scope_stored:
 #endif
         switch (ops & EXT_MASK) {
           case EXT_UNUSED:
-            break;
+             /* To fix foreach error in PHP 4.3.10 - need to verify later. */
+             if (opline->opcode == ZEND_FE_FETCH)
+             {
+               encode((unsigned char)opline->extended_value);
+             }
+             break;
           case EXT_STD:
           case EXT_FCALL:
           case EXT_ARG:
