@@ -58,7 +58,7 @@ function eaccelerator_encode_file($src, $out, $f, $c, $web) {
       }
     }
   } else {
-    $cmp = $prefix.'<?php if (!is_callable("eaccelerator_load") && !@dl((PHP_OS=="WINNT"||PHP_OS=="WIN32")?"oloader.dll":"oloader.so")) { die("This PHP script has been encoded with eAccelerator, to run it you must install <a href=\"http://eaccelerator.sourceforge.net/\">eAccelerator or eLoader</a>");} return eaccelerator_load(\''.$cmp."');?>\n";
+    $cmp = $prefix.'<?php if (!is_callable("eaccelerator_load") && !@dl((PHP_OS=="WINNT"||PHP_OS=="WIN32")?"eloader.dll":"eloader.so")) { die("This PHP script has been encoded with eAccelerator, to run it you must install <a href=\"http://eaccelerator.sourceforge.net/\">eAccelerator or eLoader</a>");} return eaccelerator_load(\''.$cmp."');?>\n";
     if (!empty($out)) {
       if (!$f && file_exists($out)) {
         eaccelerator_error("Can't create output file \"$out\" (already exists)",$web);

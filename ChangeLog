@@ -1,3 +1,7 @@
+2004-12-28  Everaldo Canuto <everaldo_canuto at yahoo.com.br>
+
+        * encoder.php Fix references to "oloader".
+
 2004-12-28 Reiner Jung <r.jung at think-e.com.br>
 
         * eAccelerator 0.9.2a release
