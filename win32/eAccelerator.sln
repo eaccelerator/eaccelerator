@@ -1,0 +1,39 @@
+Microsoft Visual Studio Solution File, Format Version 8.00
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "eAccelerator", "eAccelerator.vcproj", "{9CB8051E-B608-430D-B6AA-D763031A94B7}"
+	ProjectSection(ProjectDependencies) = postProject
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "eLoader", "eLoader.vcproj", "{5FCBC0AF-2EBB-461F-9971-9272472602E7}"
+	ProjectSection(ProjectDependencies) = postProject
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfiguration) = preSolution
+		Debug = Debug
+		Debug PHP5 = Debug PHP5
+		Release = Release
+		Release PHP5 = Release PHP5
+	EndGlobalSection
+	GlobalSection(ProjectConfiguration) = postSolution
+		{9CB8051E-B608-430D-B6AA-D763031A94B7}.Debug.ActiveCfg = Debug|Win32
+		{9CB8051E-B608-430D-B6AA-D763031A94B7}.Debug.Build.0 = Debug|Win32
+		{9CB8051E-B608-430D-B6AA-D763031A94B7}.Debug PHP5.ActiveCfg = Debug PHP5|Win32
+		{9CB8051E-B608-430D-B6AA-D763031A94B7}.Debug PHP5.Build.0 = Debug PHP5|Win32
+		{9CB8051E-B608-430D-B6AA-D763031A94B7}.Release.ActiveCfg = Release|Win32
+		{9CB8051E-B608-430D-B6AA-D763031A94B7}.Release.Build.0 = Release|Win32
+		{9CB8051E-B608-430D-B6AA-D763031A94B7}.Release PHP5.ActiveCfg = Release PHP5|Win32
+		{9CB8051E-B608-430D-B6AA-D763031A94B7}.Release PHP5.Build.0 = Release PHP5|Win32
+		{5FCBC0AF-2EBB-461F-9971-9272472602E7}.Debug.ActiveCfg = Debug|Win32
+		{5FCBC0AF-2EBB-461F-9971-9272472602E7}.Debug.Build.0 = Debug|Win32
+		{5FCBC0AF-2EBB-461F-9971-9272472602E7}.Debug PHP5.ActiveCfg = Debug PHP5|Win32
+		{5FCBC0AF-2EBB-461F-9971-9272472602E7}.Debug PHP5.Build.0 = Debug PHP5|Win32
+		{5FCBC0AF-2EBB-461F-9971-9272472602E7}.Release.ActiveCfg = Release|Win32
+		{5FCBC0AF-2EBB-461F-9971-9272472602E7}.Release.Build.0 = Release|Win32
+		{5FCBC0AF-2EBB-461F-9971-9272472602E7}.Release PHP5.ActiveCfg = Release PHP5|Win32
+		{5FCBC0AF-2EBB-461F-9971-9272472602E7}.Release PHP5.Build.0 = Release PHP5|Win32
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+	EndGlobalSection
+	GlobalSection(ExtensibilityAddIns) = postSolution
+	EndGlobalSection
+EndGlobal

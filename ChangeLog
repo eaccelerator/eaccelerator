@@ -1,3 +1,8 @@
+2004-12-25  Everaldo Canuto <everaldo_canuto at yahoo.com.br>
+
+        * win32/* build files for Visual Studio, now works in Win32. Thanks 
+        Lyle Arnot for provide this files.
+
 2004-12-24  Everaldo Canuto <everaldo_canuto at yahoo.com.br>
 
         * loader.c fixed constant COMPILE_DL_ELOADER. Thanks to Lyle A. 
