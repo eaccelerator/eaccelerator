@@ -169,7 +169,7 @@ static const opcode_dsc opcodes[] = {
   OPDEF("ISSET_ISEMPTY",             EXT_UNUSED | OP1_VAR    | OP2_ISSET  | RES_TMP), /* 76 */
 #endif
   OPDEF("FE_RESET",                  EXT_BIT    | OP1_STD    | OP2_UNUSED | RES_VAR), /* 77 */
-  OPDEF("FE_FETCH",                  EXT_UNUSED | OP1_STD    | OP2_OPLINE | RES_TMP), /* 78 */
+  OPDEF("FE_FETCH",                  EXT_FETCH  | OP1_STD    | OP2_OPLINE | RES_TMP), /* 78 */
   OPDEF("EXIT",                      EXT_UNUSED | OP1_STD    | OP2_UNUSED | RES_UNUSED), /* 79 */
   OPDEF("FETCH_R",                   EXT_UNUSED | OP1_STD    | OP2_FETCH  | RES_VAR), /* 80 */
   OPDEF("FETCH_DIM_R",               EXT_FETCH  | OP1_VAR    | OP2_STD    | RES_VAR), /* 81 */

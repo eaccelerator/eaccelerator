@@ -594,11 +594,6 @@ static zend_op_array* decode_op_array(zend_op_array *to, char** p, unsigned int*
 
         switch (ops & EXT_MASK) {
           case EXT_UNUSED:
-            /* To fix foreach error in PHP 4.3.10 - need to verify later. */
-            if (opline->opcode == ZEND_FE_FETCH)
-            {
-              opline->extended_value = decode(p, l);
-            }
             break;
           case EXT_STD:
           case EXT_FCALL:
