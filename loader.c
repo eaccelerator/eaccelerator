@@ -1057,15 +1057,15 @@ zend_op_array* eaccelerator_load(char* src, int src_len TSRMLS_DC) {
               }
             } else {
               error_reported = 1;
-              zend_error(E_ERROR, "eAccelerator Loader can't load code. Icorrect Zend Engine version");
+              zend_error(E_ERROR, "eAccelerator Loader can't load code. Incorrect Zend Engine version");
             }
           } else {
             error_reported = 1;
-            zend_error(E_ERROR, "eAccelerator Loader can't load code. Icorrect eAccelerator encoder version (%u)", v);
+            zend_error(E_ERROR, "eAccelerator Loader can't load code. Incorrect eAccelerator encoder version (%u)", v);
           }
         } else {
           error_reported = 1;
-          zend_error(E_ERROR, "eAccelerator Loader can't load code. Icorrect code");
+          zend_error(E_ERROR, "eAccelerator Loader can't load code. Incorrect code");
         }
       } zend_catch {
         CG(in_compilation) = old_in_compilation;
@@ -1079,7 +1079,7 @@ zend_op_array* eaccelerator_load(char* src, int src_len TSRMLS_DC) {
     if (error_reported) {
       zend_bailout();
     } else {
-      zend_error(E_ERROR, "eAccelerator Loader can't load code. Icorrect code");
+      zend_error(E_ERROR, "eAccelerator Loader can't load code. Incorrect code");
     }
   }
   return to;
