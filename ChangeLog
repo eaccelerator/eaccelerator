@@ -1,7 +1,11 @@
+2004-12-23  Everaldo Canuto <everaldo_canuto at yahoo.com.br>
+
+        * COPYING license file fixed.
+
 2004-12-22 ReinerJ <reinerj at users.sourceforge.net>
 
         * eaccelerator.ini for distrib which have /etc/php.d
-        
+
 2004-12-22 Franck34 <franck34 at users.sourceforge.net>
 
         * README file updated
