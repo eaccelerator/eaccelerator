@@ -12,6 +12,8 @@
 2004-12-27  Shin Seung Woo <segv74 at gmail.com>
 
         * optimize.c Fix array -= += .= bug in PHP5.
+        * Pretty disassembler's output.
+        * Change FE_FETCH's opcode type from EXT_FETCH to EXT_FE (FE = foreach).
 
 2004-12-25  Everaldo Canuto <everaldo_canuto at yahoo.com.br>
 
