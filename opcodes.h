@@ -1,6 +1,6 @@
 /*
    +----------------------------------------------------------------------+
-   | eAccelerator project                                                 |
+  | eAccelerator project                                                 |
    +----------------------------------------------------------------------+
    | Copyright (c) 2004 eAccelerator                                      |
    | http://eaccelerator.sourceforge.net                                  |
