@@ -4862,7 +4862,7 @@ static void eaccelerator_clean_request(TSRMLS_D) {
   MMCG(in_request) = 0;
 }
 
-static void eaccelerator_clean_shutdown(void) {
+static void __attribute__((destructor)) eaccelerator_clean_shutdown(void) {
   if (eaccelerator_mm_instance != NULL) {
     TSRMLS_FETCH();
     if (MMCG(in_request)) {
@@ -5069,7 +5069,9 @@ PHP_MINIT_FUNCTION(eaccelerator) {
     zend_execute = eaccelerator_execute;
 #endif
 #endif
+#ifndef HAS_ATTRIBUTE
     atexit(eaccelerator_clean_shutdown);
+#endif
   }
 #if defined(WITH_EACCELERATOR_SESSIONS) && defined(HAVE_PHP_SESSIONS_SUPPORT)
     if (eaccelerator_sessions_cache_place != eaccelerator_none &&

@@ -23,6 +23,7 @@
    | A copy is availble at http://www.gnu.org/copyleft/gpl.txt            |
    +----------------------------------------------------------------------+
    | Author(s): Dmitry Stogov <dstogov@users.sourceforge.net>             |
+   |            Everaldo Canuto <everaldo_canuto@yahoo.com.br>            |
    +----------------------------------------------------------------------+
    $Id$
 */
@@ -34,6 +35,13 @@
 #include "zend.h"
 #include "zend_API.h"
 #include "zend_extensions.h"
+
+/* Handle __attribute__ for nongcc compilers */
+#if (__GNUC__ >= 3)  || ((__GNUC__ == 2) && (__GNUC_MINOR__ >= 96))
+#  define HAS_ATTRIBUTE
+#else
+#  define __attribute__(x)
+#endif
 
 #ifndef ZEND_WIN32
 #  if ZEND_MODULE_API_NO >= 20001222
