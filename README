@@ -13,9 +13,7 @@ speed of your PHP code by 1-10 times.
 eAccelerator stores compiled PHP scripts in shared memory  and  executes  code
 directly from it. It creates  locks  only  for  short  time,  while  searching 
 compiled PHP script in the cache, so one script can be executed simultaneously
-by several engines. MM shared memory library http://www.engelschall.com/sw/mm/
-was used by eAccelerator before version 2.3.13 for management  of  the  shared
-memory and locking. Files that can't fit in shared memory are cached  on  disk
+by several engines. Files that can't fit in shared memory are cached  on  disk
 only.
 
 eAccelerator was first launched in 2001 to speed up the www.guestbooks4all.com
