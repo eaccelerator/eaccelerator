@@ -1064,7 +1064,7 @@ zend_op_array* eaccelerator_load(char* src, int src_len TSRMLS_DC) {
     if (error_reported) {
       zend_bailout();
     } else {
-      zend_error(E_ERROR, "MMCache Loader can't load code. Icorrect code");
+      zend_error(E_ERROR, "eAccelerator Loader can't load code. Icorrect code");
     }
   }
   return to;

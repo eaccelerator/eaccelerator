@@ -3,6 +3,7 @@
         * Move encoder version information to eaccelerator.h, today
         this information are in two places, encoder.h and loader.h
         now it is unified.
+        * Some updates "mmcache" -> "eAccelerator".
 
 2004-12-27  Reiner Jung <r.jung at think-e.com.br>
 
