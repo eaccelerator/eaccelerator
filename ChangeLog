@@ -1,3 +1,12 @@
+2004-12-22  Everaldo Canuto <everaldo_canuto at yahoo.com.br>
+
+        * Segmentation fault problems fixed.
+
+2004-12-19  Everaldo Canuto <everaldo_canuto at yahoo.com.br>
+
+        * Segv patchs for PHP5 applyed.
+        * Some bug fixes to work on PHP4 and PHP5.
+
 2004-12-09  Everaldo Canuto <everaldo_canuto at yahoo.com.br>
 
         * first public release 0.9.0 based on Turck MMCache.
