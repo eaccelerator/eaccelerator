@@ -16,11 +16,6 @@ compiled PHP script in the cache, so one script can be executed simultaneously
 by several engines. Files that can't fit in shared memory are cached  on  disk
 only.
 
-eAccelerator was first launched in 2001 to speed up the www.guestbooks4all.com
-service. It has been tested with PHP 4.1.0 - 4.3.3 under GNU/Linux and Windows
-with Apache 1.3 and 2.0. Patches for ports to other OSs and PHP  versions  are 
-welcome.
-
 eAccelerator contains a PHP encoder and loader. You  can  encode  PHP  scripts
 using encoder.php in order to distribute them without sources.  Encoded  files 
 can be run on any site which  runs  PHP  with  eAccelerator.  The  sources  of
@@ -95,8 +90,11 @@ Step 2. Installing eAccelerator
 
 Step 3. Configuring eAccelerator
 
-eAccelerator can be installed both as Zend or PHP extension, so you need
-to edit your php.ini file (usually /etc/php.ini).
+eAccelerator can be installed both as Zend or PHP extension.
+
+For eaccelerator > 0.9.1, if you have /etc/php.d directory, you should copy eaccelerator.ini inside and modify default value if you need.
+
+If not, you need to edit your php.ini file (usually /etc/php.ini).
 
 To install as Zend extension:
 
