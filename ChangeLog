@@ -2,6 +2,7 @@
 
         * encoder.c Increment encoder version.
         * encoder.php Fix name of standalone loader "eloader".
+        * win32/* build files for VS6, Thanks to Lyle Arnot.
 
 2004-12-27  Shin Seung Woo <segv74 at gmail.com>
 
