@@ -737,7 +737,7 @@ static void fixup_hash(HashTable* source, fixup_bucket_t fixup_bucket TSRMLS_DC)
 }
 
 static void fixup_zval(zval* zv TSRMLS_DC) {
-  switch (zv->type) {
+  switch (zv->type & ~IS_CONSTANT_INDEX) {
     case IS_CONSTANT:
     case IS_STRING:
       if (zv->value.str.val == NULL ||
