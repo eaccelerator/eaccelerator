@@ -3742,7 +3742,22 @@ PHP_MINFO_FUNCTION(eaccelerator) {
 /* User Cache Routines (put, get, rm, gc) */
 
 static char* build_key(const char* key, int key_len, int *xlen TSRMLS_DC) {
-  int len = strlen(MMCG(hostname));
+  int len;
+
+  /* namespace */
+  len = strlen(MMCG(name_space));
+  if (len > 0) {
+    char* xkey;
+    *xlen = len + key_len + 1;
+    xkey = emalloc((*xlen)+1);
+    memcpy(xkey, MMCG(name_space), len);
+    xkey[len] = ':';
+    memcpy(xkey+len+1, key, key_len+1);
+    return xkey;
+  }
+
+  /* hostname */
+  len = strlen(MMCG(hostname));
   if (len > 0) {
     char* xkey;
     *xlen = len + key_len + 1;
@@ -4800,6 +4815,7 @@ ZEND_INI_ENTRY1("eaccelerator.content",          "shm_and_disk", PHP_INI_SYSTEM,
 STD_PHP_INI_ENTRY("eaccelerator.cache_dir",      "/tmp/eaccelerator", PHP_INI_SYSTEM, OnUpdateString,
                   cache_dir, zend_eaccelerator_globals, eaccelerator_globals)
 PHP_INI_ENTRY("eaccelerator.filter",             "",  PHP_INI_ALL, eaccelerator_filter)
+STD_PHP_INI_ENTRY("eaccelerator.name_space",      "", PHP_INI_SYSTEM, OnUpdateString, name_space, zend_eaccelerator_globals, eaccelerator_globals)
 PHP_INI_END()
 
 static void eaccelerator_clean_request(TSRMLS_D) {
@@ -4964,6 +4980,7 @@ static void eaccelerator_init_globals(zend_eaccelerator_globals *eaccelerator_gl
 #ifdef WITH_EACCELERATOR_SESSIONS
   eaccelerator_globals->session           = NULL;
 #endif
+  eaccelerator_globals->name_space        = '\000';
   eaccelerator_globals->hostname[0]       = '\000';
   eaccelerator_globals->in_request        = 0;
 }

@@ -146,6 +146,7 @@ ZEND_BEGIN_MODULE_GLOBALS(eaccelerator)
   zend_llist*   content_headers;
   long          compress_level;
   char          *cache_dir;
+  char          *name_space;
   char          *mem;
   HashTable     strings;
   zend_class_entry *class_entry;
