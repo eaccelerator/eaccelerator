@@ -1,0 +1,7 @@
+LTLIBRARY_NAME        = libeaccelerator.la
+LTLIBRARY_SOURCES     = eaccelerator.c optimize.c execute.c encoder.c loader.c opcodes.c content.c mm.c
+LTLIBRARY_SHARED_NAME = eaccelerator.la
+
+EXTRA_CFLAGS = -O3
+
+include $(top_srcdir)/build/dynlib.mk
