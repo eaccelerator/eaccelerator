@@ -42,7 +42,6 @@
 #include <math.h>
 
 #define MMC_ENCODER_VERSION   0x00000002
-
 #define MMC_ENCODER_END       0x00
 #define MMC_ENCODER_NAMESPACE 0x01
 #define MMC_ENCODER_CLASS     0x02
@@ -942,7 +941,7 @@ zend_op_array* eaccelerator_load(char* src, int src_len TSRMLS_DC) {
   zend_bool error_reported = 0;
 
   if (!zend_hash_exists(EG(function_table), "gzuncompress", sizeof("gzuncompress"))) {
-    zend_error(E_ERROR, "Turck MMCache Loader requires php_zlib extension\n");
+    zend_error(E_ERROR, "eAccelerator Loader requires php_zlib extension\n");
     return NULL;
   }
 
@@ -1178,7 +1177,7 @@ zend_module_entry eaccelerator_loader_module_entry = {
   STANDARD_MODULE_PROPERTIES
 };
 
-#if defined(COMPILE_DL_TURCKLOADER)
+#if defined(COMPILE_DL_ELOADER)
 ZEND_GET_MODULE(eaccelerator_loader)
 #endif
 #endif

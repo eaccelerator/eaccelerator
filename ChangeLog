@@ -1,3 +1,7 @@
+2004-12-24  Everaldo Canuto <everaldo_canuto at yahoo.com.br>
+
+        * loader.c fixed constant COMPILE_DL_ELOADER. Thanks to Lyle A. 
+
 2004-12-23  Everaldo Canuto <everaldo_canuto at yahoo.com.br>
 
         * COPYING license file fixed.
