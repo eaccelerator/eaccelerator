@@ -39,8 +39,8 @@ Here are some other products that provide the same functionality:
 
  - Zend Performance Suite (http://www.zend.com/)
  - PHP Accelerator (http://www.php-accelerator.co.uk/)
- - Alternative PHP Cache (http://apc.communityconnect.com/)
- - AfterBurner Cache (http://www.bwcache.bware.it/)
+ - Alternative PHP Cache (http://pecl.php.net/package/APC)
+ - AfterBurner Cache (http://bwcache.bware.it/)
 
 
 Where is eAccelerator already used?
