@@ -1,3 +1,7 @@
+2004-12-27  Everaldo Canuto <everaldo_canuto at yahoo.com.br>
+
+        * encoder.c Increment encoder version.
+
 2004-12-27  Shin Seung Woo <segv74 at gmail.com>
 
         * optimize.c Fix array -= += .= bug in PHP5.

@@ -41,7 +41,7 @@
 
 #include <math.h>
 
-#define MMC_ENCODER_VERSION   0x00000002
+#define MMC_ENCODER_VERSION   0x00000003
 
 #define MMC_ENCODER_END       0x00
 #define MMC_ENCODER_NAMESPACE 0x01
