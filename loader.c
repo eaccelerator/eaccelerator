@@ -597,7 +597,6 @@ static zend_op_array* decode_op_array(zend_op_array *to, char** p, unsigned int*
           case EXT_SEND_NOREF:
           case EXT_INIT_FCALL:
           case EXT_FETCH:
-          case EXT_FE:
           case EXT_CAST:
           case EXT_DECLARE:
           case EXT_FCLASS:
@@ -605,6 +604,13 @@ static zend_op_array* decode_op_array(zend_op_array *to, char** p, unsigned int*
           case EXT_ISSET:
           case EXT_ASSIGN:
             opline->extended_value = decode(p, l);
+            break;
+          case EXT_FE: /* EXT_FE is added at MMC_ENCODER_VERSION = 3 to support php 4.3.10 */
+#if MMC_ENCODER_VERSION >= 3
+            if (((loader_data*)MMCG(mem))->version >= 3) {
+              opline->extended_value = decode(p, l);
+            }
+#endif
             break;
           case EXT_OPLINE:
             opline->extended_value = decode_opline(to->last, p, l);
@@ -616,6 +622,15 @@ static zend_op_array* decode_op_array(zend_op_array *to, char** p, unsigned int*
             zend_bailout();
             break;
         }
+
+#if MMC_ENCODER_VERSION >= 3 && defined(ZEND_FE_FETCH_WITH_KEY) && !defined(ZEND_ENGINE_2)
+        /* correct ZEND_FE_FETCH's extended value with old version (1,2) */
+        if (opline->opcode == ZEND_FE_FETCH) {
+          if (((loader_data*)MMCG(mem))->version < 3) {
+            opline->extended_value |= ZEND_FE_FETCH_WITH_KEY;
+          }
+        }
+#endif
         switch (ops & RES_MASK) {
           case RES_UNUSED:
             break;

@@ -857,7 +857,6 @@ scope_stored:
           case EXT_SEND_NOREF:
           case EXT_INIT_FCALL:
           case EXT_FETCH:
-          case EXT_FE:
           case EXT_CAST:
           case EXT_DECLARE:
           case EXT_FCLASS:
@@ -865,6 +864,11 @@ scope_stored:
           case EXT_ISSET:
           case EXT_ASSIGN:
             encode((unsigned char)opline->extended_value);
+            break;
+          case EXT_FE:
+#if MMC_ENCODER_VERSION >= 3
+            encode((unsigned char)opline->extended_value);
+#endif
             break;
           case EXT_OPLINE:
             encode_opline(opline->extended_value, from->last);
