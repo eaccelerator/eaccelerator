@@ -1,3 +1,7 @@
+2004-12-27  Shin Seung Woo <segv74 at gmail.com>
+
+        * optimize.c Fix array -= += .= bug in PHP5.
+
 2004-12-25  Everaldo Canuto <everaldo_canuto at yahoo.com.br>
 
         * win32/* build files for Visual Studio, now works in Win32. Thanks 
@@ -5,7 +9,7 @@
         * eLoader added eLoader is a standalone loader for encode files.
         * eaccelerator.name_space config parameter added. Patch 1090379.
         * fix foreach error in PHP 4.3.10. Thanks to Ilkka Huotari.
-	* encoder.php fix error message when eAccelerator are not loaded.
+        * encoder.php fix error message when eAccelerator are not loaded.
 
 2004-12-24  Everaldo Canuto <everaldo_canuto at yahoo.com.br>
 
