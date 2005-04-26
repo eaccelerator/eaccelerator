@@ -2,8 +2,8 @@
    +----------------------------------------------------------------------+
    | eAccelerator project                                                 |
    +----------------------------------------------------------------------+
-   | Copyright (c) 2004 eAccelerator                                      |
-   | http://eaccelerator.sourceforge.net                                  |
+   | Copyright (c) 2004 - 2005 eAccelerator                               |
+   | http://eaccelerator.net                                  			  |
    +----------------------------------------------------------------------+
    | This program is free software; you can redistribute it and/or        |
    | modify it under the terms of the GNU General Public License          |
@@ -39,6 +39,12 @@
 #include "zend.h"
 #include "zend_API.h"
 #include "zend_extensions.h"
+
+#include "webui.h"
+#include "debug.h"
+#include "shm.h"
+#include "session.h"
+#include "content.h"
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -95,290 +101,21 @@
 
 #include "SAPI.h"
 
-#undef HAVE_PHP_SESSIONS_SUPPORT
-#ifdef HAVE_EXT_SESSION_PHP_SESSION_H
-#  include "ext/session/php_session.h"
-#   ifdef PHP_SESSION_API
-#     if PHP_SESSION_API >= 20020306
-#       define HAVE_PHP_SESSIONS_SUPPORT
-static int eaccelerator_sessions_registered = 0;
-#       ifdef PS_CREATE_SID_ARGS
-#         include "ext/standard/php_lcg.h"
-#       endif
-#     endif
-#   endif
-#endif
-
 #define MAX_DUP_STR_LEN 256
 
-#define offsetof(str,fld) ((size_t)&(((str*)NULL)->fld))
-
-#ifdef EACCELERATOR_WITHOUT_FILE_LOCKING
-#  ifndef LOCK_SH
-#    define LOCK_SH 1
-#    define LOCK_EX 2
-#    define LOCK_UN 8
-#  endif
-#  define EACCELERATOR_FLOCK(FILE,OP)
-#else
-#  ifndef ZEND_WIN32
-#    ifdef HAVE_FLOCK
-#      define EACCELERATOR_FLOCK(FILE,OP) flock((FILE),(OP))
-#    else
-#      ifndef LOCK_SH
-#        define LOCK_SH 1
-#        define LOCK_EX 2
-#        define LOCK_UN 8
-#      endif
-#      define EACCELERATOR_FLOCK(FILE,OP)
-#    endif
-#  else
-#    define LOCK_SH 0
-#    define LOCK_EX 1
-#    define LOCK_UN 2
-#    define EACCELERATOR_FLOCK(FILE,OP) {OVERLAPPED offset = {0,0,0,0,NULL};\
-                                   if ((OP) == LOCK_EX) {\
-                                     LockFileEx((HANDLE)_get_osfhandle(FILE), \
-                                       LOCKFILE_EXCLUSIVE_LOCK, 0,\
-                                       1, 0, &offset);\
-                                   } else if ((OP) == LOCK_SH) {\
-                                     LockFileEx((HANDLE)_get_osfhandle(FILE), \
-                                       0, 0,\
-                                       1, 0, &offset);\
-                                   } else if ((OP) == LOCK_UN) {\
-                                     UnlockFileEx((HANDLE)_get_osfhandle(FILE), \
-                                       0,\
-                                       1, 0, &offset);\
-                                   }}
-#  endif
-#endif
-
-
-typedef struct _eaccelerator_op_array {
-  zend_uchar type;
-#ifdef ZEND_ENGINE_2
-  zend_bool uses_this;
-#else
-  zend_bool uses_globals;
-#endif
-  zend_bool return_reference;
-#ifdef ZEND_ENGINE_2
-  zend_uint num_args;
-  zend_uint required_num_args;
-  zend_arg_info *arg_info;
-  zend_bool pass_rest_by_reference;
-#else
-  zend_uchar *arg_types;
-#endif
-  char *function_name;
-  char *function_name_lc;
-#ifdef ZEND_ENGINE_2
-  char* scope_name;
-  int   scope_name_len;
-  zend_uint fn_flags;
-#endif
-  zend_op *opcodes;
-  zend_uint last;
-  zend_uint T;
-  zend_brk_cont_element *brk_cont_array;
-  zend_uint last_brk_cont;
-#ifdef ZEND_ENGINE_2
-	/* HOESH: try & catch support */
-	zend_try_catch_element* try_catch_array;
-	int last_try_catch;
-#endif
-  HashTable *static_variables;
-  char *filename;
-#ifdef ZEND_ENGINE_2
-  zend_uint line_start;
-  zend_uint line_end;
-  char *doc_comment;
-  zend_uint doc_comment_len;
-#endif
-} eaccelerator_op_array;
-
-typedef struct _eaccelerator_class_entry {
-  char type;
-  char *name;
-  char *name_lc;
-  uint name_length;
-  char *parent;
-  HashTable function_table;
-  HashTable default_properties;
-#ifdef ZEND_ENGINE_2
-  zend_uint ce_flags;
-  HashTable *static_members;
-  HashTable properties_info;
-  HashTable constants_table;
-  zend_uint num_interfaces;
-  char **interfaces;
-  zend_class_iterator_funcs iterator_funcs;
-
-  zend_object_value (*create_object)(zend_class_entry *class_type TSRMLS_DC);
-  zend_object_iterator *(*get_iterator)(zend_class_entry *ce, zval *object TSRMLS_DC);
-  int (*interface_gets_implemented)(zend_class_entry *iface, zend_class_entry *class_type TSRMLS_DC); /* a class implements this interface */
-    
-  char *filename;
-  zend_uint line_start;
-  zend_uint line_end;
-  char *doc_comment;
-  zend_uint doc_comment_len;
-#endif
-} eaccelerator_class_entry;
-
-/*
- * To cache functions and classes.
- */
-typedef struct _mm_fc_entry {
-  void   *fc;
-  struct _mm_fc_entry *next;
-  int    htablen;
-  char   htabkey[1];         /* must be last element */
-} mm_fc_entry;
-
-/*
- * A mm_cache_entry is a bucket for one PHP script file.
- * Nested  functions and classes which defined in the file goes
- * into the list of mm_fc_entry.
- */
-typedef struct _mm_cache_entry {
-  struct _mm_cache_entry *next;
-#ifdef EACCELERATOR_USE_INODE
-  dev_t                  st_dev;         /* file's device                     */
-  ino_t                  st_ino;         /* file's inode                      */
-#else
-  unsigned int           hv;             /* hash value                        */
-#endif
-  off_t                  filesize;       /* file size */
-  time_t                 mtime;          /* file last modification time       */
-  time_t                 ttl;            /* expiration time                   */
-  int                    size;           /* entry size (bytes)                */
-  int                    nhits;          /* hits count                        */
-  int                    nreloads;       /* count of reloads                  */
-  int                    use_cnt;        /* how many processes uses the entry */
-  eaccelerator_op_array       *op_array;      /* script's global scope code        */
-  mm_fc_entry            *f_head;        /* list of nested functions          */
-  mm_fc_entry            *c_head;        /* list of nested classes            */
-  zend_bool              removed;        /* the entry is scheduled to remove  */
-  char                   realfilename[1];/* real file name (must be last el.) */
-} mm_cache_entry;
-
-/*
- * bucket for user's cache
- */
-typedef struct _mm_user_cache_entry {
-  struct _mm_user_cache_entry *next;
-  unsigned int           hv;            /* hash value                  */
-  long                   ttl;           /* expiration time             */
-  int                    size;
-  zval                   value;         /* value                       */
-  char                   key[1];        /* key value (must be last el) */
-} mm_user_cache_entry;
-
-/*
- * Linked list of mm_cache_entry which are used by process/thread
- */
-typedef struct _mm_used_entry {
-  struct _mm_used_entry *next;
-  mm_cache_entry        *entry;
-} mm_used_entry;
-
-/*
- * Linked list of locks
- */
-typedef struct _mm_lock_entry {
-  struct _mm_lock_entry *next;
-  pid_t  pid;
-#ifdef ZTS
-  THREAD_T thread;
-#endif
-  char                  key[1];
-} mm_lock_entry;
-
-typedef struct _mm_file_header {
-  char   magic[8];        /* "EACCELERATOR" */
-  int    eaccelerator_version;
-  int    zend_version;
-  int    php_version;
-  int    size;
-  time_t mtime;
-  unsigned int crc32;
-} mm_file_header;
-
-#ifdef ZTS
-#  define ZTS_LOCK()    tsrm_mutex_lock(mm_mutex)
-#  define ZTS_UNLOCK()  tsrm_mutex_unlock(mm_mutex)
-#else
-#  define ZTS_LOCK()
-#  define ZTS_UNLOCK()
-#endif
-
-#include "mm.h"
-
-#if defined(EACCELERATOR_PROTECT_SHM)
-#  define EACCELERATOR_PROTECT()    do {mm_protect(eaccelerator_mm_instance->mm, MM_PROT_READ);} while(0)
-#  define EACCELERATOR_UNPROTECT()  do {mm_protect(eaccelerator_mm_instance->mm, MM_PROT_READ|MM_PROT_WRITE);} while(0)
-#else
-#  define EACCELERATOR_PROTECT()
-#  define EACCELERATOR_UNPROTECT()
-#endif
-
-#define EACCELERATOR_LOCK_RW()    do {ZTS_LOCK(); mm_lock(eaccelerator_mm_instance->mm, MM_LOCK_RW);} while(0)
-#define EACCELERATOR_LOCK_RD()    do {ZTS_LOCK(); mm_lock(eaccelerator_mm_instance->mm, MM_LOCK_RD);} while(0)
-#define EACCELERATOR_UNLOCK()     do {mm_unlock(eaccelerator_mm_instance->mm); ZTS_UNLOCK();} while(0)
-#define EACCELERATOR_UNLOCK_RW()  EACCELERATOR_UNLOCK()
-#define EACCELERATOR_UNLOCK_RD()  EACCELERATOR_UNLOCK()
-
-#define EACCELERATOR_BLOCK_INTERRUPTIONS()   HANDLE_BLOCK_INTERRUPTIONS()
-#define EACCELERATOR_UNBLOCK_INTERRUPTIONS() HANDLE_UNBLOCK_INTERRUPTIONS()
-
-#define MM_HASH_SIZE      256
-#define MM_USER_HASH_SIZE 256
-#define MM_HASH_MAX       (MM_HASH_SIZE-1)
-#define MM_USER_HASH_MAX  (MM_USER_HASH_SIZE-1)
-
-#define eaccelerator_malloc(size)        mm_malloc(eaccelerator_mm_instance->mm, size)
-#define eaccelerator_free(x)             mm_free(eaccelerator_mm_instance->mm, x)
-#define eaccelerator_malloc_nolock(size) mm_malloc_nolock(eaccelerator_mm_instance->mm, size)
-#define eaccelerator_free_nolock(x)      mm_free_nolock(eaccelerator_mm_instance->mm, x)
-
-typedef struct {
-  MM             *mm;
-  pid_t          owner;
-  size_t         total;
-  unsigned int   hash_cnt;
-  unsigned int   user_hash_cnt;
-  zend_bool      enabled;
-  zend_bool      optimizer_enabled;
-  unsigned int   rem_cnt;
-  time_t         last_prune;
-  mm_cache_entry *removed;
-  mm_lock_entry  *locks;
-
-  mm_cache_entry      *hash[MM_HASH_SIZE];
-  mm_user_cache_entry *user_hash[MM_USER_HASH_SIZE];
-} eaccelerator_mm;
-
-/*
- * Globals (different for each process/thread)
- */
+/* Globals (different for each process/thread) */
 ZEND_DECLARE_MODULE_GLOBALS(eaccelerator)
 
-/*
- * Globals (common for each process/thread)
- */
+/* Globals (common for each process/thread) */
 static long eaccelerator_shm_size = 0;
-static long eaccelerator_shm_max = 0;
+long eaccelerator_shm_max = 0;
 static long eaccelerator_shm_ttl = 0;
 static long eaccelerator_shm_prune_period = 0;
 static long eaccelerator_debug = 0;
 static zend_bool eaccelerator_check_mtime = 1;
 static zend_bool eaccelerator_scripts_shm_only = 0;
-static eaccelerator_cache_place eaccelerator_keys_cache_place     = eaccelerator_shm_and_disk;
-static eaccelerator_cache_place eaccelerator_sessions_cache_place = eaccelerator_shm_and_disk;
-       eaccelerator_cache_place eaccelerator_content_cache_place  = eaccelerator_shm_and_disk;
 
-static eaccelerator_mm* eaccelerator_mm_instance = NULL;
+eaccelerator_mm* eaccelerator_mm_instance = NULL;
 static int eaccelerator_is_zend_extension = 0;
 static int eaccelerator_is_extension      = 0;
 static zend_extension* ZendOptimizer = NULL;
@@ -389,9 +126,11 @@ static MUTEX_T mm_mutex;
 static HashTable eaccelerator_global_function_table;
 static HashTable eaccelerator_global_class_table;
 
-static int binary_eaccelerator_version;
-static int binary_php_version;
-static int binary_zend_version;
+int binary_eaccelerator_version;
+int binary_php_version;
+int binary_zend_version;
+
+FILE *F_fp;
 
 /* saved original functions */
 static zend_op_array *(*mm_saved_zend_compile_file)(zend_file_handle *file_handle, int type TSRMLS_DC);
@@ -406,58 +145,15 @@ PHPAPI char *php_get_uname();
 
 ZEND_DLEXPORT zend_op_array* eaccelerator_compile_file(zend_file_handle *file_handle, int type TSRMLS_DC);
 
+/******************************************************************************/
+/* hash mm functions														  */
+/* TODO: insert items sorted in buckets, so searching in buckets goes from 	  */
+/*			O(n) to O(log n)
+/******************************************************************************/
 
-#if defined(DEBUG) || defined(TEST_PERFORMANCE)  || defined(PROFILE_OPCODES)
-#include <ctype.h>
-#include <stdio.h>
-static FILE *F_fp;
-
-static void binary_print(char *p, int len) {
-  while (len--) {
-    fputc(*p++, F_fp);
-  }
-  fputc('\n', F_fp);
-}
-
-static void log_hashkeys(char *p, HashTable *ht)
-{
-  Bucket *b;
-  int i = 0;
-
-  b = ht->pListHead;
-
-  fputs(p, F_fp);
-  while (b) {
-    fprintf(F_fp, "[%d] ", i);
-    binary_print(b->arKey, b->nKeyLength);
-
-    b = b->pListNext;
-    i++;
-  }
-}
-
-static void pad(TSRMLS_D) {
-  int i = MMCG(xpad);
-  while (i-- > 0) {
-    fputc('\t', F_fp);
-  }
-}
-
-static void start_time(struct timeval *tvstart) {
-  gettimeofday(tvstart, NULL);
-}
-
-static long elapsed_time(struct timeval *tvstart) {
-  struct timeval tvend;
-  int sec, usec;
-  gettimeofday(&tvend, NULL);
-  sec = tvend.tv_sec - tvstart->tv_sec;
-  usec = tvend.tv_usec - tvstart->tv_usec;
-  return sec * 1000000 + usec;
-}
-#endif  /* #if defined(DEBUG) || defined(TEST_PERFORMANCE)  || defined(PROFILE_OPCODES) */
-
-static inline unsigned int hash_mm(const char *data, int len) {
+/* Create a key for the scripts hashtable. This is only used when eA can't use
+   inodes. */
+inline unsigned int hash_mm(const char *data, int len) {
   unsigned int h;
   const char *e = data + len;
   for (h = 2166136261U; data < e; ) {
@@ -467,6 +163,7 @@ static inline unsigned int hash_mm(const char *data, int len) {
   return h;
 }
 
+/* Find a script entry with the given hash key */
 static mm_cache_entry* hash_find_mm(const char  *key,
                                     struct stat *buf,
                                     int         *nreloads,
@@ -537,6 +234,7 @@ static mm_cache_entry* hash_find_mm(const char  *key,
   return NULL;
 }
 
+/* Add a new entry to the hashtable */
 static void hash_add_mm(mm_cache_entry *x) {
   mm_cache_entry *p,*q;
   unsigned int slot;
@@ -584,6 +282,7 @@ static void hash_add_mm(mm_cache_entry *x) {
   EACCELERATOR_UNLOCK_RW();
 }
 
+/* Initialise the shared memory */
 static int init_mm(TSRMLS_D) {
   pid_t  owner = getpid();
   MM     *mm;
@@ -619,7 +318,7 @@ static int init_mm(TSRMLS_D) {
   mm_mutex = tsrm_mutex_alloc();
 #endif
   total = mm_available(mm);
-  eaccelerator_mm_instance = mm_malloc(mm, sizeof(*eaccelerator_mm_instance));
+  eaccelerator_mm_instance = mm_malloc_lock(mm, sizeof(*eaccelerator_mm_instance));
   if (!eaccelerator_mm_instance) {
     return FAILURE;
   }
@@ -640,6 +339,7 @@ static int init_mm(TSRMLS_D) {
   return SUCCESS;
 }
 
+/* Clean up the shared memory */
 static void shutdown_mm(TSRMLS_D) {
   if (eaccelerator_mm_instance) {
 #ifdef ZEND_WIN32
@@ -667,27 +367,11 @@ static void shutdown_mm(TSRMLS_D) {
   }
 }
 
-static void debug_printf(char *format, ...) {
-  char output_buf[512];
-  va_list args;
-
-  va_start(args, format);
-  vsnprintf(output_buf, sizeof(output_buf), format, args);
-  va_end(args);
-
-#ifdef ZEND_WIN32
-  OutputDebugString(output_buf);
-/*  zend_printf("EACCELERATOR: %s<br>\n",output_buf);*/
-#else
-  fputs(output_buf, stderr);
-#endif
-}
-
+/******************************************************************************/
+/* Prepare values to cache them												  */
 /******************************************************************************/
 
 #define FIXUP(x) if((x)!=NULL) {(x) = (void*)(((char*)(x)) + ((long)(MMCG(mem))));}
-
-static void fixup_zval(zval* z TSRMLS_DC);
 
 typedef void (*fixup_bucket_t)(void* TSRMLS_DC);
 
@@ -700,7 +384,9 @@ static void fixup_property_info(zend_property_info* from TSRMLS_DC) {
 }
 #endif
 
-static void fixup_hash(HashTable* source, fixup_bucket_t fixup_bucket TSRMLS_DC) {
+/* Prepare a zend HashTable for caching */
+static void fixup_hash(HashTable* source, fixup_bucket_t fixup_bucket TSRMLS_DC) 
+{
   unsigned int i;
   Bucket *p;
 
@@ -736,7 +422,8 @@ static void fixup_hash(HashTable* source, fixup_bucket_t fixup_bucket TSRMLS_DC)
   }
 }
 
-static void fixup_zval(zval* zv TSRMLS_DC) {
+/* Prepare a zval for caching */
+void fixup_zval(zval* zv TSRMLS_DC) {
   switch (zv->type & ~IS_CONSTANT_INDEX) {
     case IS_CONSTANT:
     case IS_STRING:
@@ -772,6 +459,7 @@ static void fixup_zval(zval* zv TSRMLS_DC) {
   }
 }
 
+/* Prepare an opcode array for caching */
 static void fixup_op_array(eaccelerator_op_array* from TSRMLS_DC) {
   zend_op *opline;
   zend_op *end;
@@ -827,8 +515,7 @@ static void fixup_op_array(eaccelerator_op_array* from TSRMLS_DC) {
   }
   FIXUP(from->brk_cont_array);
 #ifdef ZEND_ENGINE_2
-	/* HOESH: try & catch support */
-	FIXUP(from->try_catch_array);
+  FIXUP(from->try_catch_array);
 #endif
   if (from->static_variables != NULL) {
     FIXUP(from->static_variables);
@@ -840,6 +527,7 @@ static void fixup_op_array(eaccelerator_op_array* from TSRMLS_DC) {
 #endif
 }
 
+/* Prepare a class entry for caching */
 static void fixup_class_entry(eaccelerator_class_entry* from TSRMLS_DC) {
   FIXUP(from->name);
   FIXUP(from->parent);
@@ -859,6 +547,7 @@ static void fixup_class_entry(eaccelerator_class_entry* from TSRMLS_DC) {
   fixup_hash(&from->function_table, (fixup_bucket_t)fixup_op_array TSRMLS_CC);
 }
 
+/* Prepare a cache entry for caching */
 static void eaccelerator_fixup(mm_cache_entry *p TSRMLS_DC) {
   mm_fc_entry* q;
 
@@ -947,7 +636,8 @@ static int eaccelerator_inode_key(char* s, dev_t dev, ino_t ino TSRMLS_DC) {
 }
 #endif
 
-static int eaccelerator_md5(char* s, const char* prefix, const char* key TSRMLS_DC) {
+/* Function to create a hash key when filenames are used */
+int eaccelerator_md5(char* s, const char* prefix, const char* key TSRMLS_DC) {
 #if defined(PHP_MAJOR_VERSION) && defined(PHP_MINOR_VERSION) && \
     ((PHP_MAJOR_VERSION > 4) || (PHP_MAJOR_VERSION == 4 && PHP_MINOR_VERSION > 1))
   char md5str[33];
@@ -956,7 +646,7 @@ static int eaccelerator_md5(char* s, const char* prefix, const char* key TSRMLS_
 
   md5str[0] = '\0';
   PHP_MD5Init(&context);
-  PHP_MD5Update(&context, key, strlen(key));
+  PHP_MD5Update(&context, (unsigned char*)key, strlen(key));
   PHP_MD5Final(digest, &context);
   make_digest(md5str, digest);
   snprintf(s, MAXPATHLEN-1, "%s%s%s", MMCG(cache_dir), prefix, md5str);
@@ -985,7 +675,8 @@ static int eaccelerator_md5(char* s, const char* prefix, const char* key TSRMLS_
   return 0;
 }
 
-static void eaccelerator_prune(time_t t) {
+/* Remove expired keys, content and scripts from the cache */
+void eaccelerator_prune(time_t t) {
   unsigned int i;
 
   EACCELERATOR_LOCK_RW();
@@ -1014,7 +705,8 @@ static void eaccelerator_prune(time_t t) {
   EACCELERATOR_UNLOCK_RW();
 }
 
-static void* eaccelerator_malloc2(size_t size TSRMLS_DC) {
+/* Allocate a new cache chunk */
+void* eaccelerator_malloc2(size_t size TSRMLS_DC) {
   void *p = NULL;
   time_t t;
 
@@ -1111,6 +803,12 @@ unsigned int eaccelerator_crc32(const char *p, size_t n) {
   return ~crc;
 }
 
+/******************************************************************************/
+/* Cache file functions.													  */
+/* TODO: create cache subdirectories -> speed improvement highly used servers */
+/******************************************************************************/
+
+/* Retrieve a cache entry from the cache directory */
 static mm_cache_entry* hash_find_file(const char  *key,
                                       struct stat *buf TSRMLS_DC) {
   int f;
@@ -1215,6 +913,7 @@ static mm_cache_entry* hash_find_file(const char  *key,
   return NULL;
 }
 
+/* Add a cache entry to the cache directory */
 static int hash_add_file(mm_cache_entry *p TSRMLS_DC) {
   int f;
   int ret = 0;
@@ -1267,6 +966,9 @@ typedef union align_union {
 #define EACCELERATOR_ALIGN(n) (n) = (void*)((((size_t)(n)-1) & ~(EACCELERATOR_PLATFORM_ALIGNMENT-1)) + EACCELERATOR_PLATFORM_ALIGNMENT)
 
 /******************************************************************************/
+/* Functions to calculate the size of different structure that a compiled php */
+/* script contains.															  */
+/******************************************************************************/
 
 #ifndef DEBUG
 inline
@@ -1279,7 +981,6 @@ void calc_string(char* str, int len TSRMLS_DC) {
   }
 }
 
-static void calc_zval(zval* z TSRMLS_DC);
 static void calc_class_entry(zend_class_entry* from TSRMLS_DC);
 
 typedef void (*calc_bucket_t)(void* TSRMLS_DC);
@@ -1310,11 +1011,13 @@ static void calc_property_info(zend_property_info* from TSRMLS_DC) {
   calc_string(from->name, from->name_length+1 TSRMLS_CC);
 }
 
+/* Calculate the size of a point to a class entry */
 static void calc_class_entry_ptr(zend_class_entry** from TSRMLS_DC) {
   calc_class_entry(*from TSRMLS_CC);
 }
 #endif
 
+/* Calculate the size of an HashTable */
 static void calc_hash_int(HashTable* source, Bucket* start, calc_bucket_t calc_bucket TSRMLS_DC) {
   Bucket* p;
 
@@ -1333,7 +1036,7 @@ static void calc_hash_int(HashTable* source, Bucket* start, calc_bucket_t calc_b
   }
 }
 
-static void calc_zval(zval* zv TSRMLS_DC) {
+void calc_zval(zval* zv TSRMLS_DC) {
   switch (zv->type & ~IS_CONSTANT_INDEX) {
     case IS_CONSTANT:
     case IS_STRING:
@@ -1385,6 +1088,7 @@ static void calc_zval(zval* zv TSRMLS_DC) {
   }
 }
 
+/* Calculate the size of an op_array */
 static void calc_op_array(zend_op_array* from TSRMLS_DC) {
   zend_op *opline;
   zend_op *end;
@@ -1484,6 +1188,7 @@ static void calc_op_array(zend_op_array* from TSRMLS_DC) {
 #endif
 }
 
+/* Calculate the size of a class entry */
 static void calc_class_entry(zend_class_entry* from TSRMLS_DC) {
   int i;
 
@@ -1537,6 +1242,8 @@ static void calc_class_entry(zend_class_entry* from TSRMLS_DC) {
   calc_hash(&from->function_table, (calc_bucket_t)calc_op_array);
 }
 
+/* Calculate the size of a cache entry with its given op_array and function and
+   class bucket */
 static int calc_size(char* key, zend_op_array* op_array,
                      Bucket* f, Bucket *c TSRMLS_DC) {
   Bucket *b;
@@ -1583,6 +1290,8 @@ static int calc_size(char* key, zend_op_array* op_array,
 }
 
 /******************************************************************************/
+/* Functions to store/cache data from the compiled script					  */
+/******************************************************************************/
 
 static inline char* store_string(char* str, int len TSRMLS_DC) {
   char *p;
@@ -1603,7 +1312,6 @@ static inline char* store_string(char* str, int len TSRMLS_DC) {
   return p;
 }
 
-static void store_zval(zval* z TSRMLS_DC);
 static eaccelerator_class_entry* store_class_entry(zend_class_entry* from TSRMLS_DC);
 
 typedef void* (*store_bucket_t)(void* TSRMLS_DC);
@@ -1713,7 +1421,7 @@ static void store_hash_int(HashTable* target, HashTable* source, Bucket* start, 
   }
 }
 
-static void store_zval(zval* zv TSRMLS_DC) {
+void store_zval(zval* zv TSRMLS_DC) {
   switch (zv->type & ~IS_CONSTANT_INDEX) {
     case IS_CONSTANT:
     case IS_STRING:
@@ -2042,6 +1750,8 @@ static eaccelerator_class_entry* store_class_entry(zend_class_entry* from TSRMLS
   return to;
 }
 
+/* Create a cache entry from the given op_array, functions and classes of a 
+   script */
 static mm_cache_entry* eaccelerator_store_int(
                          char* key, int len,
                          zend_op_array* op_array,
@@ -2072,7 +1782,7 @@ static mm_cache_entry* eaccelerator_store_int(
   q = NULL;
   while (c != NULL) {
 #ifdef DEBUG
-  pad(TSRMLS_C); fprintf(F_fp, "[%d] eaccelerator_store_int:     class hashkey=", getpid()); binary_print(c->arKey, c->nKeyLength); fflush(F_fp);
+    pad(TSRMLS_C); fprintf(F_fp, "[%d] eaccelerator_store_int:     class hashkey=", getpid()); binary_print(c->arKey, c->nKeyLength); fflush(F_fp);
 #endif
     EACCELERATOR_ALIGN(MMCG(mem));
     fc = (mm_fc_entry*)MMCG(mem);
@@ -2099,7 +1809,7 @@ static mm_cache_entry* eaccelerator_store_int(
   q = NULL;
   while (f != NULL) {
 #ifdef DEBUG
-  pad(TSRMLS_C); fprintf(F_fp, "[%d] eaccelerator_store_int:     function hashkey='%s'\n", getpid(), f->arKey); fflush(F_fp);
+    pad(TSRMLS_C); fprintf(F_fp, "[%d] eaccelerator_store_int:     function hashkey='%s'\n", getpid(), f->arKey); fflush(F_fp);
 #endif
     EACCELERATOR_ALIGN(MMCG(mem));
     fc = (mm_fc_entry*)MMCG(mem);
@@ -2141,6 +1851,7 @@ static mm_cache_entry* eaccelerator_store_int(
 }
 
 /* called after succesful compilation, from eaccelerator_compile file */
+/* Adds the data from the compilation of the script to the cache */
 static int eaccelerator_store(char* key, struct stat *buf, int nreloads,
                          zend_op_array* op_array,
                          Bucket* f, Bucket *c TSRMLS_DC) {
@@ -2200,8 +1911,9 @@ static int eaccelerator_store(char* key, struct stat *buf, int nreloads,
 }
 
 /******************************************************************************/
+/* Functions to restore a php script from shared memory						  */
+/******************************************************************************/
 
-static void restore_zval(zval * TSRMLS_DC);
 static zend_class_entry* restore_class_entry(zend_class_entry* to, eaccelerator_class_entry *from TSRMLS_DC);
 
 typedef void* (*restore_bucket_t)(void* TSRMLS_DC);
@@ -2291,7 +2003,7 @@ static HashTable* restore_hash(HashTable *target, HashTable *source, restore_buc
   return target;
 }
 
-static void restore_zval(zval *zv TSRMLS_DC)
+void restore_zval(zval *zv TSRMLS_DC)
 {
   switch (zv->type & ~IS_CONSTANT_INDEX) {
     case IS_CONSTANT:
@@ -2668,9 +2380,9 @@ static zend_op_array* restore_op_array(zend_op_array *to, eaccelerator_op_array 
   to->done_pass_two    = 1;
   to->filename         = from->filename;
 #ifdef ZEND_ENGINE_2
-	/* HOESH: try & catch support */
-	to->try_catch_array   = from->try_catch_array;
-	to->last_try_catch    = from->last_try_catch;
+  /* HOESH: try & catch support */
+  to->try_catch_array   = from->try_catch_array;
+  to->last_try_catch    = from->last_try_catch;
   to->uses_this        = from->uses_this;
 
   to->line_start      = from->line_start;
@@ -2985,9 +2697,8 @@ static void restore_class(mm_fc_entry *p TSRMLS_DC) {
 
 }
 
-/*
- * Try to restore a file from the cache.
- */
+/* Try to restore a file from the cache. If the file isn't found in memory, the 
+   the disk cache is checked */
 static zend_op_array* eaccelerator_restore(char *realname, struct stat *buf,
                                       int *nreloads, time_t compile_time TSRMLS_DC) {
   mm_cache_entry *p;
@@ -3028,7 +2739,6 @@ static zend_op_array* eaccelerator_restore(char *realname, struct stat *buf,
  *
  * TODO - check the algorithm (fl)
  */
-
 static int match(const char* name, const char* pat) {
   char p,k;
   int ok, neg;
@@ -3097,6 +2807,7 @@ static int match(const char* name, const char* pat) {
   return (*name == '\0');
 }
 
+/* Check if the file is ok to cache */
 static int eaccelerator_ok_to_cache(char *realname TSRMLS_DC) {
   mm_cond_entry *p;
   int ok;
@@ -3350,13 +3061,13 @@ ZEND_DLEXPORT zend_op_array* eaccelerator_compile_file(zend_file_handle *file_ha
 // segv74: really cheap work around to auto_global problem.
 //         it makes just in time to every time.
 #ifdef ZEND_ENGINE_2
-  zend_is_auto_global("_GET", sizeof("_SERVER")-1 TSRMLS_CC);
-  zend_is_auto_global("_POST", sizeof("_SERVER")-1 TSRMLS_CC);
-  zend_is_auto_global("_COOKIE", sizeof("_SERVER")-1 TSRMLS_CC);
+  zend_is_auto_global("_GET", sizeof("_GET")-1 TSRMLS_CC);
+  zend_is_auto_global("_POST", sizeof("_POST")-1 TSRMLS_CC);
+  zend_is_auto_global("_COOKIE", sizeof("_COOKIE")-1 TSRMLS_CC);
   zend_is_auto_global("_SERVER", sizeof("_SERVER")-1 TSRMLS_CC);
   zend_is_auto_global("_ENV", sizeof("_ENV")-1 TSRMLS_CC);
   zend_is_auto_global("_REQUEST", sizeof("_REQUEST")-1 TSRMLS_CC);
-  zend_is_auto_global("_FILES", sizeof("_SERVER")-1 TSRMLS_CC);
+  zend_is_auto_global("_FILES", sizeof("_FILES")-1 TSRMLS_CC);
 #endif
   if (t != NULL) {
     if (eaccelerator_debug > 0) {
@@ -3690,7 +3401,7 @@ ZEND_DLEXPORT zend_op_array* profile_compile_file(zend_file_handle *file_handle,
 #endif  /* #ifdef PROFILE_OPCODES */
 
 /* Format Bytes */
-static void format_size(char* s, unsigned int size, int legend) {
+void format_size(char* s, unsigned int size, int legend) {
   unsigned int i = 0;
   unsigned int n = 0;
   char ch;
@@ -3715,6 +3426,7 @@ static void format_size(char* s, unsigned int size, int legend) {
   }
 }
 
+/* eAccelerator entry for phpinfo() */
 PHP_MINFO_FUNCTION(eaccelerator) {
   char s[32];
 
@@ -3750,977 +3462,13 @@ PHP_MINFO_FUNCTION(eaccelerator) {
   DISPLAY_INI_ENTRIES();
 }
 
-/* User Cache Routines (put, get, rm, gc) */
-
-static char* build_key(const char* key, int key_len, int *xlen TSRMLS_DC) {
-  int len;
-
-  /* namespace */
-  len = strlen(MMCG(name_space));
-  if (len > 0) {
-    char* xkey;
-    *xlen = len + key_len + 1;
-    xkey = emalloc((*xlen)+1);
-    memcpy(xkey, MMCG(name_space), len);
-    xkey[len] = ':';
-    memcpy(xkey+len+1, key, key_len+1);
-    return xkey;
-  }
-
-  /* hostname */
-  len = strlen(MMCG(hostname));
-  if (len > 0) {
-    char* xkey;
-    *xlen = len + key_len + 1;
-    xkey = emalloc((*xlen)+1);
-    memcpy(xkey, MMCG(hostname), len);
-    xkey[len] = ':';
-    memcpy(xkey+len+1, key, key_len+1);
-    return xkey;
-  } else {
-    *xlen = key_len;
-    return (char*)key;
-  }
-}
-
-static int eaccelerator_lock(const char* key, int key_len TSRMLS_DC) {
-  int xlen;
-  char* xkey;
-  mm_lock_entry* x;
-  mm_lock_entry** p;
-  int ok = 0;
-
-  if (eaccelerator_mm_instance == NULL) {
-    return 0;
-  }
-  xkey = build_key(key, key_len, &xlen TSRMLS_CC);
-  EACCELERATOR_UNPROTECT();
-  x = eaccelerator_malloc(offsetof(mm_lock_entry,key)+xlen+1);
-  if (x == NULL) {
-    EACCELERATOR_PROTECT();
-    if (xlen != key_len) {efree(xkey);}
-    return 0;
-  }
-  x->pid = getpid();
-#ifdef ZTS
-  x->thread = tsrm_thread_id();
-#endif
-  x->next = NULL;
-  memcpy(x->key, xkey, xlen+1);
-  while (1) {
-    EACCELERATOR_LOCK_RW();
-    p = &eaccelerator_mm_instance->locks;
-    while ((*p) != NULL) {
-      if (strcmp((*p)->key,x->key) == 0) {
-#ifdef ZTS
-        if (x->pid == (*p)->pid && x->thread == (*p)->thread) {
-#else
-        if (x->pid == (*p)->pid) {
-#endif
-          ok = 1;
-          eaccelerator_free_nolock(x);
-        }
-        break;
-      }
-      p = &(*p)->next;
-    }
-    if ((*p) == NULL) {
-      *p = x;
-      ok = 1;
-    }
-    EACCELERATOR_UNLOCK_RW();
-    if (ok) {
-      break;
-    } else {
-#ifdef ZEND_WIN32
-      Sleep(100);
-/*???
-#elif defined(HAVE_SCHED_YIELD)
-      sched_yield();
-*/
-#else
-      struct timeval t;
-      t.tv_sec = 0;
-      t.tv_usec = 100;
-      select(0, NULL, NULL, NULL, &t);
-#endif
-    }
-  }
-  EACCELERATOR_PROTECT();
-  if (xlen != key_len) {efree(xkey);}
-  return 1;
-}
-
-static int eaccelerator_unlock(const char* key, int key_len TSRMLS_DC) {
-  int xlen;
-  char* xkey;
-  mm_lock_entry** p;
-
-  if (eaccelerator_mm_instance == NULL) {
-    return 0;
-  }
-  xkey = build_key(key, key_len, &xlen TSRMLS_CC);
-  EACCELERATOR_UNPROTECT();
-  EACCELERATOR_LOCK_RW();
-  p = &eaccelerator_mm_instance->locks;
-  while ((*p) != NULL) {
-    if (strcmp((*p)->key,xkey) == 0) {
-#ifdef ZTS
-      if ((*p)->pid == getpid() && (*p)->thread == tsrm_thread_id()) {
-#else
-      if ((*p)->pid == getpid()) {
-#endif
-         mm_lock_entry *x = (*p);
-        *p = (*p)->next;
-        eaccelerator_free_nolock(x);
-      } else {
-        EACCELERATOR_UNLOCK_RW();
-        EACCELERATOR_PROTECT();
-        if (xlen != key_len) {efree(xkey);}
-        return 0;
-      }
-      break;
-    }
-    p = &(*p)->next;
-  }
-  EACCELERATOR_UNLOCK_RW();
-  EACCELERATOR_PROTECT();
-  if (xlen != key_len) {efree(xkey);}
-  return 1;
-}
-
-int eaccelerator_put(const char* key, int key_len, zval* val, time_t ttl, eaccelerator_cache_place where TSRMLS_DC) {
-  mm_user_cache_entry *p, *q;
-  unsigned int slot;
-  long size;
-  int use_shm = 1;
-  int ret = 0;
-  char s[MAXPATHLEN];
-  int xlen;
-  char* xkey;
-
-  xkey = build_key(key, key_len, &xlen TSRMLS_CC);
-  MMCG(compress) = 1;
-  MMCG(mem) = NULL;
-  zend_hash_init(&MMCG(strings), 0, NULL, NULL, 0);
-  EACCELERATOR_ALIGN(MMCG(mem));
-  MMCG(mem) += offsetof(mm_user_cache_entry, key)+xlen+1;
-  calc_zval(val TSRMLS_CC);
-  zend_hash_destroy(&MMCG(strings));
-
-  size = (long)MMCG(mem);
-
-  MMCG(mem) = NULL;
-  if (eaccelerator_mm_instance != NULL &&
-      (where == eaccelerator_shm_and_disk ||
-       where == eaccelerator_shm ||
-       where == eaccelerator_shm_only)) {
-    EACCELERATOR_UNPROTECT();
-    if (eaccelerator_shm_max == 0 || size <= eaccelerator_shm_max) {
-      MMCG(mem) = eaccelerator_malloc(size);
-      if (MMCG(mem) == NULL) {
-        MMCG(mem) = eaccelerator_malloc2(size TSRMLS_CC);
-      }
-    }
-    if (MMCG(mem) == NULL) {
-      EACCELERATOR_PROTECT();
-    }
-  }
-  if (MMCG(mem) == NULL &&
-      (where == eaccelerator_shm_and_disk ||
-       where == eaccelerator_shm ||
-       where == eaccelerator_disk_only)) {
-    use_shm = 0;
-    MMCG(mem) = emalloc(size);
-  }
-  if (MMCG(mem)) {
-    zend_hash_init(&MMCG(strings), 0, NULL, NULL, 0);
-    EACCELERATOR_ALIGN(MMCG(mem));
-    q = (mm_user_cache_entry*)MMCG(mem);
-    q->size = size;
-    MMCG(mem) += offsetof(mm_user_cache_entry,key)+xlen+1;
-    q->hv = hash_mm(xkey, xlen);;
-    memcpy(q->key, xkey, xlen+1);
-    memcpy(&q->value, val, sizeof(zval));
-    q->ttl = ttl?time(0)+ttl:0;
-    store_zval(&q->value TSRMLS_CC);
-    zend_hash_destroy(&MMCG(strings));
-
-    /* storing to file */
-    if ((where == eaccelerator_shm_and_disk ||
-         ((where == eaccelerator_shm) && !use_shm) ||
-         where == eaccelerator_disk_only) &&
-        eaccelerator_md5(s, "/eaccelerator-user-", q->key TSRMLS_CC)) {
-      int f;
-      unlink(s);
-      f = open(s, O_CREAT | O_WRONLY | O_EXCL | O_BINARY, S_IRUSR | S_IWUSR);
-      if (f > 0) {
-        mm_file_header hdr;
-        EACCELERATOR_FLOCK(f, LOCK_EX);
-        strcpy(hdr.magic,"EACCELERATOR");
-        hdr.eaccelerator_version = binary_eaccelerator_version;
-        hdr.zend_version    = binary_zend_version;
-        hdr.php_version     = binary_php_version;
-        hdr.size  = q->size;
-        hdr.mtime = q->ttl;
-        q->next = q;
-        hdr.crc32 = eaccelerator_crc32((const char*)q,q->size);
-        if (write(f, &hdr, sizeof(hdr)) == sizeof(hdr)) {
-          write(f, q, q->size);
-          EACCELERATOR_FLOCK(f, LOCK_UN);
-          close(f);
-          ret = 1;
-        } else {
-          EACCELERATOR_FLOCK(f, LOCK_UN);
-          close(f);
-          unlink(s);
-        }
-      }
-      if (!use_shm) {
-        efree(q);
-      }
-    }
-
-    if ((where == eaccelerator_shm_and_disk ||
-         where == eaccelerator_shm ||
-         where == eaccelerator_shm_only) && use_shm) {
-      /* storing to shared memory */
-      slot = q->hv & MM_USER_HASH_MAX;
-      EACCELERATOR_LOCK_RW();
-      eaccelerator_mm_instance->user_hash_cnt++;
-      q->next = eaccelerator_mm_instance->user_hash[slot];
-      eaccelerator_mm_instance->user_hash[slot] = q;
-      p = q->next;
-      while (p != NULL) {
-        if ((p->hv == q->hv) && (strcmp(p->key, xkey) == 0)) {
-          eaccelerator_mm_instance->user_hash_cnt--;
-          q->next = p->next;
-          eaccelerator_free_nolock(p);
-          break;
-        }
-        q = p;
-        p = p->next;
-      }
-      EACCELERATOR_UNLOCK_RW();
-      EACCELERATOR_PROTECT();
-      ret = 1;
-    }
-  }
-  if (xlen != key_len) {efree(xkey);}
-  return ret;
-}
-
-int eaccelerator_get(const char* key, int key_len, zval* return_value, eaccelerator_cache_place where  TSRMLS_DC) {
-  unsigned int hv, slot;
-  char s[MAXPATHLEN];
-  int xlen;
-  char* xkey;
-
-  xkey = build_key(key, key_len, &xlen TSRMLS_CC);
-  hv = hash_mm(xkey,xlen);
-  slot = hv & MM_USER_HASH_MAX;
-
-  if (eaccelerator_mm_instance != NULL &&
-      (where == eaccelerator_shm_and_disk ||
-       where == eaccelerator_shm ||
-       where == eaccelerator_shm_only)) {
-    mm_user_cache_entry *p, *q;
-    mm_user_cache_entry *x = NULL;
-    EACCELERATOR_UNPROTECT();
-    EACCELERATOR_LOCK_RW();
-    q = NULL;
-    p = eaccelerator_mm_instance->user_hash[slot];
-    while (p != NULL) {
-      if ((p->hv == hv) && (strcmp(p->key, xkey) == 0)) {
-        x = p;
-        if (p->ttl != 0 && p->ttl < time(0)) {
-          if (q == NULL) {
-            eaccelerator_mm_instance->user_hash[slot] = p->next;
-          } else {
-            q->next = p->next;
-          }
-          eaccelerator_mm_instance->user_hash_cnt--;
-          eaccelerator_free_nolock(x);
-          x = NULL;
-        }
-        break;
-      }
-      q = p;
-      p = p->next;
-    }
-    EACCELERATOR_UNLOCK_RW();
-    EACCELERATOR_PROTECT();
-    if (x) {
-      memcpy(return_value, &x->value, sizeof(zval));
-      restore_zval(return_value TSRMLS_CC);
-      if (xlen != key_len) {efree(xkey);}
-      return 1;
-    }
-  }
-
-  /* key is not found in shared memory try to load it from file */
-  if ((where == eaccelerator_shm_and_disk ||
-       where == eaccelerator_shm ||
-       where == eaccelerator_disk_only) &&
-      eaccelerator_md5(s, "/eaccelerator-user-", xkey TSRMLS_CC)) {
-    time_t t = time(0);
-    int use_shm = 1;
-    int ret = 0;
-    int f;
-
-    if ((f = open(s, O_RDONLY | O_BINARY)) > 0) {
-      mm_file_header hdr;
-
-      EACCELERATOR_FLOCK(f, LOCK_SH);
-      if (read(f, &hdr, sizeof(hdr)) != sizeof(hdr) ||
-          strncmp(hdr.magic,"EACCELERATOR",8) != 0 ||
-          hdr.eaccelerator_version != binary_eaccelerator_version ||
-          hdr.zend_version != binary_zend_version ||
-          hdr.php_version != binary_php_version) {
-        EACCELERATOR_FLOCK(f, LOCK_UN);
-        close(f);
-        unlink(s);
-        if (xlen != key_len) {efree(xkey);}
-        return 0;
-      }
-      if (hdr.mtime == 0 || hdr.mtime > t) {
-        /* try to put it into shared memory */
-        mm_user_cache_entry *p = NULL;
-        if (eaccelerator_mm_instance != NULL &&
-            (where == eaccelerator_shm_and_disk ||
-             where == eaccelerator_shm)) {
-          if (eaccelerator_shm_max == 0 || hdr.size <= eaccelerator_shm_max) {
-            EACCELERATOR_UNPROTECT();
-            p = eaccelerator_malloc(hdr.size);
-            if (p == NULL) {
-              p = eaccelerator_malloc2(hdr.size TSRMLS_CC);
-            }
-            if (p == NULL) {
-              EACCELERATOR_PROTECT();
-            }
-          }
-        }
-        if (p == NULL) {
-          p = emalloc(hdr.size);
-          use_shm = 0;
-        }
-        if (p != NULL) {
-          if (read(f, p, hdr.size) == hdr.size &&
-              hdr.size == p->size &&
-              hdr.crc32 == eaccelerator_crc32((const char*)p,p->size)) {
-            MMCG(mem) = (char*)((long)p - (long)p->next);
-            MMCG(compress) = 1;
-            fixup_zval(&p->value TSRMLS_CC);
-
-            if (strcmp(xkey,p->key) != 0) {
-              if (use_shm) {
-                eaccelerator_free(p);
-              } else {
-                efree(p);
-              }
-              EACCELERATOR_FLOCK(f, LOCK_UN);
-              close(f);
-              unlink(s);
-              if (use_shm) EACCELERATOR_PROTECT();
-              if (xlen != key_len) {efree(xkey);}
-              return 0;
-            }
-
-            memcpy(return_value, &p->value, sizeof(zval));
-            restore_zval(return_value TSRMLS_CC);
-            ret = 1;
-            if (use_shm) {
-              /* put it into shared memory */
-              mm_user_cache_entry *q,*prev;
-
-              p->hv = hv;
-              EACCELERATOR_LOCK_RW();
-              p->next = eaccelerator_mm_instance->user_hash[slot];
-              eaccelerator_mm_instance->user_hash[slot] = p;
-              eaccelerator_mm_instance->user_hash_cnt++;
-              prev = p;
-              q = p->next;
-              while (q != NULL) {
-                if ((q->hv == hv) && (strcmp(q->key, xkey) == 0)) {
-                  prev->next = q->next;
-                  eaccelerator_mm_instance->user_hash_cnt--;
-                  eaccelerator_free_nolock(q);
-                  break;
-                }
-                prev = q;
-                q = q->next;
-              }
-              EACCELERATOR_UNLOCK_RW();
-            } else {
-              efree(p);
-            }
-            EACCELERATOR_FLOCK(f, LOCK_UN);
-            close(f);
-          } else {
-            if (use_shm) {
-              eaccelerator_free(p);
-            } else {
-              efree(p);
-            }
-            EACCELERATOR_FLOCK(f, LOCK_UN);
-            close(f);
-            unlink(s);
-          }
-        }
-        if (use_shm) EACCELERATOR_PROTECT();
-      } else {
-        EACCELERATOR_FLOCK(f, LOCK_UN);
-        close(f);
-        unlink(s);
-      }
-      if (xlen != key_len) {efree(xkey);}
-      return ret;
-    }
-  }
-  if (xlen != key_len) {efree(xkey);}
-  return 0;
-}
-
-int eaccelerator_rm(const char* key, int key_len, eaccelerator_cache_place where  TSRMLS_DC) {
-  unsigned int hv, slot;
-  mm_user_cache_entry *p, *q;
-  char s[MAXPATHLEN];
-  int xlen;
-  char* xkey;
-
-  xkey = build_key(key, key_len, &xlen TSRMLS_CC);
-  /* removing file */
-  if ((where == eaccelerator_shm_and_disk ||
-       where == eaccelerator_shm ||
-       where == eaccelerator_disk_only) &&
-      eaccelerator_md5(s, "/eaccelerator-user-", xkey TSRMLS_CC)) {
-    unlink(s);
-  }
-
-  /* removing from shared memory */
-  if (eaccelerator_mm_instance != NULL &&
-      (where == eaccelerator_shm_and_disk ||
-       where == eaccelerator_shm ||
-       where == eaccelerator_shm_only)) {
-    hv = hash_mm(xkey, xlen);
-    slot = hv & MM_USER_HASH_MAX;
-
-    EACCELERATOR_UNPROTECT();
-    EACCELERATOR_LOCK_RW();
-    q = NULL;
-    p = eaccelerator_mm_instance->user_hash[slot];
-    while (p != NULL) {
-      if ((p->hv == hv) && (strcmp(p->key, xkey) == 0)) {
-        if (q == NULL) {
-          eaccelerator_mm_instance->user_hash[slot] = p->next;
-        } else {
-          q->next = p->next;
-        }
-        eaccelerator_mm_instance->user_hash_cnt--;
-        eaccelerator_free_nolock(p);
-        break;
-      }
-      q = p;
-      p = p->next;
-    }
-    EACCELERATOR_UNLOCK_RW();
-    EACCELERATOR_PROTECT();
-  }
-  if (xlen != key_len) {efree(xkey);}
-  return 1;
-}
-
-size_t eaccelerator_gc(TSRMLS_D) {
-  size_t size = 0;
-  unsigned int i;
-  time_t t = time(0);
-
-  if (eaccelerator_mm_instance == NULL) {
-    return 0;
-  }
-  EACCELERATOR_UNPROTECT();
-  EACCELERATOR_LOCK_RW();
-  for (i = 0; i < MM_USER_HASH_SIZE; i++) {
-    mm_user_cache_entry** p = &eaccelerator_mm_instance->user_hash[i];
-    while (*p != NULL) {
-      if ((*p)->ttl != 0 && (*p)->ttl < t) {
-        mm_user_cache_entry *r = *p;
-        *p = (*p)->next;
-        eaccelerator_mm_instance->user_hash_cnt--;
-        size += r->size;
-        eaccelerator_free_nolock(r);
-      } else {
-        p = &(*p)->next;
-      }
-    }
-  }
-  EACCELERATOR_UNLOCK_RW();
-  EACCELERATOR_PROTECT();
-  return size;
-}
-
-PHP_FUNCTION(eaccelerator_lock) {
-  char *key;
-  int  key_len;
-
-  if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
-                          "s", &key, &key_len) == FAILURE) {
-    return;
-  }
-  if (eaccelerator_lock(key, key_len TSRMLS_CC)) {
-    RETURN_TRUE;
-  } else {
-    RETURN_FALSE;
-  }
-}
-
-PHP_FUNCTION(eaccelerator_unlock) {
-  char *key;
-  int  key_len;
-
-  if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
-                          "s", &key, &key_len) == FAILURE) {
-    return;
-  }
-  if (eaccelerator_unlock(key, key_len TSRMLS_CC)) {
-    RETURN_TRUE;
-  } else {
-    RETURN_FALSE;
-  }
-}
-
-PHP_FUNCTION(eaccelerator_put) {
-  char   *key;
-  int    key_len;
-  zval   *val;
-  time_t ttl = 0;
-  long   where = eaccelerator_keys_cache_place;
-
-  if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
-                          "sz|ll", &key, &key_len, &val, &ttl, &where) == FAILURE) {
-    return;
-  }
-  if (eaccelerator_put(key, key_len, val, ttl, where TSRMLS_CC)) {
-    RETURN_TRUE;
-  } else {
-    RETURN_FALSE;
-  }
-}
-
-PHP_FUNCTION(eaccelerator_get) {
-  char *key;
-  int  key_len;
-  long where = eaccelerator_keys_cache_place;
-
-  if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
-                          "s|l", &key, &key_len, &where) == FAILURE) {
-    return;
-  }
-  if (eaccelerator_get(key, key_len, return_value, where TSRMLS_CC)) {
-    return;
-  } else {
-    RETURN_NULL();
-  }
-}
-
-PHP_FUNCTION(eaccelerator_rm) {
-  char *key;
-  int  key_len;
-  long where = eaccelerator_keys_cache_place;
-
-  if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
-                          "s|l", &key, &key_len, &where) == FAILURE) {
-    return;
-  }
-  if (eaccelerator_rm(key, key_len, where TSRMLS_CC)) {
-    RETURN_TRUE;
-  } else {
-    RETURN_FALSE;
-  }
-}
-
-PHP_FUNCTION(eaccelerator_gc) {
-  if(ZEND_NUM_ARGS() != 0) {
-    WRONG_PARAM_COUNT;
-  }
-  eaccelerator_gc(TSRMLS_C);
-  RETURN_TRUE;
-}
-
-#ifdef WITH_EACCELERATOR_SESSIONS
-
-static int do_session_unlock(TSRMLS_D) {
-  if (MMCG(session) != NULL) {
-    eaccelerator_unlock(MMCG(session),strlen(MMCG(session)) TSRMLS_CC);
-    efree(MMCG(session));
-    MMCG(session) = NULL;
-  }
-  return 1;
-}
-
-static int do_session_lock(const char* sess_name TSRMLS_DC) {
-  if (MMCG(session) != NULL) {
-    if (strcmp(MMCG(session),sess_name) == 0) {
-      return 1;
-    } else {
-      do_session_unlock(TSRMLS_C);
-    }
-  }
-  if (eaccelerator_lock(sess_name, strlen(sess_name) TSRMLS_CC)) {
-    MMCG(session) = estrdup(sess_name);
-    return 1;
-  } else {
-    return 0;
-  }
-}
-
-#ifdef HAVE_PHP_SESSIONS_SUPPORT
-
-PS_OPEN_FUNC(eaccelerator) {
-  if (eaccelerator_mm_instance == NULL) {
-    return FAILURE;
-  }
-  PS_SET_MOD_DATA((void *)1);
-  return SUCCESS;
-}
-
-PS_CLOSE_FUNC(eaccelerator) {
-  if (eaccelerator_mm_instance == NULL) {
-    return FAILURE;
-  }
-  do_session_unlock(TSRMLS_C);
-  return SUCCESS;
-}
-
-PS_READ_FUNC(eaccelerator) {
-  char *skey;
-  int  len;
-  zval ret;
-
-  len = sizeof("sess_") + strlen(key);
-  skey = do_alloca(len + 1);
-  strcpy(skey,"sess_");
-  strcat(skey,key);
-  do_session_lock(skey TSRMLS_CC);
-  if (eaccelerator_get(skey, len, &ret, eaccelerator_sessions_cache_place TSRMLS_CC) &&
-      ret.type == IS_STRING) {
-    *val = estrdup(ret.value.str.val);
-    *vallen = ret.value.str.len;
-    zval_dtor(&ret);
-  } else {
-    *val = emalloc(1);
-    (*val)[0] = '\0';
-    *vallen = 0;
-  }
-  free_alloca(skey);
-  return SUCCESS;
-}
-
-PS_WRITE_FUNC(eaccelerator) {
-  char *skey;
-  int  len;
-  char *tmp;
-  time_t ttl;
-  zval sval;
-
-  len = sizeof("sess_") + strlen(key);
-  skey = do_alloca(len + 1);
-  strcpy(skey,"sess_");
-  strcat(skey,key);
-  if (cfg_get_string("session.gc_maxlifetime", &tmp)==FAILURE) {
-    ttl = 1440;
-  } else {
-    ttl = atoi(tmp);
-  }
-  sval.type = IS_STRING;
-  sval.value.str.val = (char*)val;
-  sval.value.str.len = vallen;
-
-  do_session_lock(skey TSRMLS_CC);
-  if (eaccelerator_put(skey, len, &sval, ttl, eaccelerator_sessions_cache_place TSRMLS_CC)) {
-    free_alloca(skey);
-    return SUCCESS;
-  } else {
-    free_alloca(skey);
-    return FAILURE;
-  }
-}
-
-PS_DESTROY_FUNC(eaccelerator) {
-  char *skey;
-  int  len;
-
-  len = sizeof("sess_") + strlen(key);
-  skey = do_alloca(len + 1);
-  strcpy(skey,"sess_");
-  strcat(skey,key);
-  if (eaccelerator_rm(skey, len, eaccelerator_sessions_cache_place TSRMLS_CC)) {
-    free_alloca(skey);
-    return SUCCESS;
-  } else {
-    free_alloca(skey);
-    return FAILURE;
-  }
-}
-
-PS_GC_FUNC(eaccelerator) {
-  if (eaccelerator_mm_instance == NULL) {
-    return FAILURE;
-  }
-  eaccelerator_gc(TSRMLS_C);
-  return SUCCESS;
-}
-
-#ifdef PS_CREATE_SID_ARGS
-PS_CREATE_SID_FUNC(eaccelerator) {
-  static char hexconvtab[] = "0123456789abcdef";
-  PHP_MD5_CTX context;
-  unsigned char digest[16];
-  char buf[256];
-  struct timeval tv;
-  int i;
-  int j = 0;
-  unsigned char c;
-
-  long entropy_length;
-  char *entropy_file;
-
-  if (cfg_get_string("session.entropy_length", &entropy_file)==FAILURE) {
-    entropy_length = 0;
-  } else {
-    entropy_length = atoi(entropy_file);
-  }
-  if (cfg_get_string("session.entropy_file", &entropy_file)==FAILURE) {
-    entropy_file = empty_string;
-  }
-
-  gettimeofday(&tv, NULL);
-  PHP_MD5Init(&context);
-
-  sprintf(buf, "%ld%ld%0.8f", tv.tv_sec, tv.tv_usec, php_combined_lcg(TSRMLS_C) * 10);
-  PHP_MD5Update(&context, buf, strlen(buf));
-
-  if (entropy_length > 0) {
-    int fd;
-
-    fd = VCWD_OPEN(entropy_file, O_RDONLY);
-    if (fd >= 0) {
-      unsigned char buf[2048];
-      int n;
-      int to_read = entropy_length;
-
-      while (to_read > 0) {
-        n = read(fd, buf, MIN(to_read, sizeof(buf)));
-        if (n <= 0) break;
-        PHP_MD5Update(&context, buf, n);
-        to_read -= n;
-      }
-      close(fd);
-    }
-  }
-
-  PHP_MD5Final(digest, &context);
-
-  for (i = 0; i < 16; i++) {
-    c = digest[i];
-    buf[j++] = hexconvtab[c >> 4];
-    buf[j++] = hexconvtab[c & 15];
-  }
-  buf[j] = '\0';
-
-  if (newlen)
-    *newlen = j;
-  return estrdup(buf);
-}
-#endif
-
-static ps_module ps_mod_eaccelerator = {
-#ifdef PS_CREATE_SID_ARGS
-  PS_MOD_SID(eaccelerator)
-#else
-  PS_MOD(eaccelerator)
-#endif
-};
-
-#else
-
-PHP_FUNCTION(_eaccelerator_session_open) {
-  if (eaccelerator_mm_instance == NULL) {
-    RETURN_FALSE;
-  }
-  RETURN_TRUE;
-}
-
-PHP_FUNCTION(_eaccelerator_session_close) {
-  if (eaccelerator_mm_instance == NULL) {
-    RETURN_FALSE;
-  }
-  do_session_unlock(TSRMLS_C);
-  RETURN_TRUE;
-}
-
-PHP_FUNCTION(_eaccelerator_session_read) {
-  zval **arg_key;
-  char *key;
-  int  len;
-
-  if (ZEND_NUM_ARGS() != 1 || zend_get_parameters_ex(1, &arg_key) == FAILURE) {
-    WRONG_PARAM_COUNT;
-  }
-  len = sizeof("sess_") + (*arg_key)->value.str.len;
-  key = do_alloca(len + 1);
-  strcpy(key,"sess_");
-  strcat(key,(*arg_key)->value.str.val);
-  do_session_lock(key TSRMLS_CC);
-  if (eaccelerator_get(key, len, return_value, eaccelerator_sessions_cache_place TSRMLS_CC)) {
-    free_alloca(key);
-    return;
-  } else {
-    free_alloca(key);
-    RETURN_EMPTY_STRING();
-  }
-}
-
-PHP_FUNCTION(_eaccelerator_session_write) {
-  zval **arg_key, **arg_val;
-  char *key;
-  int  len;
-  char *tmp;
-  time_t ttl;
-
-  if (ZEND_NUM_ARGS() != 2 || zend_get_parameters_ex(2, &arg_key, &arg_val) == FAILURE) {
-    WRONG_PARAM_COUNT;
-  }
-  len = sizeof("sess_") + (*arg_key)->value.str.len;
-  key = do_alloca(len + 1);
-  strcpy(key,"sess_");
-  strcat(key,(*arg_key)->value.str.val);
-  if (cfg_get_string("session.gc_maxlifetime", &tmp)==FAILURE) {
-    ttl = 1440;
-  } else {
-    ttl = atoi(tmp);
-  }
-  do_session_lock(key TSRMLS_CC);
-  if (eaccelerator_put(key, len, *arg_val, ttl, eaccelerator_sessions_cache_place TSRMLS_CC)) {
-    free_alloca(key);
-    RETURN_TRUE;
-  } else {
-    free_alloca(key);
-    RETURN_FALSE;
-  }
-}
-
-PHP_FUNCTION(_eaccelerator_session_destroy) {
-  zval **arg_key;
-  char *key;
-  int  len;
-
-  if (ZEND_NUM_ARGS() != 1 || zend_get_parameters_ex(1, &arg_key) == FAILURE) {
-    WRONG_PARAM_COUNT;
-  }
-  len = sizeof("sess_") + (*arg_key)->value.str.len;
-  key = do_alloca(len + 1);
-  strcpy(key,"sess_");
-  strcat(key,(*arg_key)->value.str.val);
-  if (eaccelerator_rm(key, len, eaccelerator_sessions_cache_place TSRMLS_CC)) {
-    free_alloca(key);
-    RETURN_TRUE;
-  } else {
-    free_alloca(key);
-    RETURN_FALSE;
-  }
-}
-
-PHP_FUNCTION(_eaccelerator_session_gc) {
-  if (eaccelerator_mm_instance == NULL) {
-    RETURN_FALSE;
-  }
-  eaccelerator_gc(TSRMLS_C);
-  RETURN_TRUE;
-}
-#endif /* HAVE_PHP_SESSIONS_SUPPORT */
-
-
-static int eaccelerator_set_session_handlers(TSRMLS_D) {
-  zval func;
-  zval retval;
-  int ret = 1;
-#ifdef HAVE_PHP_SESSIONS_SUPPORT
-  zval param;
-  zval *params[1];
-/*
-  if (php_session_register_module(&ps_mod_eaccelerator) != 0) {
-    return 0;
-  }
-*/
-  if (eaccelerator_sessions_cache_place == eaccelerator_none) {
-    return 0;
-  }
-  ZVAL_STRING(&func, "session_module_name", 0);
-  INIT_ZVAL(param);
-  params[0] = &param;
-  ZVAL_STRING(params[0], "eaccelerator", 0);
-  if (call_user_function(EG(function_table), NULL, &func, &retval,
-        1, params TSRMLS_CC) == FAILURE) {
-    ret = 0;
-  }
-  zval_dtor(&retval);
-  return ret;
-#else
-  zval *params[6];
-  int i;
-
-  if (eaccelerator_sessions_cache_place == eaccelerator_none) {
-    return 0;
-  }
-  if (eaccelerator_mm_instance == NULL) {
-    return 0;
-  }
-  if (!zend_hash_exists(EG(function_table), "session_set_save_handler", sizeof("session_set_save_handler"))) {
-    return 0;
-  }
-
-  ZVAL_STRING(&func, "session_set_save_handler", 0);
-  MAKE_STD_ZVAL(params[0]);
-  ZVAL_STRING(params[0], "_eaccelerator_session_open", 1);
-  MAKE_STD_ZVAL(params[1]);
-  ZVAL_STRING(params[1], "_eaccelerator_session_close", 1);
-  MAKE_STD_ZVAL(params[2]);
-  ZVAL_STRING(params[2], "_eaccelerator_session_read", 1);
-  MAKE_STD_ZVAL(params[3]);
-  ZVAL_STRING(params[3], "_eaccelerator_session_write", 1);
-  MAKE_STD_ZVAL(params[4]);
-  ZVAL_STRING(params[4], "_eaccelerator_session_destroy", 1);
-  MAKE_STD_ZVAL(params[5]);
-  ZVAL_STRING(params[5], "_eaccelerator_session_gc", 1);
-  if (call_user_function(EG(function_table), NULL, &func, &retval,
-        6, params TSRMLS_CC) == FAILURE) {
-    ret = 0;
-  }
-  zval_dtor(&retval);
-  for (i = 0; i < 6; i++) zval_ptr_dtor(&params[i]);
-  return ret;
-#endif
-}
-
-PHP_FUNCTION(eaccelerator_set_session_handlers) {
-  if (eaccelerator_set_session_handlers(TSRMLS_C)) {
-    RETURN_TRUE;
-  } else {
-    RETURN_FALSE;
-  }
-}
-
-#endif
-
+/* let eaccelerator crash */
 #ifdef WITH_EACCELERATOR_CRASH
 PHP_FUNCTION(eaccelerator_crash) {
   char *x = NULL;
   strcpy(x,"Hello");
 }
 #endif
-
-PHP_FUNCTION(eaccelerator);
 
 /******************************************************************************/
 /*
@@ -4788,22 +3536,6 @@ static PHP_INI_MH(eaccelerator_OnUpdateBool) {
   return SUCCESS;
 }
 
-static PHP_INI_MH(eaccelerator_OnUpdateCachePlace) {
-  eaccelerator_cache_place *p = (eaccelerator_cache_place*)mh_arg1;
-  if (strncasecmp("shm_and_disk", new_value, sizeof("shm_and_disk")) == 0) {
-    *p = eaccelerator_shm_and_disk;
-  } else if (strncasecmp("shm", new_value, sizeof("shm")) == 0) {
-    *p = eaccelerator_shm;
-  } else if (strncasecmp("shm_only", new_value, sizeof("shm_only")) == 0) {
-    *p = eaccelerator_shm_only;
-  } else if (strncasecmp("disk_only", new_value, sizeof("disk_only")) == 0) {
-    *p = eaccelerator_disk_only;
-  } else if (strncasecmp("none", new_value, sizeof("none")) == 0) {
-    *p = eaccelerator_none;
-  }
-  return SUCCESS;
-}
-
 #ifndef ZEND_ENGINE_2
 #define OnUpdateLong OnUpdateInt
 #endif
@@ -4820,11 +3552,16 @@ ZEND_INI_ENTRY1("eaccelerator.shm_prune_period", "0", PHP_INI_SYSTEM, eaccelerat
 ZEND_INI_ENTRY1("eaccelerator.debug",            "0", PHP_INI_SYSTEM, eaccelerator_OnUpdateLong, &eaccelerator_debug)
 ZEND_INI_ENTRY1("eaccelerator.check_mtime",      "1", PHP_INI_SYSTEM, eaccelerator_OnUpdateBool, &eaccelerator_check_mtime)
 ZEND_INI_ENTRY1("eaccelerator.shm_only",         "0", PHP_INI_SYSTEM, eaccelerator_OnUpdateBool, &eaccelerator_scripts_shm_only)
-ZEND_INI_ENTRY1("eaccelerator.keys",             "shm_and_disk", PHP_INI_SYSTEM, eaccelerator_OnUpdateCachePlace, &eaccelerator_keys_cache_place)
-ZEND_INI_ENTRY1("eaccelerator.sessions",         "shm_and_disk", PHP_INI_SYSTEM, eaccelerator_OnUpdateCachePlace, &eaccelerator_sessions_cache_place)
-ZEND_INI_ENTRY1("eaccelerator.content",          "shm_and_disk", PHP_INI_SYSTEM, eaccelerator_OnUpdateCachePlace, &eaccelerator_content_cache_place)
-STD_PHP_INI_ENTRY("eaccelerator.cache_dir",      "/tmp/eaccelerator", PHP_INI_SYSTEM, OnUpdateString,
-                  cache_dir, zend_eaccelerator_globals, eaccelerator_globals)
+#ifdef WITH_EACCELERATOR_SHM
+ZEND_INI_ENTRY("eaccelerator.keys",             "shm_and_disk", PHP_INI_SYSTEM, eaccelerator_OnUpdateKeysCachePlace)
+#endif
+#ifdef WITH_EACCELERATOR_SESSIONS
+ZEND_INI_ENTRY("eaccelerator.sessions",         "shm_and_disk", PHP_INI_SYSTEM, eaccelerator_OnUpdateSessionCachePlace)
+#endif
+#ifdef WITH_EACCELERATOR_CONTENT_CACHING
+ZEND_INI_ENTRY("eaccelerator.content",          "shm_and_disk", PHP_INI_SYSTEM, eaccelerator_OnUpdateContentCachePlace)
+#endif
+STD_PHP_INI_ENTRY("eaccelerator.cache_dir",      "/tmp/eaccelerator", PHP_INI_SYSTEM, OnUpdateString, cache_dir, zend_eaccelerator_globals, eaccelerator_globals)
 PHP_INI_ENTRY("eaccelerator.filter",             "",  PHP_INI_ALL, eaccelerator_filter)
 STD_PHP_INI_ENTRY("eaccelerator.name_space",      "", PHP_INI_SYSTEM, OnUpdateString, name_space, zend_eaccelerator_globals, eaccelerator_globals)
 PHP_INI_END()
@@ -4919,6 +3656,7 @@ static void __attribute__((destructor)) eaccelerator_clean_shutdown(void) {
   }
 }
 
+/* signal handlers */
 #ifdef WITH_EACCELERATOR_CRASH_DETECTION
 static void eaccelerator_crash_handler(int dummy) {
   TSRMLS_FETCH();
@@ -5011,7 +3749,6 @@ static void eaccelerator_globals_dtor(zend_eaccelerator_globals *eaccelerator_gl
 }
 
 static void register_eaccelerator_as_zend_extension();
-static int eaccelerator_set_session_handlers();
 
 static int eaccelerator_check_php_version(TSRMLS_D) {
   zval v;
@@ -5109,10 +3846,8 @@ PHP_MINIT_FUNCTION(eaccelerator) {
 #endif
   }
 #if defined(WITH_EACCELERATOR_SESSIONS) && defined(HAVE_PHP_SESSIONS_SUPPORT)
-    if (eaccelerator_sessions_cache_place != eaccelerator_none &&
-        eaccelerator_sessions_registered == 0) {
-      php_session_register_module(&ps_mod_eaccelerator);
-      eaccelerator_sessions_registered = 1;
+    if (!eaccelerator_session_registered()) {
+      eaccelerator_register_session();
     }
 #endif
 #ifdef WITH_EACCELERATOR_CONTENT_CACHING
@@ -5319,13 +4054,17 @@ static unsigned char eaccelerator_second_arg_force_ref[] = {2, BYREF_NONE, BYREF
 #endif
 
 function_entry eaccelerator_functions[] = {
+#ifdef WITH_EACCELERATOR_WEBUI
   PHP_FE(eaccelerator, NULL)
+#endif
+#ifdef WITH_EACCELERATOR_SHM
   PHP_FE(eaccelerator_put, NULL)
   PHP_FE(eaccelerator_get, NULL)
   PHP_FE(eaccelerator_rm, NULL)
   PHP_FE(eaccelerator_gc, NULL)
   PHP_FE(eaccelerator_lock, NULL)
   PHP_FE(eaccelerator_unlock, NULL)
+#endif
 #ifdef WITH_EACCELERATOR_ENCODER
   PHP_FE(eaccelerator_encode, eaccelerator_second_arg_force_ref)
 #endif
@@ -5381,11 +4120,6 @@ ZEND_GET_MODULE(eaccelerator)
 
 static startup_func_t last_startup;
 static zend_llist_element *eaccelerator_el;
-
-#define EACCELERATOR_VERSION_GUID   "PHPE8EDA1B6-806A-4851-B1C8-A6B4712F44FB"
-#define EACCELERATOR_LOGO_GUID      "PHPE6F78DE9-13E4-4dee-8518-5FA2DACEA803"
-
-#define EACCELERATOR_VERSION_STRING ("eAccelerator " EACCELERATOR_VERSION " (PHP " PHP_VERSION ")")
 
 static const unsigned char eaccelerator_logo[] = {
       71,  73,  70,  56,  57,  97,  88,   0,  31,   0, 
@@ -5716,1461 +4450,5 @@ static void register_eaccelerator_as_zend_extension() {
 }
 
 /******************************************************************************/
-
-#ifdef WITH_EACCELERATOR_DISASSEMBLER
-
-static const char* extopnames_declare[] = {
-  "",                          /* 0 */
-  "DECLARE_CLASS",             /* 1 */
-  "DECLARE_FUNCTION",          /* 2 */
-  "DECLARE_INHERITED_CLASS"    /* 3 */
-};
-
-static const char* extopnames_cast[] = {
-  "IS_NULL",                   /* 0 */
-  "IS_LONG",                   /* 1 */
-  "IS_DOUBLE",                 /* 2 */
-  "IS_STRING",                 /* 3 */
-  "IS_ARRAY",                  /* 4 */
-  "IS_OBJECT",                 /* 5 */
-  "IS_BOOL",                   /* 6 */
-  "IS_RESOURCE",               /* 7 */
-  "IS_CONSTANT",               /* 8 */
-  "IS_CONSTANT_ARRAY"          /* 9 */
-};
-
-static const char* extopnames_fetch[] = {
-  "FETCH_STANDARD",            /* 0 */
-  "FETCH_ADD_LOCK"             /* 1 */
-};
-
-static const char* extopnames_fetch_class[] = {
-  "FETCH_CLASS_DEFAULT",       /* 0 */
-  "FETCH_CLASS_SELF",          /* 1 */
-  "FETCH_CLASS_PARENT",        /* 2 */
-  "FETCH_CLASS_MAIN",          /* 3 */
-  "FETCH_CLASS_GLOBAL",        /* 4 */
-  "FETCH_CLASS_AUTO"           /* 5 */
-};
-
-static const char* extopnames_init_fcall[] = {
-  "&nbsp;",                    /* 0 */
-  "MEMBER_FUNC_CALL",          /* 1 */
-  "CTOR_CALL",                 /* 2 */
-  "CTOR_CALL"                  /* 3 */
-};
-
-static const char* extopnames_sendnoref[] = {
-  "&nbsp;",                    /* 0 */
-  "ARG_SEND_BY_REF",           /* 1 */
-  "ARG_COMPILE_TIME_BOUND",    /* 2 */
-  "ARG_SEND_BY_REF | ZEND_ARG_COMPILE_TIME_BOUND" /* 3 */
-};
-
-static const char* fetchtypename[] = {
-  "FETCH_GLOBAL",             /* 0 */
-  "FETCH_LOCAL",              /* 1 */
-  "FETCH_STATIC"              /* 2 */
-#ifdef ZEND_ENGINE_2
-  ,
-  "FETCH_STATIC_MEMBER"       /* 3 */
-#endif
-};
-
-static const char* extopnames_fe[] = {
-  "",                         /* 0 */
-  "FE_FETCH_BYREF",           /* 1 */
-  "FE_FETCH_WITH_KEY"         /* 2 */
-};
-
-static void dump_write(const char* s, uint len) {
-  uint i = 0;
-  while (i < len) {
-    if (!s[i]) ZEND_PUTS("\\000");
-    else if (s[i] == '\n')      ZEND_PUTS("\\n");
-    else if (s[i] == '\r') ZEND_PUTS("\\r");
-    else if (s[i] < ' ')   zend_printf("\\%03o",(unsigned char)s[i]);
-    else if (s[i] == '<')  ZEND_PUTS("&lt;");
-    else if (s[i] == '>')  ZEND_PUTS("&gt;");
-    else if (s[i] == '&')  ZEND_PUTS("&amp;");
-    else if (s[i] == '\'') ZEND_PUTS("\\'");
-    else if (s[i] == '\\') ZEND_PUTS("\\\\");
-    else zend_write(&s[i], 1);
-    ++i;
-  }
-}
-
-static void dump_zval(zval* v, int compress) {
-  switch(v->type & ~IS_CONSTANT_INDEX) {
-    case IS_NULL:
-      ZEND_PUTS("null");
-      break;
-    case IS_LONG:
-      zend_printf("long(%ld)", v->value.lval);
-      break;
-    case IS_DOUBLE:
-      zend_printf("double(%e)", v->value.dval);
-/*
-      zend_printf("double(%.*G)", v->value.dval);
-*/
-      break;
-    case IS_STRING:
-      ZEND_PUTS("string('");
-string_dump:
-      dump_write(v->value.str.val, v->value.str.len);
-      ZEND_PUTS("')");
-      break;
-    case IS_BOOL:
-      zend_printf("bool(%s)", v->value.lval?"true":"false");
-      break;
-    case IS_ARRAY:
-      ZEND_PUTS("array(");
-array_dump:
-      {
-        Bucket* p = v->value.ht->pListHead;
-        while (p != NULL) {
-          if (p->nKeyLength == 0) {
-            zend_printf("%lu",p->h);
-          } else {
-            int is_const = 0;
-            if (((zval*)p->pDataPtr)->type & IS_CONSTANT_INDEX) {
-              is_const = 1;
-            }
-            if (is_const) {
-              ZEND_PUTS("constant(");
-            }
-            ZEND_PUTS(p->arKey);
-            if (is_const) {
-              ZEND_PUTS(")");
-            }
-          }
-          ZEND_PUTS(" => ");
-          dump_zval((zval*)p->pDataPtr, 1);
-          p = p->pListNext;
-          if (p != NULL) ZEND_PUTS(", ");
-        }
-      }
-      ZEND_PUTS(")");
-      break;
-    case IS_OBJECT:
-#ifdef ZEND_ENGINE_2
-      ZEND_PUTS("object(?)");
-#else
-      ZEND_PUTS("object(");
-      if (v->value.obj.ce != NULL) {
-        zend_printf("class: '%s' properties(", v->value.obj.ce);
-      } else {
-        ZEND_PUTS("class: ? properties(");
-      }
-      if (v->value.obj.properties != NULL) {
-        Bucket* p = v->value.obj.properties->pListHead;
-        while (p != NULL) {
-          if (p->nKeyLength == 0) {
-            zend_printf("%lu",p->h);
-          } else {
-            int is_const = 0;
-            if ((compress && (((zval*)p->pData)->type & IS_CONSTANT_INDEX)) ||
-                (!compress && ((*(zval**)p->pData)->type & IS_CONSTANT_INDEX))) {
-              is_const = 1;
-            }
-            if (is_const) {
-              ZEND_PUTS("constant(");
-            }
-            ZEND_PUTS(p->arKey);
-            if (is_const) {
-              ZEND_PUTS(")");
-            }
-          }
-          ZEND_PUTS(" => ");
-          dump_zval((zval*)p->pDataPtr, 1);
-          p = p->pListNext;
-          if (p != NULL) ZEND_PUTS(", ");
-        }
-      }
-      ZEND_PUTS("))");
-#endif
-      break;
-    case IS_RESOURCE:
-      ZEND_PUTS("resource(?)");
-      break;
-    case IS_CONSTANT:
-      ZEND_PUTS("constant('");
-      goto string_dump;
-    case IS_CONSTANT_ARRAY:
-      ZEND_PUTS("constatnt_array(");
-      goto array_dump;
-    default:
-      zend_printf("unknown(%d)",v->type);
-  }
-}
-
-static const char *color_list[] = {
-  "#FF0000",
-  "#00FF00",
-  "#0000FF",
-  "#FFFF00",
-  "#00FFFF",
-  "#FF00FF",
-  "#800000",
-  "#008000",
-  "#000080",
-  "#808000",
-  "#008080",
-  "#800080"
-};
-
-static char *color(int num) {
-  return color_list[num % (sizeof(color_list)/sizeof(char *))];
-}
-
-static char *get_file_contents(char *filename)
-{
-  struct stat st;
-  char *buf;
-  FILE *fp;
-
-  if (stat(filename, &st) == -1)
-    return NULL;
-
-  buf = emalloc(st.st_size);
-  if (buf == NULL)
-    return NULL;
-
-  fp = fopen(filename, "rb");
-  fread(buf, 1, st.st_size, fp);
-  fclose(fp);
-
-  return buf;
-}
-
-static void print_file_line(char *p, int line)
-{
-  char *s;
-
-  if (p == NULL) {
-    zend_printf("..can't open file..");
-    return;
-  }
-
-  while (line > 0 && *p) {
-    if (*p == '\n') {
-      line --;
-    }
-    else if (line == 1) {
-      if (*p == '<')
-        zend_printf("&lt;");
-      else if (*p == '>')
-        zend_printf("&gt;");
-      else
-        zend_printf("%c", *p);
-    }
-
-    p++;
-  }
-}
-
-static void dump_op_array(eaccelerator_op_array* p TSRMLS_DC) {
-  zend_op *opline;
-  zend_op *end;
-  char *filebuf;
-  unsigned last_line = 0;
-
-#ifdef ZEND_ENGINE_2
-  zend_printf("T = %u, size = %u\n, brk_count = %u, file = %s<br>\n", p->T, p->last, p->last_brk_cont, p->filename);
-#else
-  zend_printf("T = %u, size = %u\n, uses_globals = %d, brk_count = %u, file = %s<br>\n", p->T, p->last ,p->uses_globals, p->last_brk_cont, p->filename);
-#endif
-
-  if (p->static_variables) {
-    Bucket *q = p->static_variables->pListHead;
-
-    ZEND_PUTS("<table border=\"0\" cellpadding=\"3\" cellspacing=\"1\" width=\"600\" bgcolor=\"#000000\" align=\"center\" style=\"table-layout:fixed\">\n");
-    ZEND_PUTS("<thead valign=\"middle\" bgcolor=\"#9999cc\"><tr><th width=\"200\">Static variable</th><th width=\"400\">Value</th></tr></thead>\n");
-    ZEND_PUTS("<tbody valign=\"top\" bgcolor=\"#cccccc\" style=\"word-break:break-all\">\n");
-
-    while (q) {
-      zend_printf("<tr><td bgcolor=\"#ccccff\">$%s</td><td>", q->arKey);
-      dump_zval((zval*)q->pDataPtr, 1);
-      ZEND_PUTS("&nbsp;</td></tr>\n");
-      q = q->pListNext;
-    }
-    ZEND_PUTS("<tbody></table><br>\n");
-  }
-
-  if (p->opcodes) {
-    int n = 0;
-    opline = p->opcodes;
-    end = opline + p->last;
-
-    filebuf = get_file_contents(p->filename);
-
-    ZEND_PUTS("<table border=\"0\" cellpadding=\"3\" cellspacing=\"1\" width=\"900\" bgcolor=\"#000000\" align=\"center\" style=\"table-layout:fixed\">\n");
-    ZEND_PUTS("<thead valign=\"middle\" bgcolor=\"#9999cc\"><tr><th width=\"40\">N</th><th width=\"160\">OPCODE</th><th width=\"160\">EXTENDED_VALUE</th><th width=\"220\">OP1</th><th width=\"220\">OP2</th><th width=\"80\">RESULT</th></tr></thead>\n");
-    ZEND_PUTS("<tbody valign=\"top\" bgcolor=\"#cccccc\" style=\"word-break:break-all; font-size: x-small\">\n");
-    for (;opline < end; opline++) {
-      const opcode_dsc* op = get_opcode_dsc(opline->opcode);
-
-      while (last_line < opline->lineno) {
-        last_line++;
-        zend_printf("<tr><td colspan=6 bgcolor=black><pre><font color=#80ff80>");
-        print_file_line(filebuf, last_line);
-        zend_printf("</font></pre></td></tr>\n");
-      }
-
-      if (op != NULL) {
-        zend_printf("<tr><td><font color=%s>%d</font> </td><td>%s </td>",color(n), n, op->opname);
-        if ((op->ops & EXT_MASK) == EXT_OPLINE) {
-          zend_printf("<td><font color=%s>opline(%lu)</font> </td>",color(opline->extended_value),opline->extended_value);
-        } else if ((op->ops & EXT_MASK) == EXT_FCALL) {
-          zend_printf("<td>args(%lu) </td>",opline->extended_value);
-        } else if ((op->ops & EXT_MASK) == EXT_ARG) {
-          zend_printf("<td>arg(%lu) </td>",opline->extended_value);
-        } else if ((op->ops & EXT_MASK) == EXT_SEND) {
-          zend_printf("<td>%s </td>", get_opcode_dsc(opline->extended_value)->opname);
-        } else if ((op->ops & EXT_MASK) == EXT_CAST) {
-          zend_printf("<td>%s </td>", extopnames_cast[opline->extended_value]);
-        } else if ((op->ops & EXT_MASK) == EXT_INIT_FCALL) {
-          zend_printf("<td>%s </td>", extopnames_init_fcall[opline->extended_value]);
-        } else if ((op->ops & EXT_MASK) == EXT_FETCH) {
-          zend_printf("<td>%s </td>", extopnames_fetch[opline->extended_value]);
-        } else if ((op->ops & EXT_MASK) == EXT_FE) {
-          zend_printf("<td>%s </td>", extopnames_fe[opline->extended_value]);
-        } else if ((op->ops & EXT_MASK) == EXT_DECLARE) {
-          zend_printf("<td>%s </td>", extopnames_declare[opline->extended_value]);
-        } else if ((op->ops & EXT_MASK) == EXT_SEND_NOREF) {
-          zend_printf("<td>%s </td>", extopnames_sendnoref[opline->extended_value]);
-        } else if ((op->ops & EXT_MASK) == EXT_FCLASS) {
-          zend_printf("<td>%s </td>", extopnames_fetch_class[opline->extended_value]);
-        } else if ((op->ops & EXT_MASK) == EXT_IFACE) {
-          zend_printf("<td>interface(%lu) </td>",opline->extended_value);
-        } else if ((op->ops & EXT_MASK) == EXT_CLASS) {
-          zend_printf("<td>$class%u </td>",VAR_NUM(opline->extended_value));
-        } else if ((op->ops & EXT_MASK) == EXT_BIT) {
-          zend_printf("<td>%s </td>",opline->extended_value?"true":"false");
-        } else if ((op->ops & EXT_MASK) == EXT_ISSET) {
-          if (opline->extended_value == ZEND_ISSET) {
-            ZEND_PUTS("<td>ZEND_ISSET </td>");
-          } else if (opline->extended_value == ZEND_ISEMPTY) {
-            ZEND_PUTS("<td>ZEND_ISEMPTY </td>");
-          } else {
-            ZEND_PUTS("<td>&nbsp; </td>");
-          }
-#ifdef ZEND_ENGINE_2
-        } else if ((op->ops & EXT_MASK) == EXT_ASSIGN) {
-          if (opline->extended_value == ZEND_ASSIGN_OBJ) {
-            ZEND_PUTS("<td>ZEND_ASSIGN_OBJ </td>");
-          } else if (opline->extended_value == ZEND_ASSIGN_DIM) {
-            ZEND_PUTS("<td>ZEND_ASSIGN_DIM </td>");
-          } else {
-            ZEND_PUTS("<td>&nbsp; </td>");
-          }
-        } else if (opline->opcode == ZEND_UNSET_DIM_OBJ) {
-          if (opline->extended_value == ZEND_UNSET_DIM) {
-            ZEND_PUTS("<td>ZEND_UNSET_DIM </td>");
-          } else if (opline->extended_value == ZEND_UNSET_OBJ) {
-            ZEND_PUTS("<td>ZEND_UNSET_OBJ </td>");
-          } else {
-            ZEND_PUTS("<td>&nbsp; </td>");
-          }
-#endif
-        } else if (opline->extended_value != 0) {
-          zend_printf("<td>%ld </td>",opline->extended_value);
-        } else {
-          ZEND_PUTS("<td>&nbsp;</td>");
-        }
-      } else {
-        zend_printf("<tr><td>%d </td><td>UNKNOWN_OPCODE %d </td><td>%lu </td>", n, opline->opcode,opline->extended_value);
-        op = get_opcode_dsc(0);
-      }
-
-      if ((op->ops & OP1_MASK) == OP1_OPLINE) {
-        zend_printf("<td><font color=%s>opline(%d)</font> </td>", color(opline->op1.u.opline_num), opline->op1.u.opline_num);
-#ifdef ZEND_ENGINE_2
-      } else if ((op->ops & OP1_MASK) == OP1_JMPADDR) {
-        zend_printf("<td><font color=%s>opline(%u)</font> </td>",
-            color((unsigned int)(opline->op1.u.jmp_addr - p->opcodes)),
-            (unsigned int)(opline->op1.u.jmp_addr - p->opcodes));
-      } else if ((op->ops & OP1_MASK) == OP1_CLASS) {
-        zend_printf("<td>$class%u </td>",VAR_NUM(opline->op1.u.var));
-      } else if ((op->ops & OP1_MASK) == OP1_UCLASS) {
-        if (opline->op1.op_type == IS_UNUSED) {
-          zend_printf("<td>&nbsp; </td>");
-        } else {
-          zend_printf("<td>$class%u </td>",VAR_NUM(opline->op1.u.var));
-        }
-#endif
-      } else if ((op->ops & OP1_MASK) == OP1_BRK) {
-        if (opline->op1.u.opline_num != -1 &&
-            opline->op2.op_type == IS_CONST &&
-            opline->op2.u.constant.type == IS_LONG) {
-          int level  = opline->op2.u.constant.value.lval;
-          zend_uint offset = opline->op1.u.opline_num;
-          zend_brk_cont_element *jmp_to;
-          do {
-            if (offset >= p->last_brk_cont) {
-              goto brk_failed;
-            }
-            jmp_to = &p->brk_cont_array[offset];
-            offset = jmp_to->parent;
-          } while (--level > 0);
-          zend_printf("<td><font color=%s>opline(%d)</font> </td>",color(jmp_to->brk),jmp_to->brk);
-        } else {
-brk_failed:
-          zend_printf("<td>brk_cont(%u) </td>",opline->op1.u.opline_num);
-        }
-      } else if ((op->ops & OP1_MASK) == OP1_CONT) {
-        if (opline->op1.u.opline_num != -1 &&
-            opline->op2.op_type == IS_CONST &&
-            opline->op2.u.constant.type == IS_LONG) {
-          int level  = opline->op2.u.constant.value.lval;
-          zend_uint offset = opline->op1.u.opline_num;
-          zend_brk_cont_element *jmp_to;
-          do {
-            if (offset >= p->last_brk_cont) {
-              goto cont_failed;
-            }
-            jmp_to = &p->brk_cont_array[offset];
-            offset = jmp_to->parent;
-          } while (--level > 0);
-          zend_printf("<td><font color=%s>opline(%d)</font> </td>",color(jmp_to->cont),jmp_to->cont);
-        } else {
-cont_failed:
-          zend_printf("<td>brk_cont(%u) </td>",opline->op1.u.opline_num);
-        }
-      } else if ((op->ops & OP1_MASK) == OP1_ARG) {
-        zend_printf("<td>arg(%ld) </td>",opline->op1.u.constant.value.lval);
-      } else if ((op->ops & OP1_MASK) == OP1_VAR) {
-        zend_printf("<td><font color=%s>$var%u</font> </td>", color(VAR_NUM(opline->op1.u.var)), VAR_NUM(opline->op1.u.var));
-      } else if ((op->ops & OP1_MASK) == OP1_TMP) {
-        zend_printf("<td><font color=%s>$tmp%u</font> </td>", color(VAR_NUM(opline->op1.u.var)), VAR_NUM(opline->op1.u.var));
-      } else {
-        if (opline->op1.op_type == IS_CONST) {
-          ZEND_PUTS("<td>");
-          dump_zval(&opline->op1.u.constant, 0);
-          ZEND_PUTS(" </td>");
-        } else if (opline->op1.op_type == IS_TMP_VAR) {
-          zend_printf("<td><font color=%s>$tmp%u</font> </td>", color(VAR_NUM(opline->op1.u.var)), VAR_NUM(opline->op1.u.var));
-        } else if (opline->op1.op_type == IS_VAR) {
-          zend_printf("<td><font color=%s>$var%u</font> </td>", color(VAR_NUM(opline->op1.u.var)), VAR_NUM(opline->op1.u.var));
-        } else if (opline->op1.op_type == IS_UNUSED) {
-          ZEND_PUTS("<td>&nbsp;</td>");
-        } else {
-          zend_printf("<td>UNKNOWN NODE %d </td>",opline->op1.op_type);
-        }
-      }
-
-      if ((op->ops & OP2_MASK) == OP2_OPLINE) {
-        zend_printf("<td><font color=%s>opline(%d)</font> </td>",color(opline->op2.u.opline_num),opline->op2.u.opline_num);
-#ifdef ZEND_ENGINE_2
-      } else if ((op->ops & OP2_MASK) == OP2_JMPADDR) {
-        zend_printf("<td><font color=%s>opline(%u)</font> </td>",color((unsigned int)(opline->op2.u.jmp_addr - p->opcodes)),(unsigned int)(opline->op2.u.jmp_addr - p->opcodes));
-      } else if ((op->ops & OP2_MASK) == OP2_CLASS) {
-          zend_printf("<td>$class%u </td>",VAR_NUM(opline->op2.u.var));
-#endif
-      } else if ((op->ops & OP2_MASK) == OP2_VAR) {
-          zend_printf("<td><font color=%s>$var%u</font> </td>", color(VAR_NUM(opline->op2.u.var)), VAR_NUM(opline->op2.u.var));
-      } else if ((op->ops & OP2_MASK) == OP2_FETCH) {
-#ifdef ZEND_ENGINE_2
-        if (opline->op2.u.EA.type == ZEND_FETCH_STATIC_MEMBER) {
-          zend_printf("<td>%s $class%u</td>",fetchtypename[opline->op2.u.EA.type],VAR_NUM(opline->op2.u.var));
-        } else {
-          zend_printf("<td>%s </td>",fetchtypename[opline->op2.u.EA.type]);
-        }
-#else
-        zend_printf("<td>%s </td>",fetchtypename[opline->op2.u.fetch_type]);
-#endif
-      } else if ((op->ops & OP2_MASK) == OP2_INCLUDE) {
-        if (opline->op2.u.constant.value.lval == ZEND_EVAL) {
-          ZEND_PUTS("<td>ZEND_EVAL </td>");
-        } else if (opline->op2.u.constant.value.lval == ZEND_INCLUDE) {
-          ZEND_PUTS("<td>ZEND_INCLUDE </td>");
-        } else if (opline->op2.u.constant.value.lval == ZEND_INCLUDE_ONCE) {
-          ZEND_PUTS("<td>ZEND_INCLUDE_ONCE </td>");
-        } else if (opline->op2.u.constant.value.lval == ZEND_REQUIRE) {
-          ZEND_PUTS("<td>ZEND_REQUIRE </td>");
-        } else if (opline->op2.u.constant.value.lval == ZEND_REQUIRE_ONCE) {
-          ZEND_PUTS("<td>ZEND_REQUIRE_ONCE </td>");
-        } else {
-          ZEND_PUTS("<td>&nbsp;</td>");
-        }
-      } else if ((op->ops & OP2_MASK) == OP2_ARG) {
-        zend_printf("<td>arg(%u) </td>",opline->op2.u.opline_num);
-      } else if ((op->ops & OP2_MASK) == OP2_ISSET) {
-        if (opline->op2.u.constant.value.lval == ZEND_ISSET) {
-          ZEND_PUTS("<td>ZEND_ISSET </td>");
-        } else if (opline->op2.u.constant.value.lval == ZEND_ISEMPTY) {
-          ZEND_PUTS("<td>ZEND_ISEMPTY </td>");
-        } else {
-          ZEND_PUTS("<td>&nbsp; </td>");
-        }
-      } else {
-        if (opline->op2.op_type == IS_CONST) {
-          ZEND_PUTS("<td>");
-          dump_zval(&opline->op2.u.constant, 0);
-          ZEND_PUTS(" </td>");
-        } else if (opline->op2.op_type == IS_TMP_VAR) {
-          zend_printf("<td><font color=%s>$tmp%u</font> </td>", color(VAR_NUM(opline->op2.u.var)), VAR_NUM(opline->op2.u.var));
-        } else if (opline->op2.op_type == IS_VAR) {
-          zend_printf("<td><font color=%s>$var%u</font> </td>", color(VAR_NUM(opline->op2.u.var)), VAR_NUM(opline->op2.u.var));
-        } else if (opline->op2.op_type == IS_UNUSED) {
-          ZEND_PUTS("<td>&nbsp; </td>");
-        } else {
-          zend_printf("<td>UNKNOWN NODE %d </td>",opline->op2.op_type);
-        }
-      }
-
-      switch (op->ops & RES_MASK) {
-        case RES_STD:
-          if (opline->result.op_type == IS_CONST) {
-            ZEND_PUTS("<td>");
-            dump_zval(&opline->result.u.constant, 0);
-            ZEND_PUTS("</td>");
-          } else if (opline->result.op_type == IS_TMP_VAR) {
-            zend_printf("<td><font color=%s>$tmp%u</font> </td>", color(VAR_NUM(opline->op2.u.var)), VAR_NUM(opline->op2.u.var));
-          } else if (opline->result.op_type == IS_VAR) {
-            if ((opline->result.u.EA.type & EXT_TYPE_UNUSED) != 0)
-              zend_printf("<td><font color=%s>$var%u <small>(unused)</small></font> </td>", color(VAR_NUM(opline->result.u.var)), VAR_NUM(opline->result.u.var));
-            else
-              zend_printf("<td><font color=%s>$var%u</font> </td>", color(VAR_NUM(opline->result.u.var)), VAR_NUM(opline->result.u.var));
-          } else if (opline->result.op_type == IS_UNUSED) {
-            ZEND_PUTS("<td>&nbsp;</td>");
-          } else {
-            zend_printf("<td>UNKNOWN NODE %d</td>",opline->result.op_type);
-          }
-          break;
-        case RES_CLASS:
-          zend_printf("<td>$class%u</td>",VAR_NUM(opline->result.u.var));
-          break;
-        case RES_TMP:
-          zend_printf("<td><font color=%s>$tmp%u</font> </td>", color(VAR_NUM(opline->result.u.var)), VAR_NUM(opline->result.u.var));
-          break;
-        case RES_VAR:
-          if ((opline->result.u.EA.type & EXT_TYPE_UNUSED) != 0) {
-            zend_printf("<td><font color=%s>$var%u <small>(unused)</small></font> </td>", color(VAR_NUM(opline->result.u.var)), VAR_NUM(opline->result.u.var));
-          } else {
-            zend_printf("<td><font color=%s>$var%u</font> </td>", color(VAR_NUM(opline->result.u.var)), VAR_NUM(opline->result.u.var));
-          }
-          break;
-        case RES_UNUSED:
-          ZEND_PUTS("<td>&nbsp;</td>");
-          break;
-        default:
-          zend_printf("<td>UNKNOWN NODE %d</td>",opline->result.op_type);
-          break;
-      }
-      ZEND_PUTS("</tr>\n");
-      n++;
-    }
-    ZEND_PUTS("</tbody></table>\n");
-
-    efree(filebuf);
-  }
-}
-
-static void dump_cache_entry(mm_cache_entry *p TSRMLS_DC) {
-  mm_fc_entry *fc = p->c_head;
-  if (fc != NULL) {
-    ZEND_PUTS("<table border=\"0\" cellpadding=\"3\" cellspacing=\"1\" width=\"600\" bgcolor=\"#000000\" align=\"center\" style=\"table-layout:fixed\">\n");
-    ZEND_PUTS("<thead valign=\"middle\" bgcolor=\"#9999cc\"><tr><th width=\"600\">Classes</th></tr></thead>\n");
-    ZEND_PUTS("<tbody valign=\"top\" bgcolor=\"#ccccff\" style=\"word-break:break-all\">\n");
-    while (fc != NULL) {
-      eaccelerator_class_entry* x = (eaccelerator_class_entry*)fc->fc;
-      char class[1024];
-      memcpy(class, fc->htabkey, fc->htablen);
-      class[fc->htablen] = '\0';
-      if (class[0] == '\000') class[0] = '-';
-      if (x->type == ZEND_USER_CLASS) {
-#ifdef ZEND_ENGINE_2
-        zend_printf("<tr><td><a href=\"?file=%s&class=%s\">%s</a> [\n",
-        p->realfilename, class, class);
-        if (x->ce_flags & ZEND_ACC_FINAL_CLASS) {
-          ZEND_PUTS("final ");
-        }
-        if (x->ce_flags & ZEND_ACC_IMPLICIT_ABSTRACT_CLASS) {
-          ZEND_PUTS("implicit abstract ");
-        }
-        if (x->ce_flags & ZEND_ACC_EXPLICIT_ABSTRACT_CLASS) {
-          ZEND_PUTS("explicit abstract ");
-        }
-        if (x->ce_flags & ZEND_ACC_INTERFACE) {
-          ZEND_PUTS("interface");
-        } else {
-          ZEND_PUTS("class ");
-        }
-        ZEND_PUTS("]</td></tr>");
-#else
-        zend_printf("<tr><td><a href=\"?file=%s&class=%s\">%s</a></td></tr>\n",
-          p->realfilename, class, class);
-#endif
-      } else {
-        zend_printf("<tr><td>%s [internal]</td></tr>\n", class);
-      }
-      fc = fc->next;
-    }
-    ZEND_PUTS("</tbody></table><br>\n");
-  }
-  fc = p->f_head;
-  if (fc != NULL) {
-    ZEND_PUTS("<table border=\"0\" cellpadding=\"3\" cellspacing=\"1\" width=\"600\" bgcolor=\"#000000\" align=\"center\" style=\"table-layout:fixed\">\n");
-    ZEND_PUTS("<thead valign=\"middle\" bgcolor=\"#9999cc\"><tr><th width=\"600\">Functions</th></tr></thead>\n");
-    ZEND_PUTS("<tbody valign=\"top\" bgcolor=\"#ccccff\" style=\"word-break:break-all\">\n");
-    while (fc != NULL) {
-      char func[1024];
-      memcpy(func, fc->htabkey, fc->htablen);
-      func[fc->htablen] = '\0';
-      if (func[0] == '\000' && fc->htablen > 0) func[0] = '-';
-      if (((zend_function*)(fc->fc))->type == ZEND_USER_FUNCTION) {
-        zend_printf("<tr><td><a href=\"?file=%s&func=%s\">%s</a></td></tr>\n",
-          p->realfilename, func, func);
-      } else {
-        zend_printf("<tr><td>%s [internal]</td></tr>\n", func);
-      }
-      fc = fc->next;
-    }
-    ZEND_PUTS("</tbody></table><br>\n");
-  }
-  if (p->op_array) {
-    dump_op_array(p->op_array TSRMLS_CC);
-  }
-}
-
-static void dump_class(mm_cache_entry *p, char* class TSRMLS_DC) {
-  mm_fc_entry *fc = p->c_head;
-  int len;
-  if (class[0] == '-') {
-    len = strlen(class);
-    class[0] = '\0';
-  } else {
-    len = strlen(class)+1;
-  }
-  while (fc != NULL) {
-    if (len == fc->htablen && memcmp(fc->htabkey,class,fc->htablen)==0) {
-      break;
-    }
-    fc = fc->next;
-  }
-  if (class[0] == '\0') class[0] = '-';
-  if (fc && fc->fc) {
-    eaccelerator_class_entry* c = (eaccelerator_class_entry*)fc->fc;
-    Bucket *q;
-    if (c->parent) {
-      zend_printf("<h4>extends: %s</h4>\n", (const char*)c->parent);
-    }
-
-#ifdef ZEND_ENGINE_2
-    if (c->properties_info.nNumOfElements > 0) {
-      q = c->properties_info.pListHead;
-      ZEND_PUTS("<table border=\"0\" cellpadding=\"3\" cellspacing=\"1\" width=\"600\" bgcolor=\"#000000\" align=\"center\" style=\"table-layout:fixed\">\n");
-      ZEND_PUTS("<thead valign=\"middle\" bgcolor=\"#9999cc\"><tr><th width=\"200\">Property</th><th width=\"400\">Value</th></tr></thead>\n");
-      ZEND_PUTS("<tbody valign=\"top\" bgcolor=\"#cccccc\" style=\"word-break:break-all\">\n");
-      while (q) {
-        zend_property_info* x = (zend_property_info*)q->pData;
-        Bucket* y = NULL;
-
-        zend_printf("<tr><td bgcolor=\"#ccccff\">$%s [", q->arKey);
-        if (x->flags & ZEND_ACC_STATIC) {
-          ZEND_PUTS("static ");
-        }
-        if ((x->flags & ZEND_ACC_PPP_MASK) == ZEND_ACC_PRIVATE) {
-          ZEND_PUTS("private ");
-        } else if ((x->flags & ZEND_ACC_PPP_MASK) == ZEND_ACC_PROTECTED) {
-          ZEND_PUTS("protected ");
-        } else if ((x->flags & ZEND_ACC_PPP_MASK) == ZEND_ACC_PUBLIC) {
-          ZEND_PUTS("public ");
-        }
-        if (x->flags & ZEND_ACC_FINAL) {
-          ZEND_PUTS("final ");
-        }
-        ZEND_PUTS("]</td><td>");
-        if ((x->flags & ZEND_ACC_STATIC) && c->static_members != NULL && c->static_members->nNumOfElements > 0) {
-          y = c->static_members->pListHead;
-        } else if ((x->flags & ZEND_ACC_STATIC) == 0 && c->default_properties.nNumOfElements > 0) {
-          y = c->default_properties.pListHead;
-        }
-        while (y) {
-          if (y->h == x->h &&
-              (int)y->nKeyLength == x->name_length+1 &&
-              memcmp(y->arKey, x->name, x->name_length+1) == 0) {
-            dump_zval((zval*)y->pDataPtr, 1);
-            break;
-          }
-          y = y->pListNext;
-        }
-        ZEND_PUTS("&nbsp;</td></tr>\n");
-        q = q->pListNext;
-      }
-      ZEND_PUTS("<tbody></table><br>\n");
-    }
-
-    if (c->constants_table.nNumOfElements > 0) {
-      q = c->constants_table.pListHead;
-      ZEND_PUTS("<table border=\"0\" cellpadding=\"3\" cellspacing=\"1\" width=\"600\" bgcolor=\"#000000\" align=\"center\" style=\"table-layout:fixed\">\n");
-      ZEND_PUTS("<thead valign=\"middle\" bgcolor=\"#9999cc\"><tr><th width=\"200\">Constant</th><th width=\"400\">Value</th></tr></thead>\n");
-      ZEND_PUTS("<tbody valign=\"top\" bgcolor=\"#cccccc\" style=\"word-break:break-all\">\n");
-      while (q) {
-        zend_printf("<tr><td bgcolor=\"#ccccff\">%s</td><td>", q->arKey);
-        dump_zval((zval*)q->pDataPtr, 1);
-        ZEND_PUTS("&nbsp;</td></tr>\n");
-        q = q->pListNext;
-      }
-      ZEND_PUTS("<tbody></table><br>\n");
-    }
-#else
-    if (c->default_properties.nNumOfElements > 0) {
-      q = c->default_properties.pListHead;
-      ZEND_PUTS("<table border=\"0\" cellpadding=\"3\" cellspacing=\"1\" width=\"600\" bgcolor=\"#000000\" align=\"center\" style=\"table-layout:fixed\">\n");
-      ZEND_PUTS("<thead valign=\"middle\" bgcolor=\"#9999cc\"><tr><th width=\"200\">Property</th><th width=\"400\">Value</th></tr></thead>\n");
-      ZEND_PUTS("<tbody valign=\"top\" bgcolor=\"#cccccc\" style=\"word-break:break-all\">\n");
-      while (q) {
-        zend_printf("<tr><td bgcolor=\"#ccccff\">$%s</td><td>", q->arKey);
-        dump_zval((zval*)q->pDataPtr, 1);
-        ZEND_PUTS("&nbsp;</td></tr>\n");
-        q = q->pListNext;
-      }
-      ZEND_PUTS("<tbody></table><br>\n");
-    }
-#endif
-
-    q = c->function_table.pListHead;
-    ZEND_PUTS("<table border=\"0\" cellpadding=\"3\" cellspacing=\"1\" width=\"600\" bgcolor=\"#000000\" align=\"center\" style=\"table-layout:fixed\">\n");
-    ZEND_PUTS("<thead valign=\"middle\" bgcolor=\"#9999cc\"><tr><th width=\"600\">Methods</th></tr></thead>\n");
-    ZEND_PUTS("<tbody valign=\"top\" bgcolor=\"#ccccff\" style=\"word-break:break-all\">\n");
-    while (q) {
-      eaccelerator_op_array* x = (eaccelerator_op_array*)q->pData;
-      if (x->type == ZEND_USER_FUNCTION) {
-#ifdef ZEND_ENGINE_2
-        zend_printf("<tr><td><a href=\"?file=%s&class=%s&func=%s\">%s</a> [", p->realfilename, class, q->arKey, q->arKey);
-        if (x->fn_flags & ZEND_ACC_STATIC) {
-          ZEND_PUTS("static ");
-        }
-        if ((x->fn_flags & ZEND_ACC_PPP_MASK) == ZEND_ACC_PRIVATE) {
-          ZEND_PUTS("private ");
-        } else if ((x->fn_flags & ZEND_ACC_PPP_MASK) == ZEND_ACC_PROTECTED) {
-          ZEND_PUTS("protected ");
-        } else if ((x->fn_flags & ZEND_ACC_PPP_MASK) == ZEND_ACC_PUBLIC) {
-          ZEND_PUTS("public ");
-        }
-        if (x->fn_flags & ZEND_ACC_ABSTRACT) {
-          ZEND_PUTS("abstract ");
-        }
-        if (x->fn_flags & ZEND_ACC_FINAL) {
-          ZEND_PUTS("final ");
-        }
-        ZEND_PUTS("]</td></tr>");
-#else
-        zend_printf("<tr><td><a href=\"?file=%s&class=%s&func=%s\">%s</a></td></tr>\n", p->realfilename, class, q->arKey, q->arKey);
-#endif
-      } else {
-        zend_printf("<tr><td>%s [internal]</td></tr>\n", q->arKey);
-      }
-      q = q->pListNext;
-    }
-    ZEND_PUTS("</tbody></table><br>\n");
-    return;
-  }
-  ZEND_PUTS("<h5>NOT FOUND</h5>\n");
-}
-
-static void dump_method(mm_cache_entry *p, char* class, const char* func TSRMLS_DC) {
-  mm_fc_entry *fc = p->c_head;
-  int len;
-  if (class[0] == '-') {
-    len = strlen(class);
-    class[0] = '\0';
-  } else {
-    len = strlen(class)+1;
-  }
-  while (fc != NULL) {
-    if (len == fc->htablen && memcmp(fc->htabkey,class,fc->htablen)==0) {
-      break;
-    }
-    fc = fc->next;
-  }
-  if (class[0] == '\0') class[0] = '-';
-  if (fc && fc->fc) {
-    unsigned int len = strlen(func)+1;
-    eaccelerator_class_entry* c = (eaccelerator_class_entry*)fc->fc;
-    Bucket *q = c->function_table.pListHead;
-    while (q != NULL) {
-      if (len == q->nKeyLength && memcmp(func, q->arKey, len) == 0) {
-              dump_op_array((eaccelerator_op_array*)q->pData TSRMLS_CC);
-        return;
-      }
-      q = q->pListNext;
-    }
-  }
-  ZEND_PUTS("<h5>NOT FOUND</h5>\n");
-}
-
-static void dump_function(mm_cache_entry *p, char* func TSRMLS_DC) {
-  mm_fc_entry *fc = p->f_head;
-  int len;
-  if (func[0] == '-') {
-    len = strlen(func);
-    func[0] = '\0';
-  } else {
-    len = strlen(func)+1;
-  }
-  while (fc != NULL) {
-    if (len == fc->htablen && memcmp(fc->htabkey,func,fc->htablen)==0) {
-      break;
-    }
-    fc = fc->next;
-  }
-  if (func[0] == '\0') func[0] = '-';
-  if (fc && fc->fc) {
-    dump_op_array((eaccelerator_op_array*)fc->fc TSRMLS_CC);
-    return;
-  }
-  ZEND_PUTS("<h5>NOT FOUND</h5>\n");
-}
-
-static int eaccelerator_dump(char* file, char* func, char* class TSRMLS_DC)
-{
-  unsigned int slot;
-  mm_cache_entry *p;
-
-  if (file != NULL) {
-    EACCELERATOR_UNPROTECT();
-    EACCELERATOR_LOCK_RD();
-    EACCELERATOR_PROTECT();
-    for (slot=0; slot<MM_HASH_SIZE; slot++) {
-      p = eaccelerator_mm_instance->hash[slot];
-      while (p != NULL) {
-        if (strcmp(p->realfilename, file) == 0) {
-          goto found;
-        }
-        p = p->next;
-      }
-    }
-found:
-    zend_printf("<h2>FILE: %s</h2>\n", file);
-    if (!p) {
-      EACCELERATOR_UNPROTECT();
-      EACCELERATOR_UNLOCK_RD();
-      EACCELERATOR_PROTECT();
-      ZEND_PUTS("<h5>NOT FOUND</h5>\n");
-      return 0;
-    }
-    if (class != NULL) {
-      if (func != NULL) {
-        zend_printf("<h3>CLASS: %s</h3>\n", class);
-        zend_printf("<h4>METHOD: %s</h4>\n", func);
-        dump_method(p,class,func TSRMLS_CC);
-      } else {
-        zend_printf("<h3>CLASS: %s</h3>\n", class);
-        dump_class(p,class TSRMLS_CC);
-      }
-    } else if (func != NULL) {
-      zend_printf("<h3>FUNCTION: %s</h3>\n", func);
-      dump_function(p,func TSRMLS_CC);
-    } else {
-      dump_cache_entry(p TSRMLS_CC);
-    }
-    EACCELERATOR_UNPROTECT();
-    EACCELERATOR_UNLOCK_RD();
-    EACCELERATOR_PROTECT();
-    return 1;
-  }
-  return 0;
-}
-
-static int eaccelerator_dump_all(TSRMLS_D)
-{
-  unsigned int i;
-  mm_cache_entry* p;
-  char s[1024];
-
-  if (eaccelerator_mm_instance == NULL) {
-    return 0;
-  }
-  EACCELERATOR_UNPROTECT();
-  EACCELERATOR_LOCK_RD();
-  EACCELERATOR_PROTECT();
-  for (i = 0; i < MM_HASH_SIZE; i++) {
-    p = eaccelerator_mm_instance->hash[i];
-    while (p != NULL) {
-      mm_fc_entry *fc = p->c_head;
-      zend_printf("<h2>FILE: %s</h2>\n", p->realfilename);
-      if (p->op_array);
-        dump_op_array(p->op_array TSRMLS_CC);
-
-      while (fc != NULL) {
-        eaccelerator_class_entry* c = (eaccelerator_class_entry*)fc->fc;
-        Bucket *q = c->function_table.pListHead;
-        memcpy(s, fc->htabkey, fc->htablen);
-        s[fc->htablen] = '\0';
-        if (s[0] == '\000') s[0] = '-';
-        zend_printf("<h3>CLASS: %s</h3>\n", s);
-        while (q) {
-          zend_printf("<h4>METHOD: %s</h4>\n", q->arKey);
-          dump_op_array((eaccelerator_op_array*)q->pData TSRMLS_CC);
-          q = q->pListNext;
-        }
-        fc = fc->next;
-      }
-
-      fc = p->f_head;
-      while (fc != NULL) {
-        memcpy(s, fc->htabkey, fc->htablen);
-        s[fc->htablen] = '\0';
-        if (s[0] == '\000') s[0] = '-';
-        zend_printf("<h3>FUNCTION: %s</h3>\n", s);
-        dump_op_array((eaccelerator_op_array*)fc->fc TSRMLS_CC);
-        fc = fc->next;
-      }
-      p = p->next;
-    }
-  }
-  EACCELERATOR_UNPROTECT();
-  EACCELERATOR_UNLOCK_RD();
-  EACCELERATOR_PROTECT();
-  return 1;
-}
-
-static void eaccelerator_purge()
-{
-  if (eaccelerator_mm_instance != NULL) {
-    mm_cache_entry *p, *q;
-    EACCELERATOR_UNPROTECT();
-    EACCELERATOR_LOCK_RW();
-    p = eaccelerator_mm_instance->removed;
-    eaccelerator_mm_instance->rem_cnt = 0;
-    eaccelerator_mm_instance->removed = NULL;
-    while (p != NULL) {
-      q = p->next;
-      eaccelerator_free_nolock(p);
-      p = q;
-    }
-    EACCELERATOR_UNLOCK_RW();
-    EACCELERATOR_PROTECT();
-  }
-}
-#endif
-
-static void eaccelerator_clean(TSRMLS_D) {
-  time_t t;
-
-  t = time(0);
-  /* Remove expired scripts from shared memory */
-  eaccelerator_prune(t);
-
-  /* Remove expired keys (session data, content) from disk cache */
-#ifndef ZEND_WIN32
-  /* clear file cache */
-  {
-    DIR           *dp;
-    struct dirent *entry;
-    char          s[MAXPATHLEN];
-
-    if ((dp = opendir(MMCG(cache_dir))) != NULL) {
-      while ((entry = readdir(dp)) != NULL) {
-        if (strstr(entry->d_name,"eaccelerator-user") == entry->d_name) {
-          int f;
-          strncpy(s, MMCG(cache_dir), MAXPATHLEN-1);
-          strlcat(s, "/", MAXPATHLEN);
-          strlcat(s, entry->d_name, MAXPATHLEN);
-          if ((f = open(s, O_RDONLY | O_BINARY)) > 0) {
-            mm_file_header hdr;
-            EACCELERATOR_FLOCK(f, LOCK_SH);
-            if (read(f, &hdr, sizeof(hdr)) != sizeof(hdr) ||
-                strncmp(hdr.magic,"EACCELERATOR",8) != 0 ||
-                (hdr.mtime != 0 && hdr.mtime < t)) {
-              EACCELERATOR_FLOCK(f, LOCK_UN);
-              close(f);
-              unlink(s);
-            } else {
-              EACCELERATOR_FLOCK(f, LOCK_UN);
-              close(f);
-            }
-          }
-        }
-      }
-      closedir(dp);
-    }
-  }
-#else
-  {
-    HANDLE          hList;
-    TCHAR           szDir[MAXPATHLEN];
-    WIN32_FIND_DATA FileData;
-    char            s[MAXPATHLEN];
-
-    snprintf(szDir, MAXPATHLEN, "%s\\eaccelerator-user*", MMCG(cache_dir));
-
-    if ((hList = FindFirstFile(szDir, &FileData)) != INVALID_HANDLE_VALUE) {
-      do {
-        int f;
-        strncpy(s, MMCG(cache_dir), MAXPATHLEN-1);
-        strlcat(s, "\\", MAXPATHLEN);
-        strlcat(s, FileData.cFileName, MAXPATHLEN);
-        if ((f = open(s, O_RDONLY | O_BINARY)) > 0) {
-          mm_file_header hdr;
-          EACCELERATOR_FLOCK(f, LOCK_SH);
-          if (read(f, &hdr, sizeof(hdr)) != sizeof(hdr) ||
-              strncmp(hdr.magic,"EACCELERATOR",8) != 0 ||
-              (hdr.mtime != 0 && hdr.mtime < t)) {
-            EACCELERATOR_FLOCK(f, LOCK_UN);
-            close(f);
-            unlink(s);
-          } else {
-            EACCELERATOR_FLOCK(f, LOCK_UN);
-            close(f);
-          }
-        }
-      } while (FindNextFile(hList, &FileData));
-    }
-
-    FindClose(hList);
-  }
-#endif
-  /* Remove expired keys (session data, content) from shared memory */
-  eaccelerator_gc(TSRMLS_C);
-}
-
-static void eaccelerator_clear(TSRMLS_D) {
-  unsigned int i;
-  mm_cache_entry *p;
-
-  EACCELERATOR_UNPROTECT();
-  EACCELERATOR_LOCK_RW();
-  for (i = 0; i < MM_HASH_SIZE; i++) {
-    p = eaccelerator_mm_instance->hash[i];
-    while (p != NULL) {
-      mm_cache_entry *r = p;
-      p = p->next;
-      eaccelerator_mm_instance->hash_cnt--;
-      if (r->use_cnt <= 0) {
-        eaccelerator_free_nolock(r);
-      } else {
-        r->removed = 1;
-        r->next = eaccelerator_mm_instance->removed;
-        eaccelerator_mm_instance->removed = r;
-        eaccelerator_mm_instance->rem_cnt++;
-      }
-    }
-    eaccelerator_mm_instance->hash[i] = NULL;
-  }
-  for (i = 0; i < MM_USER_HASH_SIZE; i++) {
-    mm_user_cache_entry* p = eaccelerator_mm_instance->user_hash[i];
-    while (p != NULL) {
-      mm_user_cache_entry *r = p;
-      p = p->next;
-      eaccelerator_mm_instance->user_hash_cnt--;
-      eaccelerator_free_nolock(r);
-    }
-    eaccelerator_mm_instance->user_hash[i] = NULL;
-  }
-  EACCELERATOR_UNLOCK_RW();
-  EACCELERATOR_PROTECT();
-#ifndef ZEND_WIN32
-  /* clear file cache */
-  {
-    DIR           *dp;
-    struct dirent *entry;
-    char          s[MAXPATHLEN];
-
-    if ((dp = opendir(MMCG(cache_dir))) != NULL) {
-      while ((entry = readdir(dp)) != NULL) {
-        if (strstr(entry->d_name,"eaccelerator") == entry->d_name) {
-          strncpy(s, MMCG(cache_dir), MAXPATHLEN-1);
-          strlcat(s, "/", MAXPATHLEN);
-          strlcat(s, entry->d_name, MAXPATHLEN);
-          unlink(s);
-        }
-      }
-      closedir(dp);
-    }
-  }
-#else
-  {
-    HANDLE          hList;
-    TCHAR           szDir[MAXPATHLEN];
-    WIN32_FIND_DATA FileData;
-    char            s[MAXPATHLEN];
-
-    snprintf(szDir, MAXPATHLEN, "%s\\eaccelerator*", MMCG(cache_dir));
-
-    if ((hList = FindFirstFile(szDir, &FileData)) != INVALID_HANDLE_VALUE) {
-      do {
-        strncpy(s, MMCG(cache_dir), MAXPATHLEN-1);
-        strlcat(s, "\\", MAXPATHLEN);
-        strlcat(s, FileData.cFileName, MAXPATHLEN);
-        unlink(s);
-      } while (FindNextFile(hList, &FileData));
-    }
-
-    FindClose(hList);
-  }
-#endif
-}
-
-static int cache_entry_compare(const void* p, const void* q) {
-  return strcmp((*((mm_cache_entry**)p))->realfilename,(*((mm_cache_entry**)q))->realfilename);
-}
-
-static int eaccelerator_login(TSRMLS_D) {
-  zval** http_vars = NULL;
-  zval** name = NULL;
-  zval** pass = NULL;
-  char*  admin_name;
-  char*  admin_password;
-
-  if (cfg_get_string("eaccelerator.admin.name", &admin_name)==FAILURE || *admin_name == '\0') {
-    admin_name = NULL;
-  }
-  if (cfg_get_string("eaccelerator.admin.password", &admin_password)==FAILURE || *admin_password == '\0') {
-    admin_password = NULL;
-  }
-  if (admin_name == NULL && admin_password == NULL) {
-    return 1;
-  }
-  if (zend_hash_find(&EG(symbol_table), "_SERVER", sizeof("_SERVER"), (void **) &http_vars) != FAILURE && (*http_vars)->type==IS_ARRAY) {
-    if (zend_hash_find((*http_vars)->value.ht, "PHP_AUTH_USER", sizeof("PHP_AUTH_USER"), (void **) &name) == FAILURE || (*name)->type!=IS_STRING) {
-      name = NULL;
-    }
-    if (zend_hash_find((*http_vars)->value.ht, "PHP_AUTH_PW", sizeof("PHP_AUTH_PW"), (void **) &pass) == FAILURE || (*pass)->type!=IS_STRING) {
-      pass = NULL;
-    }
-  }
-  if (name != NULL && pass != NULL) {
-    if (admin_name == NULL || strcmp(admin_name,Z_STRVAL_PP(name)) == 0) {
-      if (admin_password != NULL) {
-        zval retval;
-        zval crypt;
-        zval param1;
-        zval *params[2];
-
-        ZVAL_STRING(&crypt, "crypt", 0);
-        params[0] = *pass;
-        INIT_ZVAL(param1);
-        params[1] = &param1;
-        ZVAL_STRING(params[1], admin_password, 0);
-        if (call_user_function(CG(function_table), (zval**)NULL, &crypt, &retval, 2, params TSRMLS_CC) == SUCCESS &&
-            retval.type == IS_STRING &&
-            Z_STRLEN(retval) == Z_STRLEN_P(params[1]) &&
-            strcmp(Z_STRVAL(retval),Z_STRVAL_P(params[1])) == 0) {
-          zval_dtor(&retval);
-          return 1;
-        }
-        zval_dtor(&retval);
-      } else {
-        return 1;
-      }
-    }
-  }
-  sapi_add_header_ex("WWW-authenticate: basic realm='eAccelerator'",
-                     sizeof("WWW-authenticate: basic realm='eAccelerator'")-1,
-                     1, 1 TSRMLS_CC);
-  sapi_add_header_ex("HTTP/1.0 401 Unauthorized",
-                     sizeof("HTTP/1.0 401 Unauthorized")-1, 1, 1 TSRMLS_CC);
-  ZEND_PUTS("You must enter a valid login ID and password to access this resource\n");
-  return 0;
-}
-
-static void eaccelerator_disable_caching(TSRMLS_D) {
-  struct tm tmbuf;
-  time_t curtime;
-  char s[256];
-
-  time(&curtime);
-  strftime(s, 255, "Last-Modified: %a, %d %b %Y %H:%M:%S GMT", php_gmtime_r(&curtime, &tmbuf));
-
-  sapi_add_header_ex("Expires: Thu, 19 Nov 1981 08:52:00 GMT", sizeof("Expires: Thu, 19 Nov 1981 08:52:00 GMT")-1, 1, 1 TSRMLS_CC);
-  sapi_add_header_ex(s, strlen(s), 1, 1 TSRMLS_CC);
-  sapi_add_header_ex("Cache-Control: no-store, no-cache, must-revalidate, post-check=0, pre-check=0", sizeof("Cache-Control: no-store, no-cache, must-revalidate, post-check=0, pre-check=0")-1, 1, 1 TSRMLS_CC);
-  sapi_add_header_ex("Pragma: no-cache", sizeof("Pragma: no-cache")-1, 1, 1 TSRMLS_CC);
-}
-
-static void eaccelerator_puts_filename(const char* s) {
-  int i = 0;
-  while (s[i] != '\0') {
-    ZEND_PUTC(s[i]);
-    if (s[i] == '/' || s[i] == '\\') {
-      ZEND_PUTS("<wbr>");
-    }
-    i++;
-  }
-}
-
-PHP_FUNCTION(eaccelerator) {
-  unsigned int i, j;
-  unsigned int available;
-  mm_cache_entry* p;
-  mm_cache_entry** slots;
-  char s[MAXPATHLEN];
-  zval** php_self = NULL;
-  zval** serv_soft = NULL;
-  zval** http_vars = NULL;
-
-  eaccelerator_disable_caching(TSRMLS_C);
-  if (eaccelerator_mm_instance == NULL) {
-    ZEND_PUTS("eAccelerator ");
-    ZEND_PUTS(EACCELERATOR_VERSION);
-    ZEND_PUTS(" is not active!\nIt doesn't work in CGI or command line mode!\n\n");
-    RETURN_NULL();
-  }
-  if (!eaccelerator_login(TSRMLS_C)) {
-    RETURN_NULL();
-  }
-
-  if (zend_hash_find(&EG(symbol_table), "_SERVER", sizeof("_SERVER"), (void **) &http_vars) != FAILURE && (*http_vars)->type==IS_ARRAY) {
-    if (zend_hash_find((*http_vars)->value.ht, "PHP_SELF", sizeof("PHP_SELF"), (void **) &php_self) == FAILURE || (*php_self)->type!=IS_STRING) {
-      php_self = NULL;
-    }
-    if (zend_hash_find((*http_vars)->value.ht, "SERVER_SOFTWARE", sizeof("SERVER_SOFTWARE"), (void **) &serv_soft) == FAILURE || (*serv_soft)->type!=IS_STRING) {
-      serv_soft = NULL;
-    }
-  }
-  if (zend_hash_find(&EG(symbol_table), "_POST", sizeof("_POST"), (void **) &http_vars) != FAILURE && (*http_vars)->type==IS_ARRAY) {
-    if (zend_hash_exists((*http_vars)->value.ht, "enable", sizeof("enable"))) {
-      EACCELERATOR_UNPROTECT();
-      eaccelerator_mm_instance->enabled = 1;
-      EACCELERATOR_PROTECT();
-      snprintf(s, MAXPATHLEN, "Location: %s",php_self?(*php_self)->value.str.val:"eaccelerator.php");
-      sapi_add_header_ex(s, strlen(s), 1, 1 TSRMLS_CC);
-      RETURN_NULL();
-    } else if (zend_hash_exists((*http_vars)->value.ht, "disable", sizeof("disable"))) {
-      EACCELERATOR_UNPROTECT();
-      eaccelerator_mm_instance->enabled = 0;
-      EACCELERATOR_PROTECT();
-      snprintf(s, MAXPATHLEN, "Location: %s",php_self?(*php_self)->value.str.val:"eaccelerator.php");
-      sapi_add_header_ex(s, strlen(s), 1, 1 TSRMLS_CC);
-      RETURN_NULL();
-#ifdef WITH_EACCELERATOR_OPTIMIZER
-    } else if (zend_hash_exists((*http_vars)->value.ht, "enable_opt", sizeof("enable_opt"))) {
-      EACCELERATOR_UNPROTECT();
-      eaccelerator_mm_instance->optimizer_enabled = 1;
-      EACCELERATOR_PROTECT();
-      snprintf(s, MAXPATHLEN, "Location: %s",php_self?(*php_self)->value.str.val:"eaccelerator.php");
-      sapi_add_header_ex(s, strlen(s), 1, 1 TSRMLS_CC);
-      RETURN_NULL();
-    } else if (zend_hash_exists((*http_vars)->value.ht, "disable_opt", sizeof("disable_opt"))) {
-      EACCELERATOR_UNPROTECT();
-      eaccelerator_mm_instance->optimizer_enabled = 0;
-      EACCELERATOR_PROTECT();
-      snprintf(s, MAXPATHLEN, "Location: %s",php_self?(*php_self)->value.str.val:"eaccelerator.php");
-      sapi_add_header_ex(s, strlen(s), 1, 1 TSRMLS_CC);
-      RETURN_NULL();
-#endif
-    } else if (zend_hash_exists((*http_vars)->value.ht, "clear", sizeof("clear"))) {
-      eaccelerator_clear(TSRMLS_C);
-      snprintf(s, MAXPATHLEN, "Location: %s",php_self?(*php_self)->value.str.val:"eaccelerator.php");
-      sapi_add_header_ex(s, strlen(s), 1, 1 TSRMLS_CC);
-      RETURN_NULL();
-    } else if (zend_hash_exists((*http_vars)->value.ht, "clean", sizeof("clean"))) {
-      eaccelerator_clean(TSRMLS_C);
-      snprintf(s, MAXPATHLEN, "Location: %s",php_self?(*php_self)->value.str.val:"eaccelerator.php");
-      sapi_add_header_ex(s, strlen(s), 1, 1 TSRMLS_CC);
-      RETURN_NULL();
-#ifdef WITH_EACCELERATOR_DISASSEMBLER
-    } else if (zend_hash_exists((*http_vars)->value.ht, "purge", sizeof("purge"))) {
-      eaccelerator_purge();
-      snprintf(s, MAXPATHLEN, "Location: %s",php_self?(*php_self)->value.str.val:"eaccelerator.php");
-      sapi_add_header_ex(s, strlen(s), 1, 1 TSRMLS_CC);
-      RETURN_NULL();
-    } else if (zend_hash_exists((*http_vars)->value.ht, "dump", sizeof("dump"))) {
-      snprintf(s, MAXPATHLEN, "Location: %s?dump=",php_self?(*php_self)->value.str.val:"eaccelerator.php");
-      sapi_add_header_ex(s, strlen(s), 1, 1 TSRMLS_CC);
-      RETURN_NULL();
-#endif
-    }
-  }
-
-  ZEND_PUTS("<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01 Transitional//EN\">\n<html>\n<head>\n  <title>eAccelerator</title>\n</head>\n<body>\n");
-  ZEND_PUTS("<h1 align=\"center\">eAccelerator ");
-  ZEND_PUTS(EACCELERATOR_VERSION);
-  ZEND_PUTS("</h1>\n");
-
-#ifdef WITH_EACCELERATOR_DISASSEMBLER
-  if (zend_hash_find(&EG(symbol_table), "_GET", sizeof("_GET"), (void **) &http_vars) != FAILURE && (*http_vars)->type==IS_ARRAY) {
-    if (zend_hash_exists((*http_vars)->value.ht, "dump", sizeof("dump"))) {
-      eaccelerator_dump_all(TSRMLS_C);
-      ZEND_PUTS("</body></html>");
-      RETURN_NULL();
-    } else {
-      zval** data;
-      char* file  = NULL;
-      char* func  = NULL;
-      char* class = NULL;
-      if (zend_hash_find((*http_vars)->value.ht, "file", sizeof("file"),(void**)&data) != FAILURE) {
-        if (PG(magic_quotes_gpc)) {
-          php_stripslashes((*data)->value.str.val, &(*data)->value.str.len TSRMLS_CC);
-        }
-        file = (*data)->value.str.val;
-      }
-      if (zend_hash_find((*http_vars)->value.ht, "func", sizeof("func"),(void**)&data) != FAILURE) {
-        if (PG(magic_quotes_gpc)) {
-          php_stripslashes((*data)->value.str.val, &(*data)->value.str.len TSRMLS_CC);
-        }
-        func = (*data)->value.str.val;
-      }
-      if (zend_hash_find((*http_vars)->value.ht, "class", sizeof("class"),(void**)&data) != FAILURE) {
-        if (PG(magic_quotes_gpc)) {
-          php_stripslashes((*data)->value.str.val, &(*data)->value.str.len TSRMLS_CC);
-        }
-        class = (*data)->value.str.val;
-      }
-      if (file != NULL) {
-        eaccelerator_dump(file, func, class TSRMLS_CC);
-        ZEND_PUTS("</body></html>");
-        RETURN_NULL();
-      }
-    }
-  }
-#endif
-
-  EACCELERATOR_UNPROTECT();
-  available = mm_available(eaccelerator_mm_instance->mm);
-  EACCELERATOR_LOCK_RD();
-  EACCELERATOR_PROTECT();
-  ZEND_PUTS("<form method=\"POST\"><center>\n");
-  if (MMCG(enabled) && eaccelerator_mm_instance->enabled) {
-    ZEND_PUTS("<input type=\"submit\" name=\"disable\" value=\"Disable\" title=\"Disable caching of PHP scripts\" style=\"width:100px\">\n");
-  } else {
-    ZEND_PUTS("<input type=\"submit\" name=\"enable\" value=\"Enable\" title=\"Enable caching of PHP scripts\" style=\"width:100px\">\n");
-  }
-#ifdef WITH_EACCELERATOR_OPTIMIZER
-  if (MMCG(optimizer_enabled) && eaccelerator_mm_instance->optimizer_enabled) {
-    ZEND_PUTS("&nbsp;<input type=\"submit\" name=\"disable_opt\" value=\"Disable Opt.\" title=\"Disable optimization of cached PHP scripts\" style=\"width:100px\">\n");
-  } else {
-    ZEND_PUTS("&nbsp;<input type=\"submit\" name=\"enable_opt\" value=\"Enable Opt.\" title=\"Enable optimization of cached PHP scripts\" style=\"width:100px\">\n");
-  }
-#endif
-  ZEND_PUTS("&nbsp;<input type=\"submit\" name=\"clear\" value=\"Clear\" title=\"Remove all unused scripts and data from shared memory and disk cache\" style=\"width:100px\" onclick=\"if (!window.confirm('Are you sure you want to delete all cached scripts, data, sessions data and content?')) {return false;}\">\n");
-  ZEND_PUTS("&nbsp;<input type=\"submit\" name=\"clean\" value=\"Clean\" title=\"Remove all expired scripts and data from shared memory and disk cache\" style=\"width:100px\">\n");
-#ifdef WITH_EACCELERATOR_DISASSEMBLER
-  ZEND_PUTS("&nbsp;<input type=\"submit\" name=\"purge\" value=\"Purge\" title=\"Remove all 'removed' scripts from shared memory\" style=\"width:100px\" onclick=\"if (!window.confirm('Are you sure you want to delete all \\'removed\\' scripts? This action can cause PHP errors.')) {return false;}\">\n");
-  ZEND_PUTS("&nbsp;<input type=\"submit\" name=\"dump\" value=\"Dump\" style=\"width:100px\">\n");
-#endif
-  ZEND_PUTS("</center></form>\n");
-
-  ZEND_PUTS("<table border=\"0\" cellpadding=\"3\" cellspacing=\"1\" width=\"600\" bgcolor=\"#000000\" align=\"center\">\n");
-  ZEND_PUTS("<tr valign=\"middle\" bgcolor=\"#9999cc\"><th>eAccelerator support</th><th>enabled</th></tr>\n");
-  zend_printf("<tr valign=\"baseline\" bgcolor=\"#cccccc\"><td bgcolor=\"#ccccff\" ><b>%s</b></td><td align=\"left\">%s</td></tr>\n", "Caching Enabled", (MMCG(enabled) && (eaccelerator_mm_instance != NULL) && eaccelerator_mm_instance->enabled)?"true":"false");
-  zend_printf("<tr valign=\"baseline\" bgcolor=\"#cccccc\"><td bgcolor=\"#ccccff\" ><b>%s</b></td><td align=\"left\">%s</td></tr>\n", "Optimizer Enabled", (MMCG(optimizer_enabled) && (eaccelerator_mm_instance != NULL) && eaccelerator_mm_instance->optimizer_enabled)?"true":"false");
-
-  format_size(s, eaccelerator_mm_instance->total, 1);
-  zend_printf("<tr valign=\"baseline\" bgcolor=\"#cccccc\"><td bgcolor=\"#ccccff\" ><b>%s</b></td><td align=\"left\">%s</td></tr>\n", "Memory Size", s);
-  format_size(s, available, 1);
-  zend_printf("<tr valign=\"baseline\" bgcolor=\"#cccccc\"><td bgcolor=\"#ccccff\" ><b>%s</b></td><td align=\"left\">%s</td></tr>\n", "Memory Available", s);
-  format_size(s, eaccelerator_mm_instance->total - available, 1);
-  zend_printf("<tr valign=\"baseline\" bgcolor=\"#cccccc\"><td bgcolor=\"#ccccff\" ><b>%s</b></td><td align=\"left\">%s</td></tr>\n", "Memory Allocated", s);
-  zend_printf("<tr valign=\"baseline\" bgcolor=\"#cccccc\"><td bgcolor=\"#ccccff\" ><b>%s</b></td><td align=\"left\">%u</td></tr>\n", "Cached Scripts", eaccelerator_mm_instance->hash_cnt);
-  zend_printf("<tr valign=\"baseline\" bgcolor=\"#cccccc\"><td bgcolor=\"#ccccff\" ><b>%s</b></td><td align=\"left\">%u</td></tr>\n", "Removed Scripts", eaccelerator_mm_instance->rem_cnt);
-  zend_printf("<tr valign=\"baseline\" bgcolor=\"#cccccc\"><td bgcolor=\"#ccccff\" ><b>%s</b></td><td align=\"left\">%u</td></tr>\n", "Cached Keys", eaccelerator_mm_instance->user_hash_cnt);
-  ZEND_PUTS("</table><br>\n");
-
-  slots = do_alloca(sizeof(mm_cache_entry*)*(eaccelerator_mm_instance->hash_cnt>eaccelerator_mm_instance->rem_cnt?eaccelerator_mm_instance->hash_cnt:eaccelerator_mm_instance->rem_cnt));
-  j = 0;
-  for (i = 0; i < MM_HASH_SIZE; i++) {
-    p = eaccelerator_mm_instance->hash[i];
-    while (p != NULL) {
-      slots[j++] = p;
-      p = p->next;
-    }
-  }
-  qsort(slots, j, sizeof(mm_cache_entry*), cache_entry_compare);
-  ZEND_PUTS("<table border=\"0\" cellpadding=\"3\" cellspacing=\"1\" width=\"900\" bgcolor=\"#000000\" align=\"center\" style=\"table-layout:fixed;word-break:break-all\">\n");
-  ZEND_PUTS("<tr valign=\"middle\" bgcolor=\"#9999cc\"><th width=\"490\">Cached Script</th><th width=\"200\">MTime</th><th width=\"70\">Size</th><th width=\"70\">Reloads</th><th width=\"70\">Hits</th></tr>\n");
-  for (i = 0; i < j; i++) {
-    p = slots[i];
-    format_size(s, p->size, 0);
-#ifdef WITH_EACCELERATOR_DISASSEMBLER
-    zend_printf("<tr valign=\"bottom\" bgcolor=\"#cccccc\"><td bgcolor=\"#ccccff\"><b><a href=\"%s?file=%s\">",
-      php_self?(*php_self)->value.str.val:"",
-      p->realfilename);
-    eaccelerator_puts_filename(p->realfilename);
-    zend_printf("</a></b></td><td>%s</td><td align=\"right\">%s</td><td align=\"right\">%d (%d)</td><td align=\"right\">%d</td></tr>\n",
-      ctime(&p->mtime), s, p->nreloads, p->use_cnt, p->nhits);
-#else
-    ZEND_PUTS("<tr valign=\"bottom\" bgcolor=\"#cccccc\"><td bgcolor=\"#ccccff\"><b>");
-    eaccelerator_puts_filename(p->realfilename);
-    zend_printf("</b></td><td>%s</td><td align=\"right\">%s</td><td align=\"right\">%d</td><td align=\"right\">%d</td></tr>\n",
-      ctime(&p->mtime), s, p->nreloads, p->nhits);
-#endif
-  }
-  ZEND_PUTS("</table>\n<br>\n");
-
-  j = 0;
-  p = eaccelerator_mm_instance->removed;
-  while (p != NULL) {
-    slots[j++] = p;
-    p = p->next;
-  }
-  qsort(slots, j, sizeof(mm_cache_entry*), cache_entry_compare);
-  ZEND_PUTS("<table border=\"0\" cellpadding=\"3\" cellspacing=\"1\" width=\"900\" bgcolor=\"#000000\" align=\"center\" style=\"table-layout:fixed;word-break:break-all\">\n");
-  ZEND_PUTS("<tr valign=\"middle\" bgcolor=\"#9999cc\"><th width=\"490\">Removed Script</th><th width=\"200\">MTime</th><th width=\"70\">Size</th><th width=\"70\">Reloads</th><th width=\"70\">Used</th></tr>\n");
-  for (i = 0; i < j; i++) {
-    p = slots[i];
-    ZEND_PUTS("<tr valign=\"bottom\" bgcolor=\"#cccccc\"><td bgcolor=\"#ccccff\" ><b>");
-    eaccelerator_puts_filename(p->realfilename);
-    zend_printf("</b></td><td>%s</td><td align=\"right\">%d</td><td align=\"right\">%d</td><td align=\"right\">%d</td></tr>\n",
-      ctime(&p->mtime), p->size, p->nreloads, p->use_cnt);
-  }
-  ZEND_PUTS("</table>\n<br>\n");
-#ifdef WITH_EACCELERATOR_DISASSEMBLER
-  ZEND_PUTS("<table border=\"0\" cellpadding=\"3\" cellspacing=\"1\" width=\"900\" bgcolor=\"#000000\" align=\"center\" style=\"table-layout:fixed;word-break:break-all\">\n");
-  ZEND_PUTS("<tr valign=\"middle\" bgcolor=\"#9999cc\"><th width=\"400\">Cached Key</th><th width=\"400\">Value</th><th width=\"100\">Expired</th></tr>\n");
-  for (i = 0; i < MM_USER_HASH_SIZE; i++) {
-    mm_user_cache_entry *p = eaccelerator_mm_instance->user_hash[i];
-    while (p != NULL) {
-      ZEND_PUTS("<tr valign=\"top\" bgcolor=\"#cccccc\"><td bgcolor=\"#ccccff\" ><b>");
-      ZEND_PUTS(p->key);
-      ZEND_PUTS("</b></td><td>");
-      dump_zval(&p->value, 1);
-      if (p->ttl) {
-        time_t t = time(0);
-        if (p->ttl < t) {
-          ZEND_PUTS("</td><td align=\"right\">expired</td></tr>\n");
-        } else {
-          unsigned long ttl = p->ttl - t;
-          zend_printf("</td><td align=\"right\">%lu sec</td></tr>\n",ttl);
-        }
-      } else {
-        ZEND_PUTS("</td><td align=\"right\">never</td></tr>\n");
-      }
-      p = p->next;
-    }
-  }
-  ZEND_PUTS("</table>\n<br>\n");
-#endif
-  free_alloca(slots);
-  EACCELERATOR_UNPROTECT();
-  EACCELERATOR_UNLOCK_RD();
-  EACCELERATOR_PROTECT();
-
-  ZEND_PUTS("<table border=\"0\" cellpadding=\"3\" cellspacing=\"1\" width=\"900\" align=\"center\" style=\"table-layout:fixed\"><tr><td align=\"center\"><hr><font size=\"1\">\n");
-  zend_printf("<nobr>eAccelerator %s [shm:%s sem:%s],</nobr>\n<nobr>PHP %s [ZE %s",
-              EACCELERATOR_VERSION, mm_shm_type(), mm_sem_type(), PHP_VERSION, ZEND_VERSION);
-#if defined(ZEND_DEBUG) && ZEND_DEBUG
-  ZEND_PUTS(" DEBUG");
-#endif
-#ifdef ZTS
-  ZEND_PUTS(" TS");
-#endif
-  ZEND_PUTS("],</nobr>\n");
-  if (serv_soft == NULL) {
-    zend_printf("<nobr>%s,</nobr>\n", sapi_module.pretty_name);
-  } else {
-    zend_printf("<nobr>%s [%s],</nobr>\n", sapi_module.pretty_name, (*serv_soft)->value.str.val);
-  }
-
-  {
-    char *s = php_get_uname();
-    zend_printf("<nobr>%s</nobr>\n",s);
-    efree(s);
-  }
-  ZEND_PUTS("<br>Produced by <a href=\"http://eaccelerator.sourceforge.net\">eAccelerator</a>.");
-  if (PG(expose_php)) {
-    ZEND_PUTS("<br><br><a href=\"http://eaccelerator.sourceforge.net\"><img border=\"0\" src=\"");
-    if (SG(request_info).request_uri) {
-      ZEND_PUTS(SG(request_info).request_uri);
-    }
-    ZEND_PUTS("?="EACCELERATOR_LOGO_GUID"\" align=\"middle\" alt=\"eAccelerator logo\" /></a>\n");
-  }
-  ZEND_PUTS("</font></td></tr></table></body></html>");
-  RETURN_NULL();
-}
 
 #endif  /* #ifdef HAVE_EACCELERATOR */

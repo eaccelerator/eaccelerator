@@ -2,8 +2,8 @@
    +----------------------------------------------------------------------+
    | eAccelerator project                                                 |
    +----------------------------------------------------------------------+
-   | Copyright (c) 2004 eAccelerator                                      |
-   | http://eaccelerator.sourceforge.net                                  |
+   | Copyright (c) 2004 - 2005 eAccelerator                               |
+   | http://eaccelerator.net                                  			  |
    +----------------------------------------------------------------------+
    | This program is free software; you can redistribute it and/or        |
    | modify it under the terms of the GNU General Public License          |
@@ -32,11 +32,45 @@
 #ifdef HAVE_EACCELERATOR
 #ifdef WITH_EACCELERATOR_CONTENT_CACHING
 
+#include "cache.h"
+#include "content.h"
 #include "SAPI.h"
 
 #define EACCELERATOR_COMPRESS_MIN 128
 
+eaccelerator_cache_place eaccelerator_content_cache_place = eaccelerator_shm_and_disk;
+
 static int (*eaccelerator_old_header_handler)(sapi_header_struct *sapi_header, sapi_headers_struct *sapi_headers TSRMLS_DC);
+
+PHP_INI_MH (eaccelerator_OnUpdateContentCachePlace)
+{
+	if (strncasecmp ("shm_and_disk", new_value, 
+		sizeof ("shm_and_disk")) == 0)
+	{
+		eaccelerator_content_cache_place = eaccelerator_shm_and_disk;
+	}
+	else if (strncasecmp ("shm", new_value, 
+		sizeof ("shm")) == 0)
+	{
+		eaccelerator_content_cache_place = eaccelerator_shm;
+	}
+	else if (strncasecmp ("shm_only", new_value, 
+		sizeof ("shm_only")) == 0)
+	{
+		eaccelerator_content_cache_place = eaccelerator_shm_only;
+	}
+	else if (strncasecmp ("disk_only", new_value, 
+		sizeof ("disk_only")) == 0)
+	{
+		eaccelerator_content_cache_place = eaccelerator_disk_only;
+	}
+	else if (strncasecmp ("none", new_value, 
+		sizeof ("none")) == 0)
+	{
+		eaccelerator_content_cache_place = eaccelerator_none;
+	}
+	return SUCCESS;
+}
 
 static int eaccelerator_check_compression(sapi_header_struct *sapi_header TSRMLS_DC) {
   if (strstr(sapi_header->header, "Content-Type") == sapi_header->header) {
@@ -130,6 +164,7 @@ static void eaccelerator_put_page(const char* key, int key_len, zval* content, t
       memcpy(s+1, h->header, h->header_len+1);
       add_next_index_stringl(headers, s, h->header_len+1, 0);
       p = p->next;
+      efree(s);
     }
     add_assoc_zval(&cache_array, "headers", headers);
   }

@@ -31,6 +31,20 @@ AC_ARG_WITH(eaccelerator-loader,
   eaccelerator_loader=yes
 ])
 
+AC_ARG_WITH(eaccelerator-shared-memory,
+[  --without-eaccelerator-shared-memory	   Do not include eaccelerator shared memory functions],[
+  eaccelerator_shm=$withval
+],[
+  eaccelerator_shm=yes
+])
+
+AC_ARG_WITH(eaccelerator-webui,
+[  --without-eaccelerator-webui        Do not include the eaccelerator WebUI],[
+  eaccelerator_webui=$withval
+],[
+  eaccelerator_webui=yes
+])
+
 AC_ARG_WITH(eaccelerator-sessions,
 [  --without-eaccelerator-sessions         Do not include eaccelerator sessions],[
   eaccelerator_sessions=$withval
@@ -75,6 +89,12 @@ if test "$PHP_EACCELERATOR" != "no"; then
   fi
   if test "$eaccelerator_loader" = "yes"; then
     AC_DEFINE(WITH_EACCELERATOR_LOADER, 1, [Define if you like to load files encoded by eAccelerator encoder])
+  fi
+  if test "$eaccelerator_shm" = "yes"; then
+    AC_DEFINE(WITH_EACCELERATOR_SHM, 1, [Define if you like to use the eAccelerator functions to store keys in shared memory])
+  fi
+  if test "$eaccelerator_webui" = "yes"; then
+    AC_DEFINE(WITH_EACCELERATOR_WEBUI, 1, [Define if you like to use the eAccelerator WebUI])
   fi
   if test "$eaccelerator_sessions" = "yes"; then
     AC_DEFINE(WITH_EACCELERATOR_SESSIONS, 1, [Define if you like to use eAccelerator session handlers to store session's information in shared memory])
