@@ -2335,7 +2335,10 @@ static void optimize_bb(BB* bb, zend_op_array* op_array, char* global, int pass 
        STR_FREE(prev->op2.u.constant.value.str.val);
        SET_TO_NOP(prev);
     /* SEND_REF $x + FCALL "reset" => FE_RESET $x */
-    } else if (prev != NULL &&
+    }
+#if 0
+// this makes php 5 and php >= 4.3.11 go in an endless loop with reset(null)
+else if (prev != NULL &&
                prev->opcode == ZEND_SEND_REF &&
                prev->extended_value == ZEND_DO_FCALL &&
                prev->op1.op_type == IS_VAR &&
@@ -2366,6 +2369,7 @@ static void optimize_bb(BB* bb, zend_op_array* op_array, char* global, int pass 
         op->result.op_type = IS_UNUSED;
       }
     }
+#endif
 
     /* $a = $a + ? => $a+= ? */
     if (op->opcode == ZEND_ASSIGN &&
