@@ -29,8 +29,8 @@ int    _mm_lock(MM* mm, int kind);
 int    _mm_unlock(MM* mm);
 size_t _mm_available(MM* mm);
 size_t _mm_maxsize(MM* mm);
-void*  _mm_malloc(MM* mm, size_t size);
-void   _mm_free(MM* mm, void* p);
+void*  _mm_malloc_lock(MM* mm, size_t size);
+void   _mm_free_lock(MM* mm, void* p);
 void*  _mm_malloc_nolock(MM* mm, size_t size);
 void   _mm_free_nolock(MM* mm, void* p);
 size_t _mm_sizeof(MM* mm, void* x);
@@ -57,8 +57,8 @@ int mm_protect(MM* mm, int mode);
 #define mm_unlock(A)           _mm_unlock(A)
 #define mm_available(A)        _mm_available(A)
 #define mm_maxsize(A)          _mm_maxsize(A)
-#define mm_malloc(A, B)        _mm_malloc(A, B)
-#define mm_free(A, B)          _mm_free(A, B)
+#define mm_malloc_lock(A, B)   _mm_malloc_lock(A, B)
+#define mm_free_lock(A, B)     _mm_free_lock(A, B)
 #define mm_malloc_nolock(A, B) _mm_malloc_nolock(A, B)
 #define mm_free_nolock(A, B)   _mm_free_nolock(A, B)
 #define mm_sizeof(A, B)        _mm_sizeof(A, B)

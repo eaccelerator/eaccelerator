@@ -1101,7 +1101,7 @@ size_t mm_maxsize(MM* mm) {
 }
 #endif
 
-void* mm_malloc(MM* mm, size_t size) {
+void* mm_malloc_lock(MM* mm, size_t size) {
   void *ret;
   mm_lock(mm, MM_LOCK_RW);
   ret = mm_malloc_nolock(mm,size);
@@ -1109,7 +1109,7 @@ void* mm_malloc(MM* mm, size_t size) {
   return ret;
 }
 
-void mm_free(MM* mm, void* x) {
+void mm_free_lock(MM* mm, void* x) {
   mm_lock(mm, MM_LOCK_RW);
   mm_free_nolock(mm,x);
   mm_unlock(mm);
