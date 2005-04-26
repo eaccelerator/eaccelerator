@@ -2,8 +2,8 @@
    +----------------------------------------------------------------------+
    | eAccelerator project                                                 |
    +----------------------------------------------------------------------+
-   | Copyright (c) 2004 eAccelerator                                      |
-   | http://eaccelerator.sourceforge.net                                  |
+   | Copyright (c) 2004 - 2005 eAccelerator                               |
+   | http://eaccelerator.net                                  			  |
    +----------------------------------------------------------------------+
    | This program is free software; you can redistribute it and/or        |
    | modify it under the terms of the GNU General Public License          |
@@ -640,6 +640,7 @@ static zend_op_array* decode_op_array(zend_op_array *to, char** p, unsigned int*
             break;
           case RES_CLASS:
             opline->result.u.var = decode_var(to->T, p, l);
+            opline->result.op_type = IS_CONST;
             break;
           case RES_VAR:
             opline->result.op_type = IS_VAR;
@@ -834,7 +835,9 @@ static zend_class_entry* decode_class_entry(zend_class_entry* to, char** p, unsi
   to->parent      = NULL;
   s = decode_lstr(&len, p, l);
   if (s != NULL) {
-    if (zend_hash_find(CG(class_table), s, len+1, (void **)&to->parent) != SUCCESS) {
+	char* r;
+	r = zend_str_tolower_dup(s, len);
+    if (zend_hash_find(CG(class_table), r, len+1, (void **)&to->parent) != SUCCESS) {
 /*???
       debug_printf("[%d] EACCELERATOR can't restore parent class "
           "\"%s\" of class \"%s\"\n", getpid(), s, to->name);
@@ -859,6 +862,7 @@ static zend_class_entry* decode_class_entry(zend_class_entry* to, char** p, unsi
       to->handle_function_call = to->parent->handle_function_call;
 #endif
     }
+	efree(r);
     efree(s);
   }
 
@@ -933,6 +937,47 @@ static zend_class_entry* decode_class_entry(zend_class_entry* to, char** p, unsi
   zend_hash_init(&to->function_table, 0, NULL, ZEND_FUNCTION_DTOR, 0);
   decode_hash(&to->function_table, sizeof(zend_op_array), (decode_bucket_t)decode_op_array, p, l TSRMLS_CC);
   to->constants_updated = 0;
+
+#ifdef ZEND_ENGINE_2 /* patch from "Juan M. de la Torre" <juan.torre@iron-gate.net> */
+  {
+    zend_function *f;
+    Bucket *p;
+    int fname_len, cname_len;
+    char *fname_lc, *cname_lc;
+
+    cname_len = to->name_length;
+    cname_lc  = zend_str_tolower_dup(to->name, cname_len);
+
+    to->constructor = to->destructor = to->clone = to->__get = to->__set = to->__call = NULL;
+
+    p = to->function_table.pListHead;
+    while (p != NULL) {
+      f         = p->pData;
+      fname_len = strlen(f->common.function_name);
+      fname_lc  = zend_str_tolower_dup(f->common.function_name, fname_len);
+
+      if (fname_len == cname_len && !memcmp(fname_lc, cname_lc, fname_len))
+        to->constructor = (zend_function*)f;
+      else if (fname_lc[0] == '_' && fname_lc[1] == '_')
+      {
+        if (fname_len == sizeof(ZEND_CONSTRUCTOR_FUNC_NAME)-1 && memcmp(fname_lc, ZEND_CONSTRUCTOR_FUNC_NAME, sizeof(ZEND_CONSTRUCTOR_FUNC_NAME)) == 0) 
+          to->constructor = (zend_function*)f;
+        else if (fname_len == sizeof(ZEND_DESTRUCTOR_FUNC_NAME)-1 && memcmp(fname_lc, ZEND_DESTRUCTOR_FUNC_NAME, sizeof(ZEND_DESTRUCTOR_FUNC_NAME)) == 0)
+          to->destructor = (zend_function*)f;
+        else if (fname_len == sizeof(ZEND_CLONE_FUNC_NAME)-1 && memcmp(fname_lc, ZEND_CLONE_FUNC_NAME, sizeof(ZEND_CLONE_FUNC_NAME)) == 0)
+          to->clone = (zend_function*)f;
+        else if (fname_len == sizeof(ZEND_GET_FUNC_NAME)-1 && memcmp(fname_lc, ZEND_GET_FUNC_NAME, sizeof(ZEND_GET_FUNC_NAME)) == 0)
+          to->__get = (zend_function*)f;
+        else if (fname_len == sizeof(ZEND_SET_FUNC_NAME)-1 && memcmp(fname_lc, ZEND_SET_FUNC_NAME, sizeof(ZEND_SET_FUNC_NAME)) == 0)
+          to->__set = (zend_function*)f;
+        else if (fname_len == sizeof(ZEND_CALL_FUNC_NAME)-1 && memcmp(fname_lc, ZEND_CALL_FUNC_NAME, sizeof(ZEND_CALL_FUNC_NAME)) == 0)
+          to->__call = (zend_function*)f;
+      }
+      efree(fname_lc);
+      p = p->pListNext;
+    }
+  }
+#endif
 
   MMCG(class_entry) = old;
 
