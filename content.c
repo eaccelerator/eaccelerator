@@ -164,7 +164,6 @@ static void eaccelerator_put_page(const char* key, int key_len, zval* content, t
       memcpy(s+1, h->header, h->header_len+1);
       add_next_index_stringl(headers, s, h->header_len+1, 0);
       p = p->next;
-      efree(s);
     }
     add_assoc_zval(&cache_array, "headers", headers);
   }
