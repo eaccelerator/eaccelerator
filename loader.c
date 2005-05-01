@@ -835,13 +835,14 @@ static zend_class_entry* decode_class_entry(zend_class_entry* to, char** p, unsi
   to->parent      = NULL;
   s = decode_lstr(&len, p, l);
   if (s != NULL) {
+#ifdef ZEND_ENGINE_2
 	char* r;
 	r = zend_str_tolower_dup(s, len);
-    if (zend_hash_find(CG(class_table), r, len+1, (void **)&to->parent) != SUCCESS) {
-/*???
-      debug_printf("[%d] EACCELERATOR can't restore parent class "
-          "\"%s\" of class \"%s\"\n", getpid(), s, to->name);
-*/
+    if (zend_hash_find(CG(class_table), r, len+1, (void **)&to->parent) != SUCCESS)
+#else
+	if (zend_hash_find(CG(class_table), s, len+1, (void **)&to->parent) != SUCCESS)
+#endif
+	{
       to->parent = NULL;
     } else {
 #ifdef ZEND_ENGINE_2
@@ -862,7 +863,9 @@ static zend_class_entry* decode_class_entry(zend_class_entry* to, char** p, unsi
       to->handle_function_call = to->parent->handle_function_call;
 #endif
     }
+#ifdef ZEND_ENGINE_2
 	efree(r);
+#endif
     efree(s);
   }
 
