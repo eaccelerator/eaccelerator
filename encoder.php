@@ -12,6 +12,7 @@ function eaccelerator_encoder_usage() {
   echo "\t-r\n\t\tencode directories recursively (no by default)\n";
   echo "\t-c\n\t\tcopy files those shouldn't be encoded (no by default)\n";
   echo "\t-f\n\t\toverwrite existing files (no by default)\n";
+  echo "\t-w\n\t\texclude check for eaccelerator_load() and subsequent warning\n";
   echo "\t-o target\n\t\tIf you encode only one script then 'target' specifyes an output\n";
   echo               "\t\tfile name. If you encode directory or several files at once\n";
   echo               "\t\tthen 'target' specifyes an output directory name.\n";
@@ -33,7 +34,7 @@ function eaccelerator_error($str, $web) {
   }
 }
 
-function eaccelerator_encode_file($src, $out, $f, $c, $web) {
+function eaccelerator_encode_file($src, $out, $f, $c, $w, $web) {
   if (empty($out)) {
     echo "\n// $src\n";
   }
@@ -58,7 +59,13 @@ function eaccelerator_encode_file($src, $out, $f, $c, $web) {
       }
     }
   } else {
-    $cmp = $prefix.'<?php if (!is_callable("eaccelerator_load") && !@dl((PHP_OS=="WINNT"||PHP_OS=="WIN32")?"eloader.dll":"eloader.so")) { die("This PHP script has been encoded with eAccelerator, to run it you must install <a href=\"http://eaccelerator.sourceforge.net/\">eAccelerator or eLoader</a>");} return eaccelerator_load(\''.$cmp."');?>\n";
+    if (!$w) {
+        $cmp = $prefix.'<?php if (!is_callable("eaccelerator_load") && !@dl((PHP_OS=="WINNT"||PHP_OS=="WIN32")?"oloader.dll":"oloader.so")) { die("This PHP script has been encoded with eAccelerator, to run it you must install <a href=\"http://eaccelerator.sourceforge.net/\">eAccelerator or eLoader</a>");} return eaccelerator_load(\''.$cmp."');?>\n";
+    }
+    else
+    {
+    	$cmp = $prefix.'<?php return eaccelerator_load(\''.$cmp."');?>\n";
+    }
     if (!empty($out)) {
       if (!$f && file_exists($out)) {
         eaccelerator_error("Can't create output file \"$out\" (already exists)",$web);
@@ -155,7 +162,7 @@ function eaccelerator_copy_link($src, $out, $f, $web) {
   }
 }
 
-function eaccelerator_encode_dir($src, $out, $s, $r, $l, $c, $f, $web) {
+function eaccelerator_encode_dir($src, $out, $s, $r, $l, $c, $f, $w, $web) {
   if ($dir = @opendir($src)) {
     while (($file = readdir($dir)) !== false) {
       if ($file == "." || $file == "..") continue;
@@ -179,15 +186,15 @@ function eaccelerator_encode_dir($src, $out, $s, $r, $l, $c, $f, $web) {
       if (is_dir($i)) {
         if ($r) {
           if (eaccelerator_copy_dir($i, $o, $f, $web)) {
-            eaccelerator_encode_dir($i, $o, $s, $r, $l, $c, $f, $web);
+            eaccelerator_encode_dir($i, $o, $s, $r, $l, $c, $f, $w, $web);
           }
         }
       } else if (is_file($i)) {
         if (empty($s)) {
-          eaccelerator_encode_file($i, $o, $f, $c, $web);
+          eaccelerator_encode_file($i, $o, $f, $c, $w, $web);
         } else if (is_string($s)) {
           if (preg_match("/".preg_quote(".$s")."\$/i", $file)) {
-            eaccelerator_encode_file($i, $o, $f, $c, $web);
+            eaccelerator_encode_file($i, $o, $f, $c, $w, $web);
           } else if (!empty($o) && $c) {
             eaccelerator_copy_file($i, $o, $f, $web);
           }
@@ -195,7 +202,7 @@ function eaccelerator_encode_dir($src, $out, $s, $r, $l, $c, $f, $web) {
           $encoded = false;
           foreach($s as $z) {
             if (preg_match("/".preg_quote(".$z")."\$/i", $file)) {
-              eaccelerator_encode_file($i, $o, $f, $c, $web);
+              eaccelerator_encode_file($i, $o, $f, $c, $w, $web);
               $encoded = true;
               break;
             }
@@ -231,6 +238,7 @@ function eaccelerator_encoder_main() {
   $a = false;
   $c = false;
   $f = false;
+  $w = false;
 
   for ($i = 1; $i < $argc; $i++) {
     $arg = $argv[$i];
@@ -265,6 +273,8 @@ function eaccelerator_encoder_main() {
           $c = true;
         } else if (strlen($arg) == 2 && $arg[1] == "f") {
           $f = true;
+        } else if (strlen($arg) == 2 && $arg[1] == "w") {
+          $w = true;
         } else {
           $len = strlen($arg);
           if ($len > 1) {
@@ -280,6 +290,8 @@ function eaccelerator_encoder_main() {
                 $c = true;
               } else if ($arg[$n] == "f") {
                 $f = true;
+              } else if ($arg[$n] == "w") {
+                $w = true;
               } else {
                 if ($arg[$n] != "o" && $arg[$n] != "s") {
                   echo("eAccelerator Encoder ERROR: Unknown option \"-".$arg[$n]."\"\n\n");
@@ -317,21 +329,21 @@ function eaccelerator_encoder_main() {
         if (is_dir($file)) {
           if ($cnt == 1) {
             if (eaccelerator_mkdir($out, $f, 0)) {
-              eaccelerator_encode_dir($file, $out, $s, $r, $l, $c, $f, 0);
+              eaccelerator_encode_dir($file, $out, $s, $r, $l, $c, $f, $w, 0);
             }
           } else {
             if (eaccelerator_copy_dir($file, $out."/".basename($file), $f, 0)) {
-              eaccelerator_encode_dir($file, $out."/".basename($file), $s, $r, $l, $c, $f, 0);
+              eaccelerator_encode_dir($file, $out."/".basename($file), $s, $r, $l, $c, $f, $w, 0);
             }
           }
         } else {
           if ($cnt == 1) {
-            eaccelerator_encode_file($file, $out, $f, $c, 0);
+            eaccelerator_encode_file($file, $out, $f, $c, $w, 0);
           } else {
             if (empty($out)) {
-              eaccelerator_encode_file($file, $out, $f, $c, 0);
+              eaccelerator_encode_file($file, $out, $f, $c, $w, 0);
             } else {
-              eaccelerator_encode_file($file, $out."/".basename($file), $f, $c, 0);
+              eaccelerator_encode_file($file, $out."/".basename($file), $f, $c, $w, 0);
             }
           }
         }
@@ -370,6 +382,7 @@ function eaccelerator_encoder_web() {
     $recursive = isset($_POST["recursive"])?$_POST["recursive"]:false;
     $copy = isset($_POST["copy"])?$_POST["copy"]:false;
     $force = isset($_POST["force"])?$_POST["force"]:false;
+    $check = isset($_POST["check"])?$_POST["check"]:false;
     if (empty($source)) {
       $error = "ERROR: Source is not specified!";
     } else if (!file_exists($source)) {
@@ -380,10 +393,10 @@ function eaccelerator_encoder_web() {
           if ($all) {
             $s = "";
           }
-          eaccelerator_encode_dir($source, $target, $s, $recursive, $links, $copy, $force, 1);
+          eaccelerator_encode_dir($source, $target, $s, $recursive, $links, $copy, $force, $check, 1);
         }
       } else {
-        eaccelerator_encode_file($source, $target, $force, $copy, 1);
+        eaccelerator_encode_file($source, $target, $force, $copy, $check, 1);
       }
       global $web_error;
       if (empty($web_error)) {
@@ -407,6 +420,7 @@ function eaccelerator_encoder_web() {
        "<input type=\"checkbox\" id=\"recursive\" name=\"recursive\"".(empty($recursive)?"":" checked")."> - <label for=\"recursive\">encode directories recursively</label><br>".
        "<input type=\"checkbox\" id=\"copy\" name=\"copy\"".(empty($copy)?"":" checked")."> - <label for=\"copy\">copy files those shouldn't be encoded</label><br>".
        "<input type=\"checkbox\" id=\"force\" name=\"force\"".(empty($force)?"":" checked")."> - <label for=\"force\">overwrite existing files</label><br>".
+       "<input type=\"checkbox\" id=\"check\" name=\"check\"".(empty($check)?"":" checked")."> - <label for=\"check\">exclude eaccelerator_load() check</label><br>".
        "</td></tr>".
        "<tr><td colspan=\"2\" align=\"center\" bgcolor=\"#cccccc\"><input type=\"submit\" name=\"submit\" value=\"OK\" style=\"width:100px\"></td></tr>".
        "</form></body></html>";
