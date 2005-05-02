@@ -2433,6 +2433,7 @@ static zend_class_entry* restore_class_entry(zend_class_entry* to, eaccelerator_
   int   cname_len;
   char *cname_lc;
   Bucket *p;
+  union _zend_function *old_ctor;
 #endif
 
 #ifdef DEBUG
@@ -2594,7 +2595,7 @@ static zend_class_entry* restore_class_entry(zend_class_entry* to, eaccelerator_
 #ifdef ZEND_ENGINE_2
   cname_len = to->name_length;
   cname_lc  = zend_str_tolower_dup(to->name, cname_len);
-  union _zend_function *old_ctor = to->constructor;
+  old_ctor = to->constructor;
 
   p = to->function_table.pListHead;
   while (p != NULL) {
