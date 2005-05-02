@@ -2594,6 +2594,7 @@ static zend_class_entry* restore_class_entry(zend_class_entry* to, eaccelerator_
 #ifdef ZEND_ENGINE_2
   cname_len = to->name_length;
   cname_lc  = zend_str_tolower_dup(to->name, cname_len);
+  union _zend_function *old_ctor = to->constructor;
 
   p = to->function_table.pListHead;
   while (p != NULL) {
@@ -2601,9 +2602,10 @@ static zend_class_entry* restore_class_entry(zend_class_entry* to, eaccelerator_
     fname_len = strlen(f->common.function_name);
     fname_lc  = zend_str_tolower_dup(f->common.function_name, fname_len);
 
-    if (fname_len == cname_len && !memcmp(fname_lc, cname_lc, fname_len))
+    if (fname_len == cname_len && !memcmp(fname_lc, cname_lc, fname_len) 
+    	&& to->constructor == old_ctor && f->common.scope != to->parent)
       to->constructor = (zend_function*)f;
-    else if (fname_lc[0] == '_' && fname_lc[1] == '_')
+    else if (fname_lc[0] == '_' && fname_lc[1] == '_' && f->common.scope != to->parent)
     {
       if (fname_len == sizeof(ZEND_CONSTRUCTOR_FUNC_NAME)-1 && memcmp(fname_lc, ZEND_CONSTRUCTOR_FUNC_NAME, sizeof(ZEND_CONSTRUCTOR_FUNC_NAME)) == 0)
         to->constructor = (zend_function*)f;
