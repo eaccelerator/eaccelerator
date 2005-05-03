@@ -40,23 +40,23 @@
 #   	define HAVE_PHP_SESSIONS_SUPPORT
 #	endif
 #else // no session support in php, undef eA session support
-#	if defined(WITH_EACCELERATOR_SESSIONS)
-#		undef WITH_EACCELERATOR_SESSIONS
-#	endif
+#	undef WITH_EACCELERATOR_SESSIONS
 #endif
 
-#ifdef HAVE_PHP_SESSIONS_SUPPORT
+#ifdef WITH_EACCELERATOR_SESSIONS
 
 int eaccelerator_set_session_handlers();
 int eaccelerator_session_registered();
 void eaccelerator_register_session();
 
+#ifdef HAVE_PHP_SESSIONS_SUPPORT
 PHP_FUNCTION(_eaccelerator_session_open);
 PHP_FUNCTION(_eaccelerator_session_close);
 PHP_FUNCTION(_eaccelerator_session_read);
 PHP_FUNCTION(_eaccelerator_session_write);
 PHP_FUNCTION(_eaccelerator_session_destroy);
 PHP_FUNCTION(_eaccelerator_session_gc);
+#endif
 PHP_FUNCTION(eaccelerator_set_session_handlers);
 PHP_INI_MH(eaccelerator_OnUpdateSessionCachePlace);
 
