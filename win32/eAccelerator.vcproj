@@ -22,9 +22,9 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="2"
-				InlineFunctionExpansion="1"
+				InlineFunctionExpansion="2"
 				AdditionalIncludeDirectories="../../..,../../../zend,../../../TSRM,../../../main"
-				PreprocessorDefinitions="NDEBUG;ZEND_DEBUG=0;WIN32;_WINDOWS;_USRDLL;HAVE_EACCELERATOR;COMPILE_DL_EACCELERATOR;ZEND_WIN32;PHP_WIN32;ZTS=1;HAVE_EXT_SESSION_PHP_SESSION_H=1;WITH_EACCELERATOR_CRASH_DETECTION;WITH_EACCELERATOR_OPTIMIZER;WITH_EACCELERATOR_ENCODER;WITH_EACCELERATOR_LOADER;WITH_EACCELERATOR_SESSIONS;WITH_EACCELERATOR_CONTENT_CACHING"
+				PreprocessorDefinitions="NDEBUG;ZEND_DEBUG=0;WIN32;_WINDOWS;_USRDLL;HAVE_EACCELERATOR;COMPILE_DL_EACCELERATOR;ZEND_WIN32;PHP_WIN32;ZTS=1;HAVE_EXT_SESSION_PHP_SESSION_H=1;WITH_EACCELERATOR_CRASH_DETECTION;WITH_EACCELERATOR_OPTIMIZER;WITH_EACCELERATOR_ENCODER;WITH_EACCELERATOR_LOADER;WITH_EACCELERATOR_SESSIONS;WITH_EACCELERATOR_CONTENT_CACHING;WITH_EACCELERATOR_SHM;WITH_EACCELERATOR_WEBUI"
 				StringPooling="TRUE"
 				RuntimeLibrary="2"
 				EnableFunctionLevelLinking="TRUE"
@@ -40,7 +40,7 @@
 				Name="VCCustomBuildTool"/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="php5ts.lib odbc32.lib odbccp32.lib"
+				AdditionalDependencies="../../../php5ts.lib odbc32.lib odbccp32.lib"
 				OutputFile=".\Release/eAccelerator.dll"
 				LinkIncremental="1"
 				SuppressStartupBanner="TRUE"
@@ -87,10 +87,10 @@
 			CharacterSet="2">
 			<Tool
 				Name="VCCLCompilerTool"
-				Optimization="2"
+				Optimization="3"
 				InlineFunctionExpansion="1"
 				AdditionalIncludeDirectories="../../..,../../../zend,../../../TSRM,../../../main"
-				PreprocessorDefinitions="NDEBUG;ZEND_DEBUG=0;WIN32;_WINDOWS;_USRDLL;HAVE_EACCELERATOR;COMPILE_DL_EACCELERATOR;ZEND_WIN32;PHP_WIN32;ZTS=1;HAVE_EXT_SESSION_PHP_SESSION_H=1;WITH_EACCELERATOR_CRASH_DETECTION;WITH_EACCELERATOR_OPTIMIZER;WITH_EACCELERATOR_ENCODER;WITH_EACCELERATOR_LOADER;WITH_EACCELERATOR_SESSIONS;WITH_EACCELERATOR_CONTENT_CACHING"
+				PreprocessorDefinitions="ZTS=0;NDEBUG;ZEND_DEBUG=0;WIN32;_WINDOWS;_USRDLL;HAVE_EACCELERATOR;COMPILE_DL_EACCELERATOR;ZEND_WIN32;PHP_WIN32;HAVE_EXT_SESSION_PHP_SESSION_H=1;WITH_EACCELERATOR_CRASH_DETECTION;WITH_EACCELERATOR_ENCODER;WITH_EACCELERATOR_SESSIONS;WITH_EACCELERATOR_CONTENT_CACHING;WITH_EACCELERATOR_LOADER;WITH_EACCELERATOR_SHM;WITH_EACCELERATOR_OPTIMIZER;WITH_EACCELERATOR_WEBUI"
 				StringPooling="TRUE"
 				RuntimeLibrary="2"
 				EnableFunctionLevelLinking="TRUE"
@@ -106,7 +106,7 @@
 				Name="VCCustomBuildTool"/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="php4ts.lib odbc32.lib odbccp32.lib"
+				AdditionalDependencies="../../../php4ts.lib odbc32.lib odbccp32.lib"
 				OutputFile=".\Release/eAccelerator.dll"
 				LinkIncremental="1"
 				SuppressStartupBanner="TRUE"
@@ -283,7 +283,13 @@
 			Name="Source Files"
 			Filter="cpp;c;cxx;rc;def;r;odl;idl;hpj;bat">
 			<File
+				RelativePath="..\cache.c">
+			</File>
+			<File
 				RelativePath="..\content.c">
+			</File>
+			<File
+				RelativePath="..\debug.c">
 			</File>
 			<File
 				RelativePath="..\eaccelerator.c">
@@ -306,10 +312,28 @@
 			<File
 				RelativePath="..\optimize.c">
 			</File>
+			<File
+				RelativePath="..\session.c">
+			</File>
+			<File
+				RelativePath="..\shm.c">
+			</File>
+			<File
+				RelativePath="..\webui.c">
+			</File>
 		</Filter>
 		<Filter
 			Name="Header Files"
 			Filter="h;hpp;hxx;hm;inl">
+			<File
+				RelativePath="..\cache.h">
+			</File>
+			<File
+				RelativePath="..\content.h">
+			</File>
+			<File
+				RelativePath="..\debug.h">
+			</File>
 			<File
 				RelativePath="..\eaccelerator.h">
 			</File>
@@ -321,6 +345,18 @@
 			</File>
 			<File
 				RelativePath="..\opcodes.h">
+			</File>
+			<File
+				RelativePath="..\session.h">
+			</File>
+			<File
+				RelativePath="..\shm.h">
+			</File>
+			<File
+				RelativePath="..\webui.h">
+			</File>
+			<File
+				RelativePath="..\x86_spinlocks.h">
 			</File>
 		</Filter>
 		<Filter
