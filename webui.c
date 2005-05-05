@@ -60,6 +60,7 @@
 #include "SAPI.h"
 
 extern eaccelerator_mm *eaccelerator_mm_instance;
+PHPAPI char *php_get_uname();
 
 /******************************************************************************/
 
@@ -282,7 +283,7 @@ static const char *color_list[] = {
 	"#800080"
 };
 
-static char *color (int num)
+static char const *color (int num)
 {
 	return color_list[num % (sizeof (color_list) / sizeof (char *))];
 }

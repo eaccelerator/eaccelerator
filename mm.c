@@ -1,7 +1,10 @@
 /* libmm replacement */
 
-#ifdef HAVE_CONFIG_H
+#if !defined(MM_TEST_SHM) && !defined(MM_TEST_SEM)
+# ifdef HAVE_CONFIG_H
 #  include "config.h"
+# endif
+# include "php.h"
 #endif
 
 #ifdef WIN32
@@ -579,6 +582,13 @@ int mm_unlock(MM* mm) {
 #if defined(MM_SHM_IPC)
 
 #define MM_SHM_TYPE "sysvipc"
+
+#ifndef SHM_R
+# define SHM_R 0444 /* read permission */
+#endif
+#ifndef SHM_W
+# define SHM_W 0222 /* write permission */
+#endif
 
 static MM* mm_create_shm(const char* key, size_t size) {
   int fd;

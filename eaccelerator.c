@@ -69,21 +69,6 @@
 #endif
 */
 
-#ifdef ZEND_WIN32
-#  include <process.h>
-#  ifndef S_ISREG
-#    define S_ISREG(mode) (((mode)&S_IFMT) & S_IFREG)
-#  endif
-#  ifndef S_IRUSR
-#    define S_IRUSR S_IREAD
-#  endif
-#  ifndef S_IWUSR
-#    define S_IWUSR S_IWRITE
-#  endif
-#else
-#  include <dirent.h>
-#endif
-
 #include "php.h"
 #include "php_ini.h"
 #include "php_logos.h"
@@ -119,9 +104,6 @@ eaccelerator_mm* eaccelerator_mm_instance = NULL;
 static int eaccelerator_is_zend_extension = 0;
 static int eaccelerator_is_extension      = 0;
 static zend_extension* ZendOptimizer = NULL;
-#ifdef ZTS
-static MUTEX_T mm_mutex;
-#endif
 
 static HashTable eaccelerator_global_function_table;
 static HashTable eaccelerator_global_class_table;
@@ -141,7 +123,6 @@ static void (*mm_saved_zend_execute)(zend_op_array *op_array TSRMLS_DC);
 
 /* external declarations */
 PHPAPI void php_stripslashes(char *str, int *len TSRMLS_DC);
-PHPAPI char *php_get_uname();
 
 ZEND_DLEXPORT zend_op_array* eaccelerator_compile_file(zend_file_handle *file_handle, int type TSRMLS_DC);
 
@@ -949,21 +930,6 @@ static int hash_add_file(mm_cache_entry *p TSRMLS_DC) {
   }
   return ret;
 }
-
-typedef union align_union {
-  double d;
-  void *v;
-  int (*func)(int);
-  long l;
-} align_union;
-
-#if (defined (__GNUC__) && __GNUC__ >= 2)
-#define EACCELERATOR_PLATFORM_ALIGNMENT (__alignof__ (align_test))
-#else
-#define EACCELERATOR_PLATFORM_ALIGNMENT (sizeof(align_union))
-#endif
-
-#define EACCELERATOR_ALIGN(n) (n) = (void*)((((size_t)(n)-1) & ~(EACCELERATOR_PLATFORM_ALIGNMENT-1)) + EACCELERATOR_PLATFORM_ALIGNMENT)
 
 /******************************************************************************/
 /* Functions to calculate the size of different structure that a compiled php */

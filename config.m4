@@ -1,3 +1,15 @@
+AC_DEFUN([EA_REMOVE_IPC_TEST], [
+  # for cygwin ipc error
+  if test -f conftest* ; then
+    echo $ECHO_N "Wait for conftest* to exit$ECHO_C"
+    while ! rm -f conftest* 2>/dev/null ; do
+      echo $ECHO_N ".$ECHO_C"
+      sleep 1
+    done
+    echo
+  fi
+])
+
 AC_ARG_WITH(eaccelerator,[],[enable_eaccelerator=$withval])
 
 PHP_ARG_ENABLE(eaccelerator, whether to enable eaccelerator support,
@@ -147,17 +159,18 @@ if test "$PHP_EACCELERATOR" != "no"; then
   AC_TRY_RUN([#define MM_SEM_NONE
 #define MM_SHM_IPC
 #define MM_TEST_SHM
-#include "mm.c"
+#include "$ext_srcdir/mm.c"
 ],dnl
     mm_shm_ipc=yes
     msg=yes,msg=no,msg=no)
   AC_MSG_RESULT([$msg])
+  EA_REMOVE_IPC_TEST()
 
   AC_MSG_CHECKING(for mmap shared memory support)
   AC_TRY_RUN([#define MM_SEM_NONE
 #define MM_SHM_MMAP_FILE
 #define MM_TEST_SHM
-#include "mm.c"
+#include "$ext_srcdir/mm.c"
 ],dnl
     mm_shm_mmap_file=yes
     msg=yes,msg=no,msg=no)
@@ -167,7 +180,7 @@ if test "$PHP_EACCELERATOR" != "no"; then
   AC_TRY_RUN([#define MM_SEM_NONE
 #define MM_SHM_MMAP_ZERO
 #define MM_TEST_SHM
-#include "mm.c"
+#include "$ext_srcdir/mm.c"
 ],dnl
     mm_shm_mmap_zero=yes
     msg=yes,msg=no,msg=no)
@@ -177,7 +190,7 @@ if test "$PHP_EACCELERATOR" != "no"; then
   AC_TRY_RUN([#define MM_SEM_NONE
 #define MM_SHM_MMAP_ANON
 #define MM_TEST_SHM
-#include "mm.c"
+#include "$ext_srcdir/mm.c"
 ],dnl
     mm_shm_mmap_anon=yes
     msg=yes,msg=no,msg=no)
@@ -187,7 +200,7 @@ if test "$PHP_EACCELERATOR" != "no"; then
   AC_TRY_RUN([#define MM_SEM_NONE
 #define MM_SHM_MMAP_POSIX
 #define MM_TEST_SHM
-#include "mm.c"
+#include "$ext_srcdir/mm.c"
 ],dnl
     mm_shm_mmap_posix=yes
     msg=yes,msg=no,msg=no)
@@ -209,13 +222,18 @@ if test "$PHP_EACCELERATOR" != "no"; then
   elif test "$mm_shm_mmap_file" = "yes"; then
     AC_DEFINE(MM_SHM_MMAP_FILE, 1, [Define if you like to use mmap on temporary file shared memory])
     msg="mmap"
+  else
+    msg="no"
   fi
   AC_MSG_RESULT([$msg])
+  if test "$msg" = "no" ; then
+    AC_MSG_WARN([eaccelerator cannot detect shared memory type, which is required])
+  fi
 
   AC_MSG_CHECKING(for spinlock semaphores support)
   AC_TRY_RUN([#define MM_SEM_SPINLOCK
 #define MM_TEST_SEM
-#include "mm.c"
+#include "$ext_srcdir/mm.c"
 ],dnl
     mm_sem_spinlock=yes
     msg=yes,msg=no,msg=no)
@@ -224,7 +242,7 @@ if test "$PHP_EACCELERATOR" != "no"; then
   AC_MSG_CHECKING(for pthread semaphores support)
   AC_TRY_RUN([#define MM_SEM_PTHREAD
 #define MM_TEST_SEM
-#include "mm.c"
+#include "$ext_srcdir/mm.c"
 ],dnl
     mm_sem_pthread=yes
     msg=yes,msg=no,msg=no)
@@ -233,7 +251,7 @@ if test "$PHP_EACCELERATOR" != "no"; then
   AC_MSG_CHECKING(for posix semaphores support)
   AC_TRY_RUN([#define MM_SEM_POSIX
 #define MM_TEST_SEM
-#include "mm.c"
+#include "$ext_srcdir/mm.c"
 ],dnl
     mm_sem_posix=yes
     msg=yes,msg=no,msg=no)
@@ -242,16 +260,17 @@ if test "$PHP_EACCELERATOR" != "no"; then
   AC_MSG_CHECKING(for sysvipc semaphores support)
   AC_TRY_RUN([#define MM_SEM_IPC
 #define MM_TEST_SEM
-#include "mm.c"
+#include "$ext_srcdir/mm.c"
 ],dnl
     mm_sem_ipc=yes
     msg=yes,msg=no,msg=no)
   AC_MSG_RESULT([$msg])
+  EA_REMOVE_IPC_TEST()
 
   AC_MSG_CHECKING(for fcntl semaphores support)
   AC_TRY_RUN([#define MM_SEM_FCNTL
 #define MM_TEST_SEM
-#include "mm.c"
+#include "$ext_srcdir/mm.c"
 ],dnl
     mm_sem_fcntl=yes
     msg=yes,msg=no,msg=no)
@@ -260,7 +279,7 @@ if test "$PHP_EACCELERATOR" != "no"; then
   AC_MSG_CHECKING(for flock semaphores support)
   AC_TRY_RUN([#define MM_SEM_FLOCK
 #define MM_TEST_SEM
-#include "mm.c"
+#include "$ext_srcdir/mm.c"
 ],dnl
     mm_sem_flock=yes
     msg=yes,msg=no,msg=no)
@@ -285,8 +304,13 @@ if test "$PHP_EACCELERATOR" != "no"; then
   elif test "$mm_sem_posix" = "yes"; then
     AC_DEFINE(MM_SEM_POSIX, 1, [Define if you like to use posix based semaphores])
     msg="posix"
+  else
+    msg="no"
   fi
   AC_MSG_RESULT([$msg])
+  if test "$msg" = "no" ; then
+    AC_MSG_WARN([eaccelerator cannot semaphores type, which is required])
+  fi
 
   AC_CHECK_FUNC(sched_yield,[
       AC_DEFINE(HAVE_SCHED_YIELD, 1, [Define if ou have sched_yield function])
@@ -297,7 +321,7 @@ if test "$PHP_EACCELERATOR" != "no"; then
     ])
 
   old_cppflags="$CPPFLAGS"
-  CPPFLAGS="$CPPFLAGS $INCLUDES"
+  CPPFLAGS="$CPPFLAGS $INCLUDES -I$abs_srcdir"
   AC_MSG_CHECKING(for ext/session/php_session.h)
   AC_TRY_CPP([#include "ext/session/php_session.h"],msg="yes",msg="no")
   if test "$msg" = "yes"; then

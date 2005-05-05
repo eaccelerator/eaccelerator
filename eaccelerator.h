@@ -44,12 +44,21 @@
 #  define __attribute__(x)
 #endif
 
-#ifndef ZEND_WIN32
+#if !defined(ZEND_WIN32) && defined(HAVE_CONFIG_H)
 #  if ZEND_MODULE_API_NO >= 20001222
 #    include "config.h"
 #  else
 #    include "php_config.h"
 #  endif
+#endif
+
+/* needed to compile eA as a static php module */
+extern zend_module_entry eaccelerator_module_entry;
+#define phpext_eaccelerator_ptr &eaccelerator_module_entry
+
+/* fixes compile errors on php5.1 */
+#ifdef STR_EMPTY_ALLOC
+#define empty_string STR_EMPTY_ALLOC()
 #endif
 
 // TODO: add as configure switch
@@ -88,6 +97,7 @@
 #else
 #  ifndef ZEND_WIN32
 #    ifdef HAVE_FLOCK
+#	   include <sys/file.h>
 #      define EACCELERATOR_FLOCK(FILE,OP) flock((FILE),(OP))
 #    else
 #      ifndef LOCK_SH
@@ -116,6 +126,21 @@
                                        1, 0, &offset);\
                                    }}
 #  endif
+#endif
+
+#ifdef ZEND_WIN32
+#  include <process.h>
+#  ifndef S_ISREG
+#    define S_ISREG(mode) (((mode)&S_IFMT) & S_IFREG)
+#  endif
+#  ifndef S_IRUSR
+#    define S_IRUSR S_IREAD
+#  endif
+#  ifndef S_IWUSR
+#    define S_IWUSR S_IWRITE
+#  endif
+#else
+#  include <dirent.h>
 #endif
 
 #ifdef ZTS
@@ -163,7 +188,9 @@
 
 #define MAX_DUP_STR_LEN 256
 
-#define offsetof(str,fld) ((size_t)&(((str*)NULL)->fld))
+#ifndef offsetof
+#  define offsetof(str,fld) ((size_t)&(((str*)NULL)->fld))
+#endif
 
 #define EACCELERATOR_EXTENSION_NAME "eAccelerator"
 #define EACCELERATOR_LOADER_EXTENSION_NAME "eLoader"
@@ -376,7 +403,18 @@ typedef struct _mm_cond_entry {
 	struct _mm_cond_entry *next;
 } mm_cond_entry;
 
+typedef union align_union {
+  double d;
+  void *v;
+  int (*func)(int);
+  long l;
+} align_union;
+
 /******************************************************************************/
+
+#ifdef ZTS
+MUTEX_T mm_mutex;
+#endif
 
 void format_size (char *s, unsigned int size, int legend);
 void eaccelerator_prune (time_t t);
