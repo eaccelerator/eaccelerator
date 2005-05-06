@@ -35,7 +35,6 @@
 #include "zend.h"
 #include "zend_API.h"
 #include "zend_extensions.h"
-#include "mm.h"
 
 /* Handle __attribute__ for nongcc compilers */
 #if (__GNUC__ >= 3)  || ((__GNUC__ == 2) && (__GNUC_MINOR__ >= 95))
@@ -51,10 +50,6 @@
 #    include "php_config.h"
 #  endif
 #endif
-
-/* needed to compile eA as a static php module */
-extern zend_module_entry eaccelerator_module_entry;
-#define phpext_eaccelerator_ptr &eaccelerator_module_entry
 
 /* fixes compile errors on php5.1 */
 #ifdef STR_EMPTY_ALLOC
@@ -86,6 +81,9 @@ extern zend_module_entry eaccelerator_module_entry;
 #define EACCELERATOR_MM_FILE "/tmp/eaccelerator"
 
 #ifdef HAVE_EACCELERATOR
+#ifndef HAVE_EACCELERATOR_STANDALONE_LOADER 
+
+#include "mm.h"
 
 #ifdef EACCELERATOR_WITHOUT_FILE_LOCKING
 #  ifndef LOCK_SH
@@ -190,25 +188,6 @@ extern zend_module_entry eaccelerator_module_entry;
 
 #ifndef offsetof
 #  define offsetof(str,fld) ((size_t)&(((str*)NULL)->fld))
-#endif
-
-#define EACCELERATOR_EXTENSION_NAME "eAccelerator"
-#define EACCELERATOR_LOADER_EXTENSION_NAME "eLoader"
-
-#define MMC_ENCODER_VERSION   0x00000003
-#define MMC_ENCODER_END       0x00
-#define MMC_ENCODER_NAMESPACE 0x01
-#define MMC_ENCODER_CLASS     0x02
-#define MMC_ENCODER_FUNCTION  0x03
-
-#define EACCELERATOR_VERSION_GUID   "PHPE8EDA1B6-806A-4851-B1C8-A6B4712F44FB"
-#define EACCELERATOR_LOGO_GUID      "PHPE6F78DE9-13E4-4dee-8518-5FA2DACEA803"
-#define EACCELERATOR_VERSION_STRING ("eAccelerator " EACCELERATOR_VERSION " (PHP " PHP_VERSION ")")
-
-#ifdef ZTS
-#  define MMCG(v) TSRMG(eaccelerator_globals_id, zend_eaccelerator_globals*, v)
-#else
-#  define MMCG(v) (eaccelerator_globals.v)
 #endif
 
 /******************************************************************************/
@@ -393,16 +372,6 @@ typedef enum _eaccelerator_cache_place {
 	eaccelerator_none			/* don't cache  */
 } eaccelerator_cache_place;
 
-/*
- * conditional filter
- */
-typedef struct _mm_cond_entry {
-	char *str;
-	int len;
-	zend_bool not;
-	struct _mm_cond_entry *next;
-} mm_cond_entry;
-
 typedef union align_union {
   double d;
   void *v;
@@ -415,6 +384,11 @@ typedef union align_union {
 #ifdef ZTS
 MUTEX_T mm_mutex;
 #endif
+
+/* needed to compile eA as a static php module */
+extern zend_module_entry eaccelerator_module_entry;
+#define phpext_eaccelerator_ptr &eaccelerator_module_entry
+
 
 void format_size (char *s, unsigned int size, int legend);
 void eaccelerator_prune (time_t t);
@@ -445,13 +419,29 @@ void eaccelerator_optimize (zend_op_array * op_array);
 #ifdef WITH_EACCELERATOR_ENCODER
 PHP_FUNCTION (eaccelerator_encode);
 #endif
+#endif /* HAVE_EACCELERATOR_LOADER_STANDALONE */
+
+#ifdef ZTS
+#  define MMCG(v) TSRMG(eaccelerator_globals_id, zend_eaccelerator_globals*, v)
+#else
+#  define MMCG(v) (eaccelerator_globals.v)
+#endif
+
+/*
+ * conditional filter
+ */
+typedef struct _mm_cond_entry {
+	char *str;
+	int len;
+	zend_bool not;
+	struct _mm_cond_entry *next;
+} mm_cond_entry;
 
 #ifdef WITH_EACCELERATOR_LOADER
 zend_op_array *eaccelerator_load (char *src, int src_len TSRMLS_DC);
 PHP_FUNCTION (eaccelerator_load);
 PHP_FUNCTION (_eaccelerator_loader_file);
 PHP_FUNCTION (_eaccelerator_loader_line);
-#endif
 #endif
 
 /*
@@ -508,4 +498,19 @@ long self_time[256];
 ZEND_END_MODULE_GLOBALS (eaccelerator)
 
 ZEND_EXTERN_MODULE_GLOBALS (eaccelerator)
-#endif							/*#ifndef INCLUDED_EACCELERATOR_H */
+
+#define EACCELERATOR_EXTENSION_NAME "eAccelerator"
+#define EACCELERATOR_LOADER_EXTENSION_NAME "eLoader"
+
+#define MMC_ENCODER_VERSION   0x00000003
+#define MMC_ENCODER_END       0x00
+#define MMC_ENCODER_NAMESPACE 0x01
+#define MMC_ENCODER_CLASS     0x02
+#define MMC_ENCODER_FUNCTION  0x03
+
+#define EACCELERATOR_VERSION_GUID   "PHPE8EDA1B6-806A-4851-B1C8-A6B4712F44FB"
+#define EACCELERATOR_LOGO_GUID      "PHPE6F78DE9-13E4-4dee-8518-5FA2DACEA803"
+#define EACCELERATOR_VERSION_STRING ("eAccelerator " EACCELERATOR_VERSION " (PHP " PHP_VERSION ")")
+
+#endif 		/* HAVE_EACCELERATOR */
+#endif		/* #ifndef INCLUDED_EACCELERATOR_H */

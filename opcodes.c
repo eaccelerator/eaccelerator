@@ -27,7 +27,6 @@
    $Id$
 */
 
-#include "eaccelerator.h"
 #include "opcodes.h"
 
 #ifdef HAVE_EACCELERATOR
