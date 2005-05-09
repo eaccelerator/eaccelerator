@@ -2,6 +2,7 @@
 
         * Fixes the segfault when loading encoded script with eloader and php5
         * Commited README.win32 with instructions to compile eAccelerator on windows
+        * Add the destructor to properties info hashtable in restore_class_entry, fixes bug 1179270
 
 2005-05-06 Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
