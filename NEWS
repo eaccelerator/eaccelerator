@@ -1,6 +1,17 @@
+May 09, 2005 - Franck Tabary
+----------------------------------
+
+ * Released 0.9.3-rc1
+ 
+ 	This release fixes lot's of bugs with php4/php5. Special thanks to Bart Vanbrabant, who spent a lot of time to fix bugs. 	 				
+
+  
+
 December 19, 2004 - Reiner Jung
 ----------------------------------
 
- * Released 0.9.2 - This release fixes problems with php 4.3.10 and PHP 5. Also eLoader added to the package. eLoader is a standalone loader for encode files.
+ * Released 0.9.2 
+ 
+ 	This release fixes problems with php 4.3.10 and PHP 5. Also eLoader added to the package. eLoader is a standalone loader for encode files.
 
   
