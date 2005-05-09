@@ -566,10 +566,11 @@ static zend_op_array* decode_op_array(zend_op_array *to, char** p, unsigned int*
       } else {
         unsigned int ops = op_dsc->ops;
 #ifdef ZEND_ENGINE_2
-/*??? FIXME
+#ifdef HAVE_EACCELERATOR_STANDALONE_LOADER
         opline->handler = zend_opcode_handlers[opline->opcode];
-*/
+#else
         opline->handler = get_opcode_handler(opline->opcode TSRMLS_CC);
+#endif
 #endif
 #if MMC_ENCODER_VERSION < 2
         opline->lineno = decode32(p, l);
