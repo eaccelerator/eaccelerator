@@ -100,6 +100,12 @@ and Apache 2.0.
 
 Quick install
 -------------
+
+You can find more information about installation on eAccelerator website.
+http://eaccelerator.sourceforge.net/
+
+Note(1): for Microsoft Windows installation, please refer to README.win32 file.
+
 Step 1. Compiling eAccelerator
 
   export PHP_PREFIX="/usr"
