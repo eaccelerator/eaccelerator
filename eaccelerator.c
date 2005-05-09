@@ -2527,6 +2527,7 @@ static zend_class_entry* restore_class_entry(zend_class_entry* to, eaccelerator_
   restore_zval_hash(&to->default_properties, &from->default_properties);
   to->default_properties.pDestructor = ZVAL_PTR_DTOR;
   restore_hash(&to->properties_info, &from->properties_info, (restore_bucket_t)restore_property_info TSRMLS_CC);
+  to->properties_info.pDestructor = ZVAL_PTR_DTOR;
   if (from->static_members != NULL) {
     ALLOC_HASHTABLE(to->static_members);
     restore_zval_hash(to->static_members, from->static_members);
