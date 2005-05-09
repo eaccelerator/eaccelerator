@@ -1,65 +1,3 @@
-<<<<<<< ChangeLog
-2005-05-09 Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
-
-        * Fixes the segfault when loading encoded script with eloader and php5
-        * Commited README.win32 with instructions to compile eAccelerator on windows
-        * Add the destructor to properties info hashtable in restore_class_entry, fixes bug 1179270
-
-2005-05-06 Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
-
-        * Patch fixing eLoader compilation.
-
-2005-05-05 Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>µ
-
-        * This patch fixes some stuff concerning configuration. With this patch 
-          some parts that are forgotten with the code split are fixed. 
-          They are also needed to compile eA with VC. The other stuff should make it possible 
-          to compile eA as a static module for php.
-        * Updated VC project files
-
-2005-05-02  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
-
-        * Patch fixing php 5 constructor problems. Fixes bugs 1179264, 1121757 and 1099693
-        * Added switch -w to encoder so you can encode file without the check for eloader. This is 
-          based on patch 1191147 with some fixes.
-
-2005-04-26  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
-
-        * The first part of the code refactoring. In this part the monolitic 
-          eaccelerator.c file has been split up in more logical blocks.
-          - cache.c/cache.h contains the procedure for shm.c/session.c/content.c to add user_cache entries to the ea cache
-          - shm.c/shm.h contains the eaccelerator shared memory functions
-          - session.c/session.h contains the session related stuff
-          - webui.c/webui.h contains all stuff related to the webinterface and disassembler
-          - debug.c/debug.h contains some procedures to print debug information
-          - content.h contains the php content caching prototype instead of eaccelerator.h
-        * Added --without-eaccelerator-shared-memory and  --without-eaccelerator-webui configure switches
-        Bugfixes included:
-        * Patch 1188510	eaccelerator_compile_file typos
-        * Patch 1189792	session life time patch
-        * Patch 1167069	HAS_ATTRIBUTE fix with FreeBSD 4.x
-        * Patch 1166707	loader patch for OOP functions in PHP5
-        * Patch 1173095 mm_alloc & mm_free clash with libirc
-        * Fix for 1178588, 1153030 and patch 1189852. Fixes the endless loop when reseting a non array.
-          The optimisation for that caused this is removed for zend engine 2 and 1 because 
-          php >= 4.3.11 is also affected, so this will be useless in some time.
-
-2005-01-14  Shin Seung Woo <segv74 at gmail.com>
-
-        * fixes 1099498 Problems with IMP H3 (Horde) when restarting apache2
-          ( bug was lied on fix_zval(), it didn't check IS_CONSTANT_INDEX flag. )
-
-2005-01-06  Shin Seung Woo <segv74 at gmail.com>
-
-        * fix for bug 1091815. ( Encoded files and php4.3.10 )
-
-2005-01-05  Shin Seung Woo <segv74 at gmail.com>
-
-        Fixed following bugs:
-        * 1092128 Horde-hashs int the sourcecode of eaccelerator.c
-        * 1091960 include_once include files multiple times
-
-=======
 2005-05-09 Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
         * Fixes the segfault when loading encoded script with eloader and php5
@@ -120,7 +58,6 @@
         * 1092128 Horde-hashs int the sourcecode of eaccelerator.c
         * 1091960 include_once include files multiple times
         
->>>>>>> 1.24
 2004-12-28  Everaldo Canuto <everaldo_canuto at yahoo.com.br>
 
         * encoder.php Fix references to "oloader".
