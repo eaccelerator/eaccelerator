@@ -1,0 +1,38 @@
+Building eAccelerator on windows
+================================
+
+Requirements
+------------
+* You need Visual Studio 6 C++ (VS.Net could work but hasn't been tested)
+* You need to download the full source code of php 4/5
+* You need to download the zip file with the precompiled php 4/5 binary (or build php 4/5 you're self from source)
+
+Instructions
+------------
+
+1) Unzip the php source to a directory
+2) Unzip the eAccelerator source in the ext\ subdirectory of the php source
+3) Start Visual Studio and open the eAccelerator workspace:
+	File > Open Workspace ...
+	The workspace is located in the win32 subdirectory of the eAccelerator source (X:\path\to\php-x.y.z\ext\eaccelerator\win32\eaccelerator.dsw)
+4) Unpack the zip file with the precompiled php version.
+5) Add the path to the phpXts.lib file (where X is the php version)
+	* Tools > Options ...
+	* Go to the Directories tab
+	* Select Library files in the Show directories for: select box
+	* Click on the first symbol next to the Directories label to add the path
+	* Click on ... after the new entry and select the dev subdirectory of the directory with the precompiled php
+6) Go to Build > Set active configuration ... and select the target you want to build:
+	Select 'eAccelerator - Win32 Release' for php 4 and 'eAccelerator - Win32 Release PHP5'  for php5
+7) Go to Build > Build eAccelerator.dll to build the eaccelerator extension.
+
+When this is finished you can find the dll in the Release directory of the win32 subdirectory of the eaccelerator source.
+
+eLoader
+------------
+If you want to build the eLoader dll you need to set eLoader as the active project:
+	Project > Set Active Project > 2 eLoader
+Everything is the same as for eAccelerator. If have already done the steps above you have to start at step 6 but set eLoader instead of eAccelerator.
+
+WARNING: If you have build the eAccelerator project you have to do a Clean first else you'll get linker errors.
+	Build > Clean
