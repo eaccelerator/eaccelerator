@@ -115,8 +115,10 @@ int binary_zend_version;
 
 FILE *F_fp;
 
+#ifdef ZEND_ENGINE_2
 /* pointer to the properties_info hashtable destructor */
 static dtor_func_t properties_info_dtor = NULL;
+#endif
 
 /* saved original functions */
 static zend_op_array *(*mm_saved_zend_compile_file)(zend_file_handle *file_handle, int type TSRMLS_DC);
@@ -3739,6 +3741,7 @@ static int eaccelerator_check_php_version(TSRMLS_D) {
   return ret;
 }
 
+#ifdef ZEND_ENGINE_2
 /* This function creates a dummy class entry to steal the pointer to the 
  * properties_info hashtable destructor because it's declared static */
 static dtor_func_t get_zend_destroy_property_info(TSRMLS_D) {
@@ -3758,6 +3761,7 @@ static dtor_func_t get_zend_destroy_property_info(TSRMLS_D) {
   
   return property_dtor;
 }
+#endif
 
 PHP_MINIT_FUNCTION(eaccelerator) {
   if (type == MODULE_PERSISTENT) {
@@ -3847,10 +3851,10 @@ PHP_MINIT_FUNCTION(eaccelerator) {
   if (!eaccelerator_is_zend_extension) {
     register_eaccelerator_as_zend_extension();
   }
-  
+#ifdef ZEND_ENGINE_2
   /* cache the properties_info destructor */
   properties_info_dtor = get_zend_destroy_property_info(TSRMLS_C);
-  
+#endif
   return SUCCESS;
 }
 
