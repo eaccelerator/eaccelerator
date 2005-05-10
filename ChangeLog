@@ -2,6 +2,7 @@
 	
         * Added some includes to satisfy VC.NET (thanks to dakalka, patch 1198522)
         * This patch adds the right destructor for the propertiesinfo hashtable, but it doesn't fix bug 1179270
+        * Updated README.win32 with some extra information from Larnot
 
 2005-05-09 Franck Tabary <franck34 at users.sourceforge.net>
         * released eAccelerator 0.9.3-rc1
