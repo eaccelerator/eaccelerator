@@ -2390,6 +2390,13 @@ static zend_op_array* restore_op_array_ptr(eaccelerator_op_array *from TSRMLS_DC
   return restore_op_array(NULL, from TSRMLS_CC);
 }
 
+/* is equal to zend_destroy_property_info in zend_compile.c, this function is 
+ * needed as destructor for the properties_info hashtable, but is declared 
+ * static, so redefine it here. */
+static void destroy_property_info(zend_property_info *property_info) {
+  efree(property_info->name);
+}
+
 static zend_class_entry* restore_class_entry(zend_class_entry* to, eaccelerator_class_entry *from TSRMLS_DC)
 {
   zend_class_entry *old;
@@ -2528,7 +2535,7 @@ static zend_class_entry* restore_class_entry(zend_class_entry* to, eaccelerator_
   restore_zval_hash(&to->default_properties, &from->default_properties);
   to->default_properties.pDestructor = ZVAL_PTR_DTOR;
   restore_hash(&to->properties_info, &from->properties_info, (restore_bucket_t)restore_property_info TSRMLS_CC);
-  to->properties_info.pDestructor = ZVAL_PTR_DTOR;
+  to->properties_info.pDestructor = (dtor_func_t) destroy_property_info;
   if (from->static_members != NULL) {
     ALLOC_HASHTABLE(to->static_members);
     restore_zval_hash(to->static_members, from->static_members);
@@ -2539,9 +2546,6 @@ static zend_class_entry* restore_class_entry(zend_class_entry* to, eaccelerator_
     zend_hash_init_ex(to->static_members, 0, NULL, ZVAL_PTR_DTOR, 0, 0);
 */
   }
-/*??? FIXME
-    to->properties_info.pDestructor = (dtor_func_t) zend_destroy_property_info;
-*/
 #else
   to->refcount = emalloc(sizeof(*to->refcount));
   *to->refcount = 1;
