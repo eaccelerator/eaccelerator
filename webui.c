@@ -35,6 +35,8 @@
 
 #include "webui.h"
 #include "opcodes.h"
+#include "cache.h"
+#include "mm.h"
 
 #include "zend.h"
 #include "zend_API.h"

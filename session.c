@@ -36,6 +36,10 @@
 #include "ext/standard/md5.h"
 #include <fcntl.h>
 
+#ifdef WIN32
+#	include "win32/time.h"
+#endif
+
 #if defined(HAVE_PHP_SESSIONS_SUPPORT) && defined(PS_CREATE_SID_ARGS)
 #	include "ext/standard/php_lcg.h"
 #endif

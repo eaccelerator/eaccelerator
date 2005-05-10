@@ -1,3 +1,10 @@
+2005-05-10 Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
+	
+        * Added some includes to satisfy VC.NET (thanks to dakalka, patch 1198522)
+
+2005-05-09 Franck Tabary <franck34 at users.sourceforge.net>
+        * released eAccelerator 0.9.3-rc1
+
 2005-05-09 Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
         * Fixes the segfault when loading encoded script with eloader and php5
