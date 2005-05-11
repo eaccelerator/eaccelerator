@@ -3745,12 +3745,13 @@ static int eaccelerator_check_php_version(TSRMLS_D) {
 /* This function creates a dummy class entry to steal the pointer to the 
  * properties_info hashtable destructor because it's declared static */
 static dtor_func_t get_zend_destroy_property_info(TSRMLS_D) {
+  dtor_func_t property_dtor;
   zend_class_entry dummy_class_entry;
   dummy_class_entry.type = ZEND_USER_CLASS; 
 
   zend_initialize_class_data(&dummy_class_entry, 1 TSRMLS_CC); 
 
-  dtor_func_t property_dtor = dummy_class_entry.properties_info.pDestructor;
+  property_dtor = dummy_class_entry.properties_info.pDestructor;
 
   zend_hash_destroy(&dummy_class_entry.default_properties);
   zend_hash_destroy(&dummy_class_entry.properties_info);
