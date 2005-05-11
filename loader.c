@@ -942,17 +942,17 @@ static zend_class_entry* decode_class_entry(zend_class_entry* to, char** p, unsi
   decode_hash(&to->function_table, sizeof(zend_op_array), (decode_bucket_t)decode_op_array, p, l TSRMLS_CC);
   to->constants_updated = 0;
 
-#ifdef ZEND_ENGINE_2 /* patch from "Juan M. de la Torre" <juan.torre@iron-gate.net> */
+#ifdef ZEND_ENGINE_2
   {
     zend_function *f;
     Bucket *p;
     int fname_len, cname_len;
     char *fname_lc, *cname_lc;
+    union _zend_function *old_ctor;
 
+    old_ctor = to->constructor;
     cname_len = to->name_length;
     cname_lc  = zend_str_tolower_dup(to->name, cname_len);
-
-    to->constructor = to->destructor = to->clone = to->__get = to->__set = to->__call = NULL;
 
     p = to->function_table.pListHead;
     while (p != NULL) {
@@ -960,9 +960,10 @@ static zend_class_entry* decode_class_entry(zend_class_entry* to, char** p, unsi
       fname_len = strlen(f->common.function_name);
       fname_lc  = zend_str_tolower_dup(f->common.function_name, fname_len);
 
-      if (fname_len == cname_len && !memcmp(fname_lc, cname_lc, fname_len))
-        to->constructor = (zend_function*)f;
-      else if (fname_lc[0] == '_' && fname_lc[1] == '_')
+      if (fname_len == cname_len && !memcmp(fname_lc, cname_lc, fname_len) 
+		 && to->constructor == old_ctor && f->common.scope != to->parent)  
+		to->constructor = (zend_function*)f;	  	  
+	  else if (fname_lc[0] == '_' && fname_lc[1] == '_' && f->common.scope != to->parent)
       {
         if (fname_len == sizeof(ZEND_CONSTRUCTOR_FUNC_NAME)-1 && memcmp(fname_lc, ZEND_CONSTRUCTOR_FUNC_NAME, sizeof(ZEND_CONSTRUCTOR_FUNC_NAME)) == 0) 
           to->constructor = (zend_function*)f;
@@ -980,6 +981,7 @@ static zend_class_entry* decode_class_entry(zend_class_entry* to, char** p, unsi
       efree(fname_lc);
       p = p->pListNext;
     }
+    efree(cname_lc);
   }
 #endif
 
