@@ -3,7 +3,7 @@
    | eAccelerator project                                                 |
    +----------------------------------------------------------------------+
    | Copyright (c) 2004 - 2005 eAccelerator                               |
-   | http://eaccelerator.net                                  			  |
+   | http://eaccelerator.net                                  		  |
    +----------------------------------------------------------------------+
    | This program is free software; you can redistribute it and/or        |
    | modify it under the terms of the GNU General Public License          |
@@ -156,11 +156,9 @@ PS_WRITE_FUNC (eaccelerator)
 	skey = do_alloca (len + 1);
 	strcpy (skey, "sess_");
 	strcat (skey, key);
-	if (cfg_get_string ("session.gc_maxlifetime", &tmp) == FAILURE) {
-		ttl = 1440;
-	} else {
-		ttl = atoi (tmp);
-	}
+        ttl = PS(gc_maxlifetime);
+        if (ttl < 0)
+                ttl = 1440;
 	sval.type = IS_STRING;
 	sval.value.str.val = (char *) val;
 	sval.value.str.len = vallen;
@@ -334,14 +332,6 @@ PHP_FUNCTION (_eaccelerator_session_write)
 	key = do_alloca (len + 1);
 	strcpy (key, "sess_");
 	strcat (key, (*arg_key)->value.str.val);
-	/* this will get the ini value but not the value set by the user with ini_set
-	/* php allows a user to set this, so we should allow this to
-	if (cfg_get_string ("session.gc_maxlifetime", &tmp) == FAILURE) {
-		ttl = 1440;
-	} else {
-		ttl = atoi (tmp);
-	}
-	*/
 	ttl = PS(gc_maxlifetime);
 	if (ttl < 0)
 		ttl = 1440;

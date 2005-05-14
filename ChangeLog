@@ -1,7 +1,14 @@
+2005-05-14 Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
+
+        * The session lifetime patch only fixed the problem when using one type of session handler. It's now 
+          also fixed for the other type of session handler.
+
 2005-05-12 Franck Tabary <franck34 at users.sourceforge.net>
+
         * released eAccelerator 0.9.3-rc2
 
 2005-05-11 Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
+
         * Fix for must constructor related problems with encoded scripts and php5. Also a fixes
           memory leak in the loader. (Thanks larnot)
 
