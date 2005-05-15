@@ -264,7 +264,7 @@ static void mm_destroy_lock(mm_mutex* lock) {
 
 #define MM_SEM_TYPE "sysvipc"
 
-#ifndef HAVE_SEMUN
+#ifndef HAVE_UNION_SEMUN
 union semun {
     int val;
     struct semid_ds *buf;
