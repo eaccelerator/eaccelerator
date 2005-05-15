@@ -1,3 +1,8 @@
+2005-04-16 Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
+        * Added --without-eaccelerator-use-inode configure switch to disable the use
+          of inode numbers for the hash keys (Feature request 1201159). The default
+          behaviour doesn't change.
+
 2005-04-15 Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
         * Compile fix for bug 1201564.
 

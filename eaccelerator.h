@@ -56,8 +56,7 @@
 #define empty_string STR_EMPTY_ALLOC()
 #endif
 
-// TODO: add as configure switch
-#ifndef ZEND_WIN32
+#if !defined(ZEND_WIN32) && defined(WITH_EACCELERATOR_USE_INODE)
 /* UnDefine if your filesystem doesn't support inodes */
 #  define EACCELERATOR_USE_INODE
 #endif
