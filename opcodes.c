@@ -160,7 +160,7 @@ static const opcode_dsc opcodes[] = {
   OPDEF("INCLUDE_OR_EVAL",           EXT_UNUSED | OP1_STD    | OP2_INCLUDE| RES_VAR), /* 73 */
 #ifdef ZEND_ENGINE_2
   OPDEF("UNSET_VAR",                 EXT_UNUSED | OP1_STD    | OP2_FETCH  | RES_UNUSED), /* 74 */
-  OPDEF("UNSET_DIM_OBJ",             EXT_STD    | OP1_VAR    | OP2_STD    | RES_UNUSED), /* 75 */
+  OPDEF("UNSET_DIM_OBJ",             EXT_STD    | OP1_STD    | OP2_STD    | RES_UNUSED), /* 75 */
   OPDEF("ISSET_ISEMPTY",             EXT_ISSET  | OP1_VAR    | OP2_UNUSED | RES_TMP), /* 76 */
 #else
   OPDEF("UNSET_VAR",                 EXT_UNUSED | OP1_STD    | OP2_UNUSED | RES_UNUSED), /* 74 */
