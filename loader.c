@@ -82,11 +82,7 @@ static unsigned int decode_var(unsigned int count, char** p, unsigned int* l) {
   if (var >= count) {
     zend_bailout();
   }
-#ifdef ZEND_ENGINE_2
-  return (unsigned int)(((temp_variable*)NULL) + var);
-#else
   return var;
-#endif
 }
 
 static unsigned int decode_opline(unsigned int last, char** p, unsigned int* l) {

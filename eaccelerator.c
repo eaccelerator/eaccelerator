@@ -133,13 +133,9 @@ PHPAPI void php_stripslashes(char *str, int *len TSRMLS_DC);
 ZEND_DLEXPORT zend_op_array* eaccelerator_compile_file(zend_file_handle *file_handle, int type TSRMLS_DC);
 
 /******************************************************************************/
-/* hash mm functions														  */
-/* TODO: insert items sorted in buckets, so searching in buckets goes from 	  */
-/*			O(n) to O(log n)
+/* hash mm functions							      */
 /******************************************************************************/
 
-/* Create a key for the scripts hashtable. This is only used when eA can't use
-   inodes. */
 inline unsigned int hash_mm(const char *data, int len) {
   unsigned int h;
   const char *e = data + len;
@@ -1162,7 +1158,7 @@ static void calc_op_array(zend_op_array* from TSRMLS_DC) {
 
 /* Calculate the size of a class entry */
 static void calc_class_entry(zend_class_entry* from TSRMLS_DC) {
-  int i;
+/*  int i; */
 
   if (from->type != ZEND_USER_CLASS) {
     debug_printf("[%d] EACCELERATOR can't cache internal class \"%s\"\n", getpid(), from->name);
@@ -1635,7 +1631,7 @@ static eaccelerator_op_array* store_op_array(zend_op_array* from TSRMLS_DC) {
 
 static eaccelerator_class_entry* store_class_entry(zend_class_entry* from TSRMLS_DC) {
   eaccelerator_class_entry *to;
-  int i;
+/*  int i; */
 
   EACCELERATOR_ALIGN(MMCG(mem));
   to = (eaccelerator_class_entry*)MMCG(mem);
@@ -2061,8 +2057,8 @@ static zend_op_array* restore_op_array(zend_op_array *to, eaccelerator_op_array 
   zend_function* function;
 
 #ifdef ZEND_ENGINE_2
-  int    fname_len;
-  char  *fname_lc;
+  int    fname_len = 0;
+  char  *fname_lc = NULL;
 #endif
 
 #ifdef DEBUG
@@ -3183,7 +3179,7 @@ ZEND_DLEXPORT zend_op_array* eaccelerator_compile_file(zend_file_handle *file_ha
           (memcmp(t->opcodes[1].op1.u.constant.value.str.val, "eaccelerator_load", sizeof("eaccelerator_load")-1) == 0) &&
           t->opcodes[0].op1.op_type == IS_CONST &&
           t->opcodes[0].op1.u.constant.type == IS_STRING) {
-        zend_op_array* new_t;
+        zend_op_array* new_t = NULL;
         zend_bool old_in_compilation = CG(in_compilation);
         char* old_filename = CG(compiled_filename);
         int old_lineno = CG(zend_lineno);
@@ -4094,7 +4090,11 @@ function_entry eaccelerator_functions[] = {
 #ifdef WITH_EACCELERATOR_CRASH
   PHP_FE(eaccelerator_crash, NULL)
 #endif
+#ifdef ZEND_ENGINE_2
+  {NULL, NULL, NULL, 0U, 0U}
+#else
   {NULL, NULL, NULL}
+#endif
 };
 
 zend_module_entry eaccelerator_module_entry = {

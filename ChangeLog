@@ -1,14 +1,22 @@
+2005-05-22 Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
+
+        * Bumped version to 0.9.4-dev
+        * Changed hash_mm prototype in eaccelerator.h to non-inline (Compaq c compiler)
+        * Fixes from patch 1206311 + some unused variable clean ups
+
 2005-05-18 Franck Tabary <franck34 at users.sourceforge.net>
 
         * released eAccelerator 0.9.3 final
-        
+
 2005-05-16 Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
+
         * Added --without-eaccelerator-use-inode configure switch to disable the use
           of inode numbers for the hash keys (Feature request 1201159). The default
           behaviour doesn't change.
         * Fix for bug 1202296 based on patch 1202708
 
 2005-05-15 Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
+
         * Compile fix for bug 1201564.
 
 2005-05-14 Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
@@ -32,6 +40,7 @@
         * Updated README.win32 with some extra information from Larnot
 
 2005-05-09 Franck Tabary <franck34 at users.sourceforge.net>
+
         * released eAccelerator 0.9.3-rc1
 
 2005-05-09 Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>

@@ -148,7 +148,6 @@ PS_WRITE_FUNC (eaccelerator)
 {
 	char *skey;
 	int len;
-	char *tmp;
 	time_t ttl;
 	zval sval;
 
@@ -240,7 +239,7 @@ PS_CREATE_SID_FUNC (eaccelerator)
 		if (fd >= 0) {
 			unsigned char buf[2048];
 			int n;
-			int to_read = entropy_length;
+			size_t to_read = entropy_length;
 
 			while (to_read > 0) {
 				n = read (fd, buf, MIN (to_read, sizeof (buf)));
@@ -321,7 +320,6 @@ PHP_FUNCTION (_eaccelerator_session_write)
 	zval **arg_key, **arg_val;
 	char *key;
 	int len;
-	char *tmp;
 	time_t ttl;
 
 	if (ZEND_NUM_ARGS () != 2

@@ -3,7 +3,7 @@
    | eAccelerator project                                                 |
    +----------------------------------------------------------------------+
    | Copyright (c) 2004 - 2005 eAccelerator                               |
-   | http://eaccelerator.net                                  			  |
+   | http://eaccelerator.net                                  		  |
    +----------------------------------------------------------------------+
    | This program is free software; you can redistribute it and/or        |
    | modify it under the terms of the GNU General Public License          |
@@ -405,7 +405,7 @@ void calc_zval (zval * z TSRMLS_DC);
 void store_zval (zval * z TSRMLS_DC);
 void fixup_zval (zval * z TSRMLS_DC);
 
-inline unsigned int hash_mm (const char *data, int len);
+unsigned int hash_mm(const char *data, int len); 
 
 #  ifdef WITH_EACCELERATOR_EXECUTOR
 ZEND_DLEXPORT void eaccelerator_execute (zend_op_array * op_array TSRMLS_DC);
