@@ -95,7 +95,7 @@ static int do_session_lock (const char *sess_name TSRMLS_DC)
 	}
 }
 
-#ifdef HAVE_PHP_SESSIONS_SUPPORT  /* PHP_SESSION_API >= 20020306 */
+#ifdef HAVE_PHP_SESSIONS_SUPPORT	/* PHP_SESSION_API >= 20020306 */
 /******************************************************************************/
 /* Session api functions 													  */
 /******************************************************************************/
@@ -150,14 +150,17 @@ PS_WRITE_FUNC (eaccelerator)
 	int len;
 	time_t ttl;
 	zval sval;
+	char *tmp;
 
 	len = sizeof ("sess_") + strlen (key);
 	skey = do_alloca (len + 1);
 	strcpy (skey, "sess_");
 	strcat (skey, key);
-        ttl = PS(gc_maxlifetime);
-        if (ttl < 0)
-                ttl = 1440;
+	if (cfg_get_string ("session.gc_maxlifetime", &tmp) == FAILURE) {
+		ttl = 1440;
+	} else {
+		ttl = atoi (tmp);
+	}
 	sval.type = IS_STRING;
 	sval.value.str.val = (char *) val;
 	sval.value.str.len = vallen;
@@ -330,7 +333,7 @@ PHP_FUNCTION (_eaccelerator_session_write)
 	key = do_alloca (len + 1);
 	strcpy (key, "sess_");
 	strcat (key, (*arg_key)->value.str.val);
-	ttl = PS(gc_maxlifetime);
+	ttl = PS (gc_maxlifetime);
 	if (ttl < 0)
 		ttl = 1440;
 	do_session_lock (key TSRMLS_CC);
@@ -376,7 +379,7 @@ PHP_FUNCTION (_eaccelerator_session_gc)
 	eaccelerator_gc (TSRMLS_C);
 	RETURN_TRUE;
 }
-#endif							/* ELSE HAVE_PHP_SESSIONS_SUPPORT */
+#endif /* ELSE HAVE_PHP_SESSIONS_SUPPORT */
 
 ps_module ps_mod_eaccelerator = {
 #ifdef PS_CREATE_SID_ARGS
@@ -406,7 +409,7 @@ int eaccelerator_set_session_handlers (TSRMLS_D)
 	zval func;
 	zval retval;
 	int ret = 1;
-#ifdef HAVE_PHP_SESSIONS_SUPPORT // do it with the session api
+#ifdef HAVE_PHP_SESSIONS_SUPPORT	// do it with the session api
 	zval param;
 	zval *params[1];
 /*

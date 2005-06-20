@@ -1,3 +1,9 @@
+2005-06-20 Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
+        * Reverted the patch for the gc_maxlifetime setting when using
+          user functions for the session handler. I can't find a way to
+          access the current value instead of the ini setting.
+          Using the session api is the preffered session handling way anyway.
+
 2005-05-22 Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
         * Bumped version to 0.9.4-dev
