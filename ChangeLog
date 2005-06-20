@@ -1,4 +1,6 @@
 2005-06-20 Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
+        * Set the test value shared memory to 32mb instead of 64mb because the
+          test will fail on 2.6 kernels where 32mb is the default value. (#1203253)
         * Reverted the patch for the gc_maxlifetime setting when using
           user functions for the session handler. I can't find a way to
           access the current value instead of the ini setting.

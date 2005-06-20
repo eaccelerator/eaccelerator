@@ -1236,7 +1236,7 @@ int mm_protect(MM* mm, int mode) {
 #ifdef MM_TEST_SHM
 int main() {
   char key[] = "/tmp/mm";
-  size_t size = 64*1024*1024;
+  size_t size = 32*1024*1024;
   MM *mm = mm_create(size, key);
   if (mm == NULL) {
     return 1;
