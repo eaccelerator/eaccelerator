@@ -685,8 +685,8 @@ static void dump_op_array (eaccelerator_op_array * p TSRMLS_DC)
 					zend_printf
 						("<td><font color=%s>$tmp%u</font> </td>",
 						 color (VAR_NUM
-								(opline->op2.u.var)),
-						 VAR_NUM (opline->op2.u.var));
+								(opline->result.u.var)),
+						 VAR_NUM (opline->result.u.var));
 				} else if (opline->result.op_type == IS_VAR) {
 					if ((opline->result.u.EA.type & EXT_TYPE_UNUSED) != 0)
 						zend_printf

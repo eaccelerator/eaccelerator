@@ -1,5 +1,6 @@
 2005-06-23 Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
+        * Applied patch 1226111
         * Added a warning message when php scripts have a modification time in
           in the future and the debug is enabled.
 
