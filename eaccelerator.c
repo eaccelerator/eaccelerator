@@ -2996,8 +2996,8 @@ ZEND_DLEXPORT zend_op_array* eaccelerator_compile_file(zend_file_handle *file_ha
   MMCG(xpad)+=2;
 #endif
   compile_time = time(0);
-  if (buf.st_mtime <= compile_time && eaccelerator_debug > 0) {
-	debug_printf("[%d] EACCELERATOR: \"%s\" isn't cached because it's mtime is in the future.\n", 
+  if (buf.st_mtime >= compile_time && eaccelerator_debug > 0) {
+	debug_printf("[%d] EACCELERATOR: Warning: \"%s\" is cached but it's mtime is in the future.\n", 
 		getpid(), file_handle->filename);
   }
 
@@ -3007,7 +3007,6 @@ ZEND_DLEXPORT zend_op_array* eaccelerator_compile_file(zend_file_handle *file_ha
       file_handle == NULL ||
       file_handle->filename == NULL ||
       eaccelerator_stat(file_handle, realname, &buf TSRMLS_CC) != 0 ||
-      buf.st_mtime >= compile_time ||
 #ifdef EACCELERATOR_USE_INODE
       0) {
 #else
