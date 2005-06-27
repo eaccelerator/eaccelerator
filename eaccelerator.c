@@ -917,7 +917,7 @@ static int hash_add_file(mm_cache_entry *p TSRMLS_DC) {
   f = open(s, O_CREAT | O_WRONLY | O_EXCL | O_BINARY, S_IRUSR | S_IWUSR);
   if (f > 0) {
     EACCELERATOR_FLOCK(f, LOCK_EX);
-    strcpy(hdr.magic,"EACCELERATOR");
+    strncpy(hdr.magic, "EACCELERATOR", 8);
     hdr.eaccelerator_version = binary_eaccelerator_version;
     hdr.zend_version    = binary_zend_version;
     hdr.php_version     = binary_php_version;

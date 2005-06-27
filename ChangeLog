@@ -1,3 +1,11 @@
+2005-06-27 Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
+        * Fixed a buffer overflow in eaccelerator.c and cache.c. A string longer
+          then 8 bytes was copied in a char array of length 8. This isn't a
+          security risk because the overflowed bytes were directly overwritten
+          by other values. This fixes bug 1228096 which was caused by the 
+          bufferoverflow detection in FC4. 
+          http://gcc.gnu.org/ml/gcc-patches/2004-09/msg02055.html
+
 2005-06-24 Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
         * The future check is removed because mtime are only checked on changes
           so caching files from the future isn't a problem.
