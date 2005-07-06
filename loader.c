@@ -442,7 +442,7 @@ static zend_op_array* decode_op_array(zend_op_array *to, char** p, unsigned int*
 		else
 		{
 /*???
-			debug_printf("[%d] EACCELERATOR can't restore parent class "
+			ea_debug_log("[%d] EACCELERATOR can't restore parent class "
 				"\"%s\" of function \"%s\"\n", getpid(),
 				(char*)scope_name, to->function_name);
 */

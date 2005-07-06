@@ -92,6 +92,13 @@ AC_ARG_WITH(eaccelerator-use-inode,
   eaccelerator_inode=yes
 ])
 
+AC_ARG_WITH(eaccelerator-debug,
+[  --with-eaccelerator-debug            	Enable the debug code so eaccelerator logs verbose.],[
+  eaccelerator_debug=$withval
+],[
+  eaccelerator_debug=no
+])
+
 dnl PHP_BUILD_SHARED
 if test "$PHP_EACCELERATOR" != "no"; then
   PHP_EXTENSION(eaccelerator, $ext_shared)
@@ -129,6 +136,9 @@ if test "$PHP_EACCELERATOR" != "no"; then
   fi
   if test "$eaccelerator_inode" = "yes"; then
     AC_DEFINE(WITH_EACCELERATOR_USE_INODE, 1, [Undef if you don't wan't to use inodes to determine hash keys])
+  fi
+  if test "$eaccelerator_debug" = "yes"; then
+    AC_DEFINE(DEBUG, 1, [Undef when you want to enable eaccelerator debug code])
   fi
 
   AC_REQUIRE_CPP()

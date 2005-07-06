@@ -61,20 +61,8 @@
 #  define EACCELERATOR_USE_INODE
 #endif
 
-// TODO: add as configure switch
-/* Define some of the following macros if you like to debug eAccelerator */
-//#define DEBUG
-//#define TEST_PERFORMANCE
-//#define PROFILE_OPCODES
-
 #ifdef WITH_EACCELERATOR_CRASH_DETECTION
 #  include <signal.h>
-#endif
-
-#if defined(DEBUG) || defined(TEST_PERFORMANCE)  || defined(PROFILE_OPCODES)
-/* Here you can chage debuging log filename */
-#define DEBUG_LOGFILE     "/var/log/httpd/eaccelerator_log"
-#define DEBUG_LOGFILE_CGI "/tmp/eaccelerator_log"
 #endif
 
 #define EACCELERATOR_MM_FILE "/tmp/eaccelerator"
@@ -460,6 +448,7 @@ zend_bool in_request;
 zend_llist *content_headers;
 long compress_level;
 char *cache_dir;
+char *eaccelerator_log_file;
 char *name_space;
 char *mem;
 HashTable strings;
@@ -484,7 +473,7 @@ void (*original_sigill_handler) (int);
 void (*original_sigabrt_handler) (int);
 #endif
 #endif
-#if defined(DEBUG) || defined(TEST_PERFORMANCE)  || defined(PROFILE_OPCODES)
+#ifdef DEBUG
 int xpad;
 #endif
 #ifdef WITH_EACCELERATOR_SESSIONS

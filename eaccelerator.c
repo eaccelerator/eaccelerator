@@ -3,7 +3,7 @@
    | eAccelerator project                                                 |
    +----------------------------------------------------------------------+
    | Copyright (c) 2004 - 2005 eAccelerator                               |
-   | http://eaccelerator.net                                  			  |
+   | http://eaccelerator.net                                              |
    +----------------------------------------------------------------------+
    | This program is free software; you can redistribute it and/or        |
    | modify it under the terms of the GNU General Public License          |
@@ -64,12 +64,6 @@
 #  define O_BINARY 0
 #endif
 
-/*???
-#ifdef HAVE_SCHED_H
-#  include <sched.h>
-#endif
-*/
-
 #include "php.h"
 #include "php_ini.h"
 #include "php_logos.h"
@@ -97,7 +91,7 @@ static long eaccelerator_shm_size = 0;
 long eaccelerator_shm_max = 0;
 static long eaccelerator_shm_ttl = 0;
 static long eaccelerator_shm_prune_period = 0;
-static long eaccelerator_debug = 0;
+extern long eaccelerator_debug;
 static zend_bool eaccelerator_check_mtime = 1;
 static zend_bool eaccelerator_scripts_shm_only = 0;
 
@@ -113,8 +107,6 @@ int binary_eaccelerator_version;
 int binary_php_version;
 int binary_zend_version;
 
-FILE *F_fp;
-
 #ifdef ZEND_ENGINE_2
 /* pointer to the properties_info hashtable destructor */
 static dtor_func_t properties_info_dtor = NULL;
@@ -123,7 +115,7 @@ static dtor_func_t properties_info_dtor = NULL;
 /* saved original functions */
 static zend_op_array *(*mm_saved_zend_compile_file)(zend_file_handle *file_handle, int type TSRMLS_DC);
 
-#if defined(PROFILE_OPCODES) || defined(WITH_EACCELERATOR_EXECUTOR)
+#if defined(DEBUG) || defined(WITH_EACCELERATOR_EXECUTOR)
 static void (*mm_saved_zend_execute)(zend_op_array *op_array TSRMLS_DC);
 #endif
 
@@ -289,13 +281,10 @@ static int init_mm(TSRMLS_D) {
   if (!mm) {
     return FAILURE;
   }
-#ifdef DEBUG
 #ifdef ZEND_WIN32
-  fprintf(F_fp, "init_mm [%d]\n", getpid());
+  ea_debug_printf(EA_DEBUG, "init_mm [%d]\n", getpid());
 #else
-  fprintf(F_fp, "init_mm [%d,%d]\n", getpid(), getppid());
-#endif
-  fflush(F_fp);
+  ea_debug_printf(EA_DEBUG, "init_mm [%d,%d]\n", getpid(), getppid());
 #endif
 #ifdef ZTS
   mm_mutex = tsrm_mutex_alloc();
@@ -331,13 +320,10 @@ static void shutdown_mm(TSRMLS_D) {
     if (getpgrp() == getpid()) {
 #endif
       MM *mm = eaccelerator_mm_instance->mm;
-#ifdef DEBUG
 #ifdef ZEND_WIN32
-      fprintf(F_fp, "shutdown_mm [%d]\n", getpid());
+      ea_debug_printf(EA_DEBUG, "shutdown_mm [%d]\n", getpid());
 #else
-      fprintf(F_fp, "shutdown_mm [%d,%d]\n", getpid(), getppid());
-#endif
-      fflush(F_fp);
+      ea_debug_printf(EA_DEBUG, "shutdown_mm [%d,%d]\n", getpid(), getppid());
 #endif
 #ifdef ZTS
       tsrm_mutex_free(mm_mutex);
@@ -351,7 +337,7 @@ static void shutdown_mm(TSRMLS_D) {
 }
 
 /******************************************************************************/
-/* Prepare values to cache them												  */
+/* Prepare values to cache them						      */
 /******************************************************************************/
 
 #define FIXUP(x) if((x)!=NULL) {(x) = (void*)(((char*)(x)) + ((long)(MMCG(mem))));}
@@ -935,7 +921,7 @@ static int hash_add_file(mm_cache_entry *p TSRMLS_DC) {
 
 /******************************************************************************/
 /* Functions to calculate the size of different structure that a compiled php */
-/* script contains.															  */
+/* script contains.							      */
 /******************************************************************************/
 
 #ifndef DEBUG
@@ -1029,12 +1015,12 @@ void calc_zval(zval* zv TSRMLS_DC) {
       if (zv->value.obj.ce != NULL) {
         zend_class_entry *ce = zv->value.obj.ce;
         if (!MMCG(compress)) {
-          debug_printf("[%d] EACCELERATOR can't cache objects\n", getpid());
+          ea_debug_error("[%d] EACCELERATOR can't cache objects\n", getpid());
           zend_bailout();
         }
         while (ce != NULL) {
           if (ce->type !=  ZEND_USER_CLASS && strcmp(ce->name,"stdClass") != 0) {
-            debug_printf("[%d] EACCELERATOR can't cache objects\n", getpid());
+            ea_debug_error("[%d] EACCELERATOR can't cache objects\n", getpid());
             zend_bailout();
           }
           ce = ce->parent;
@@ -1049,7 +1035,7 @@ void calc_zval(zval* zv TSRMLS_DC) {
 #endif
       return;
     case IS_RESOURCE:
-      debug_printf("[%d] EACCELERATOR can't cache resources\n", getpid());
+      ea_debug_error("[%d] EACCELERATOR can't cache resources\n", getpid());
       zend_bailout();
     default:
       break;
@@ -1068,7 +1054,7 @@ static void calc_op_array(zend_op_array* from TSRMLS_DC) {
     EACCELERATOR_ALIGN(MMCG(mem));
     MMCG(mem) += sizeof(eaccelerator_op_array);
   } else {
-    debug_printf("[%d] EACCELERATOR can't cache function \"%s\"\n", getpid(), from->function_name);
+    ea_debug_error("[%d] EACCELERATOR can't cache function \"%s\"\n", getpid(), from->function_name);
     zend_bailout();
   }
 #ifdef ZEND_ENGINE_2
@@ -1158,19 +1144,10 @@ static void calc_op_array(zend_op_array* from TSRMLS_DC) {
 
 /* Calculate the size of a class entry */
 static void calc_class_entry(zend_class_entry* from TSRMLS_DC) {
-/*  int i; */
-
   if (from->type != ZEND_USER_CLASS) {
-    debug_printf("[%d] EACCELERATOR can't cache internal class \"%s\"\n", getpid(), from->name);
+    ea_debug_error("[%d] EACCELERATOR can't cache internal class \"%s\"\n", getpid(), from->name);
     zend_bailout();
   }
-/*
-  if (from->builtin_functions) {
-    debug_printf("[%d] EACCELERATOR can't cache class \"%s\" because of it has "
-        "some builtin_functions\n", getpid(), from->name);
-    zend_bailout();
-  }
-*/
   EACCELERATOR_ALIGN(MMCG(mem));
   MMCG(mem) += sizeof(eaccelerator_class_entry);
 
@@ -1443,12 +1420,9 @@ static eaccelerator_op_array* store_op_array(zend_op_array* from TSRMLS_DC) {
   zend_op *opline;
   zend_op *end;
 
-#ifdef DEBUG
-  pad(TSRMLS_C);
-  fprintf(F_fp, "[%d] store_op_array: %s [scope=%s]\n", getpid(),
+  ea_debug_pad(EA_DEBUG TSRMLS_C);
+  ea_debug_printf(EA_DEBUG, "[%d] store_op_array: %s [scope=%s]\n", getpid(),
     from->function_name ? from->function_name : "(top)", from->scope ? from->scope->name : "NULL");
-  fflush(F_fp);
-#endif
 
   if (from->type == ZEND_INTERNAL_FUNCTION) {
     EACCELERATOR_ALIGN(MMCG(mem));
@@ -1517,19 +1491,19 @@ static eaccelerator_op_array* store_op_array(zend_op_array* from TSRMLS_DC) {
 	  {
         to->scope_name = store_string(q->arKey, q->nKeyLength TSRMLS_CC);
         to->scope_name_len = q->nKeyLength - 1;
-#ifdef DEBUG
-        pad(TSRMLS_C); fprintf(F_fp, "[%d]                 find scope '%s' in CG(class_table) save hashkey '%s' [%08x] as to->scope_name\n",
-            getpid(), from->scope->name ? from->scope->name : "NULL", q->arKey, to->scope_name); fflush(F_fp);
-#endif
+
+        ea_debug_pad(EA_DEBUG TSRMLS_C); 
+        ea_debug_printf(EA_DEBUG, "[%d]                 find scope '%s' in CG(class_table) save hashkey '%s' [%08x] as to->scope_name\n",
+            getpid(), from->scope->name ? from->scope->name : "NULL", q->arKey, to->scope_name);
         break;
       }
       q = q->pListNext;
     }
     if (to->scope_name == NULL)
     {
-#ifdef DEBUG
-      pad(TSRMLS_C); fprintf(F_fp, "[%d]                 could not find scope '%s' in CG(class_table), saving it to NULL\n", getpid(), from->scope->name ? from->scope->name : "NULL"); fflush(F_fp);
-#endif
+      ea_debug_pad(EA_DEBUG TSRMLS_C); 
+      ea_debug_printf(EA_DEBUG, "[%d]                 could not find scope '%s' in CG(class_table), saving it to NULL\n", 
+          getpid(), from->scope->name ? from->scope->name : "NULL");
     }
   }
 #endif
@@ -1631,8 +1605,6 @@ static eaccelerator_op_array* store_op_array(zend_op_array* from TSRMLS_DC) {
 
 static eaccelerator_class_entry* store_class_entry(zend_class_entry* from TSRMLS_DC) {
   eaccelerator_class_entry *to;
-/*  int i; */
-
   EACCELERATOR_ALIGN(MMCG(mem));
   to = (eaccelerator_class_entry*)MMCG(mem);
   MMCG(mem) += sizeof(eaccelerator_class_entry);
@@ -1657,10 +1629,10 @@ static eaccelerator_class_entry* store_class_entry(zend_class_entry* from TSRMLS
 
 #endif
 
+  ea_debug_pad(EA_DEBUG TSRMLS_C);
+  ea_debug_printf(EA_DEBUG, "[%d] store_class_entry: %s parent was '%s'\n", 
+      getpid(), from->name? from->name : "(top)", from->parent ? from->parent->name : "NULL");
 #ifdef DEBUG
-  pad(TSRMLS_C);
-  fprintf(F_fp, "[%d] store_class_entry: %s parent was '%s'\n", getpid(), from->name? from->name : "(top)", from->parent ? from->parent->name : "NULL");
-  fflush(F_fp);
   MMCG(xpad)++;
 #endif
 
@@ -1729,9 +1701,8 @@ static mm_cache_entry* eaccelerator_store_int(
   mm_fc_entry    *q;
   char *x;
 
-#ifdef DEBUG
-  pad(TSRMLS_C); fprintf(F_fp, "[%d] eaccelerator_store_int: key='%s'\n", getpid(), key); fflush(F_fp);
-#endif
+  ea_debug_pad(EA_DEBUG TSRMLS_C); 
+  ea_debug_printf(EA_DEBUG, "[%d] eaccelerator_store_int: key='%s'\n", getpid(), key);
 
   MMCG(compress) = 1;
   zend_hash_init(&MMCG(strings), 0, NULL, NULL, 0);
@@ -1749,9 +1720,10 @@ static mm_cache_entry* eaccelerator_store_int(
 
   q = NULL;
   while (c != NULL) {
-#ifdef DEBUG
-    pad(TSRMLS_C); fprintf(F_fp, "[%d] eaccelerator_store_int:     class hashkey=", getpid()); binary_print(c->arKey, c->nKeyLength); fflush(F_fp);
-#endif
+    ea_debug_pad(EA_DEBUG TSRMLS_C); 
+    ea_debug_printf(EA_DEBUG, "[%d] eaccelerator_store_int:     class hashkey=", getpid()); 
+    ea_debug_binary_print(EA_DEBUG, c->arKey, c->nKeyLength);
+
     EACCELERATOR_ALIGN(MMCG(mem));
     fc = (mm_fc_entry*)MMCG(mem);
     MMCG(mem) += offsetof(mm_fc_entry,htabkey)+c->nKeyLength;
@@ -1776,9 +1748,9 @@ static mm_cache_entry* eaccelerator_store_int(
 
   q = NULL;
   while (f != NULL) {
-#ifdef DEBUG
-    pad(TSRMLS_C); fprintf(F_fp, "[%d] eaccelerator_store_int:     function hashkey='%s'\n", getpid(), f->arKey); fflush(F_fp);
-#endif
+    ea_debug_pad(EA_DEBUG TSRMLS_C); 
+    ea_debug_printf(EA_DEBUG, "[%d] eaccelerator_store_int:     function hashkey='%s'\n", getpid(), f->arKey);
+
     EACCELERATOR_ALIGN(MMCG(mem));
     fc = (mm_fc_entry*)MMCG(mem);
     MMCG(mem) += offsetof(mm_fc_entry,htabkey)+f->nKeyLength;
@@ -2061,12 +2033,9 @@ static zend_op_array* restore_op_array(zend_op_array *to, eaccelerator_op_array 
   char  *fname_lc = NULL;
 #endif
 
-#ifdef DEBUG
-  pad(TSRMLS_C);
-  fprintf(F_fp, "[%d] restore_op_array: %s\n", getpid(),
+  ea_debug_pad(EA_DEBUG TSRMLS_C);
+  ea_debug_printf(EA_DEBUG, "[%d] restore_op_array: %s\n", getpid(),
     from->function_name? from->function_name : "(top)");
-  fflush(F_fp);
-#endif
 
   if (from->type == ZEND_INTERNAL_FUNCTION) {
     if (to == NULL) {
@@ -2155,42 +2124,37 @@ static zend_op_array* restore_op_array(zend_op_array *to, eaccelerator_op_array 
    */
   if (from->scope_name != NULL)
   {
-	char  *from_scope_lc = zend_str_tolower_dup(from->scope_name, from->scope_name_len);
-	if (zend_hash_find(CG(class_table), (void *)from_scope_lc, from->scope_name_len+1, (void **)&to->scope) != SUCCESS)
+    char  *from_scope_lc = zend_str_tolower_dup(from->scope_name, from->scope_name_len);
+    if (zend_hash_find(CG(class_table), (void *)from_scope_lc, from->scope_name_len+1, (void **)&to->scope) != SUCCESS)
     {
-#ifdef DEBUG
-      pad(TSRMLS_C); fprintf(F_fp, "[%d]                   can't find '%s' in hash. use MMCG(class_entry).\n", getpid(), from_scope_lc); fflush(F_fp);
-#endif
-	  to->scope = MMCG(class_entry);
+      ea_debug_pad(EA_DEBUG TSRMLS_C); 
+      ea_debug_printf(EA_DEBUG, "[%d]                   can't find '%s' in hash. use MMCG(class_entry).\n", getpid(), from_scope_lc);
+      to->scope = MMCG(class_entry);
     }
     else
     {
-#ifdef DEBUG
-      pad(TSRMLS_C); fprintf(F_fp, "[%d]                   found '%s' in hash\n", getpid(), from_scope_lc); fflush(F_fp);
-#endif
+      ea_debug_pad(EA_DEBUG TSRMLS_C); 
+      ea_debug_printf(EA_DEBUG, "[%d]                   found '%s' in hash\n", getpid(), from_scope_lc);
       to->scope = *(zend_class_entry **)(to->scope);
     }
     efree(from_scope_lc);
   }
   else
   {
-#ifdef DEBUG
-      pad(TSRMLS_C); fprintf(F_fp, "[%d]                   from is NULL\n", getpid()); fflush(F_fp);
-#endif
+      ea_debug_pad(EA_DEBUG TSRMLS_C); ea_debug_printf(EA_DEBUG, "[%d]                   from is NULL\n", getpid());
     if (MMCG(class_entry))
     {
       zend_class_entry *p;
 
       for (p = MMCG(class_entry)->parent; p; p = p->parent)
       {
-#ifdef DEBUG
-      pad(TSRMLS_C); fprintf(F_fp, "[%d]                   checking parent '%s' have '%s'\n", getpid(), p->name, fname_lc); fflush(F_fp);
-#endif
-		if (zend_hash_find(&p->function_table, fname_lc, fname_len+1, (void **) &function)==SUCCESS)
+        ea_debug_pad(EA_DEBUG TSRMLS_C); 
+        ea_debug_printf(EA_DEBUG, "[%d]                   checking parent '%s' have '%s'\n", getpid(), p->name, fname_lc);
+        if (zend_hash_find(&p->function_table, fname_lc, fname_len+1, (void **) &function)==SUCCESS)
         {
-#ifdef DEBUG
-      pad(TSRMLS_C); fprintf(F_fp, "[%d]                                   '%s' has '%s' of scope '%s'\n", getpid(), p->name, fname_lc, function->common.scope->name); fflush(F_fp);
-#endif
+          ea_debug_pad(EA_DEBUG TSRMLS_C); 
+          ea_debug_printf(EA_DEBUG, "[%d]                                   '%s' has '%s' of scope '%s'\n", 
+            getpid(), p->name, fname_lc, function->common.scope->name);
           to->scope = function->common.scope;
           break;
         }
@@ -2200,110 +2164,22 @@ static zend_op_array* restore_op_array(zend_op_array *to, eaccelerator_op_array 
       to->scope = NULL;
   }
 
-#ifdef DEBUG
-  pad(TSRMLS_C);
-  fprintf(F_fp, "[%d]                   %s's scope is '%s'\n", getpid(),
+  ea_debug_pad(EA_DEBUG TSRMLS_C);
+  ea_debug_printf(EA_DEBUG, "[%d]                   %s's scope is '%s'\n", getpid(),
     from->function_name ? from->function_name : "(top)", to->scope ? to->scope->name : "NULL");
-  fflush(F_fp);
-#endif
-#if 0
-	if (to->scope != NULL)
-	{
-		unsigned int len = strlen(to->function_name);
-		char *lcname = zend_str_tolower_dup(to->function_name, len);
-		char *lc_to_name = zend_str_tolower_dup(to->scope->name, to->scope->name_length);
-		/*
-		 * HOESH: this one probably the old style constructor,
-		 * so we set this as the constructor for the scope if
-		 * 0) it doesn't exists yet,
-		 * or, if the constructor is inherited from the parent:
-		 * A) the constructor is internal function
-		 * B) the constructor's scope name doesn't match the oparray's scope name
-		 *
-		 * remember lcname & len can be used as scope name info after the match!
-		 */
-
-    /* segv74: I got a question.
-     *
-     *         I think that, this code is reconstructing zend_class_entry thing.
-     *         is it right doing this here?
-     *
-     *         IMHO, we can do this job in restore_class_entry().
-     *         it's not good for readablity, and dosen't have performace gain.
-     */
-#ifdef DEBUG
-  pad(TSRMLS_C);
-  fprintf(F_fp, "        scope: %s[%d], method name: %s[%d] (%d) : to->scope->constructor=0x%08x\n",
-      lcname, to->scope->name_length, lc_to_name, len, memcmp(lc_to_name, lcname, len), to->scope->constructor);
-  fflush(F_fp);
-#endif
-		if  (
-				to->scope->name_length == len &&
-				memcmp(lc_to_name, lcname, len) == 0 &&
-				(
-					to->scope->constructor == NULL || // case 0)
-					to->scope->constructor->type == ZEND_INTERNAL_FUNCTION || // case A)
-					to->scope->constructor->op_array.scope->name_length != len || // case B)
-					memcmp(to->scope->constructor->op_array.scope->name, lcname, len) != 0
-				)
-			)
-		{
-#ifdef DEBUG
-  pad(TSRMLS_C);
-  fprintf(F_fp, "------>    matched\n");
-  fflush(F_fp);
-#endif
-			to->scope->constructor = (zend_function*)to;
-		}
-		/* HOESH: To avoid unnecessary lookups */
-		else if (*lcname == '_' && *(lcname+1) == '_')
-		{
-			if (len == sizeof(ZEND_CONSTRUCTOR_FUNC_NAME)-1 &&
-				memcmp(lcname, ZEND_CONSTRUCTOR_FUNC_NAME, sizeof(ZEND_CONSTRUCTOR_FUNC_NAME)) == 0)
-			{
-				to->scope->constructor = (zend_function*)to;
-			}
-			else if (len == sizeof(ZEND_DESTRUCTOR_FUNC_NAME)-1 &&
-				memcmp(lcname, ZEND_DESTRUCTOR_FUNC_NAME, sizeof(ZEND_DESTRUCTOR_FUNC_NAME)) == 0)
-			{
-				to->scope->destructor = (zend_function*)to;
-			}
-			else if (len == sizeof(ZEND_CLONE_FUNC_NAME)-1 &&
-				memcmp(lcname, ZEND_CLONE_FUNC_NAME, sizeof(ZEND_CLONE_FUNC_NAME)) == 0)
-			{
-				to->scope->clone = (zend_function*)to;
-			}
-			else if (len == sizeof(ZEND_GET_FUNC_NAME)-1 &&
-				memcmp(lcname, ZEND_GET_FUNC_NAME, sizeof(ZEND_GET_FUNC_NAME)) == 0)
-			{
-				to->scope->__get = (zend_function*)to;
-			}
-			else if (len == sizeof(ZEND_SET_FUNC_NAME)-1 &&
-				memcmp(lcname, ZEND_SET_FUNC_NAME, sizeof(ZEND_SET_FUNC_NAME)) == 0)
-			{
-				to->scope->__set = (zend_function*)to;
-			}
-			else if (len == sizeof(ZEND_CALL_FUNC_NAME)-1 &&
-				memcmp(lcname, ZEND_CALL_FUNC_NAME, sizeof(ZEND_CALL_FUNC_NAME)) == 0)
-			{
-				to->scope->__call = (zend_function*)to;
-			}
-		}
-		efree(lcname);
-        efree(lc_to_name);
-	}
-#endif
 #endif
   if (from->type == ZEND_INTERNAL_FUNCTION)
   {
-	zend_class_entry* ce = MMCG(class_entry);
-#ifdef DEBUG
-    pad(TSRMLS_C); fprintf(F_fp, "[%d]                   [internal function from=%08x,to=%08x] ce='%s' [%08x]\n", getpid(), from, to, ce->name, ce); fflush(F_fp);
+    zend_class_entry* ce = MMCG(class_entry);
+    ea_debug_pad(EA_DEBUG TSRMLS_C); 
+    ea_debug_printf(EA_DEBUG, "[%d]                   [internal function from=%08x,to=%08x] ce='%s' [%08x]\n", 
+      getpid(), from, to, ce->name, ce);
     if (ce)
     {
-      pad(TSRMLS_C); fprintf(F_fp, "[%d]                                       ce->parent='%s' [%08x]\n", getpid(), ce->parent->name, ce->parent); fflush(F_fp);
+      ea_debug_pad(EA_DEBUG TSRMLS_C); 
+      ea_debug_printf(EA_DEBUG, "[%d]                                       ce->parent='%s' [%08x]\n", 
+        getpid(), ce->parent->name, ce->parent);
     }
-#endif
     if (ce != NULL &&
 		ce->parent != NULL &&
 		zend_hash_find(&ce->parent->function_table,
@@ -2315,21 +2191,19 @@ static zend_op_array* restore_op_array(zend_op_array *to, eaccelerator_op_array 
 			(void **) &function)==SUCCESS &&
 		function->type == ZEND_INTERNAL_FUNCTION)
 	{
-#ifdef DEBUG
-      pad(TSRMLS_C); fprintf(F_fp, "[%d]                                       found in function table\n", getpid()); fflush(F_fp);
-#endif
-		((zend_internal_function*)(to))->handler = ((zend_internal_function*) function)->handler;
+      ea_debug_pad(EA_DEBUG TSRMLS_C); 
+      ea_debug_printf(EA_DEBUG, "[%d]                                       found in function table\n", getpid());
+      ((zend_internal_function*)(to))->handler = ((zend_internal_function*) function)->handler;
     }
-	else
-	{
+    else
+    {
       /*??? FIXME. I don't know how to fix handler. */
 		/*
 		 * HOESH TODO: must solve this somehow, to avoid returnin
 		 * damaged structure...
 		 */
-#ifdef DEBUG
-      pad(TSRMLS_C); fprintf(F_fp, "[%d]                                       can't find\n", getpid()); fflush(F_fp);
-#endif
+      ea_debug_pad(EA_DEBUG TSRMLS_C); 
+      ea_debug_printf(EA_DEBUG, "[%d]                                       can't find\n", getpid());
     }
     return to;
   }
@@ -2404,10 +2278,9 @@ static zend_class_entry* restore_class_entry(zend_class_entry* to, eaccelerator_
   union _zend_function *old_ctor;
 #endif
 
+  ea_debug_pad(EA_DEBUG TSRMLS_C);
+  ea_debug_printf(EA_DEBUG, "[%d] retore_class_entry: %s\n", getpid(), from->name? from->name : "(top)");
 #ifdef DEBUG
-  pad(TSRMLS_C);
-  fprintf(F_fp, "[%d] retore_class_entry: %s\n", getpid(), from->name? from->name : "(top)");
-  fflush(F_fp);
   MMCG(xpad)++;
 #endif
   if (to == NULL) {
@@ -2464,7 +2337,7 @@ static zend_class_entry* restore_class_entry(zend_class_entry* to, eaccelerator_
     if (zend_hash_find(CG(class_table), (void *)from->parent, name_len+1, (void **)&to->parent) != SUCCESS)
 #endif
     {
-      debug_printf("[%d] EACCELERATOR can't restore parent class "
+      ea_debug_error("[%d] EACCELERATOR can't restore parent class "
           "\"%s\" of class \"%s\"\n", getpid(), (char*)from->parent, to->name);
       to->parent = NULL;
     }
@@ -2499,9 +2372,8 @@ static zend_class_entry* restore_class_entry(zend_class_entry* to, eaccelerator_
   }
   else
   {
-#ifdef DEBUG
-    pad(TSRMLS_C); fprintf(F_fp, "[%d] parent = NULL\n", getpid()); fflush(F_fp);
-#endif
+    ea_debug_pad(EA_DEBUG TSRMLS_C); 
+    ea_debug_printf(EA_DEBUG, "[%d] parent = NULL\n", getpid());
     to->parent = NULL;
   }
 
@@ -2985,19 +2857,18 @@ ZEND_DLEXPORT zend_op_array* eaccelerator_compile_file(zend_file_handle *file_ha
 #ifdef EACCELERATOR_USE_INODE
   realname[0] = '\000';
 #endif
-#if defined(DEBUG) || defined(TEST_PERFORMANCE)
-#ifdef TEST_PERFORMANCE
+
   struct timeval tv_start;
-  fprintf(F_fp, "[%d] Enter COMPILE\n",getpid()); fflush(F_fp);
-  start_time(&tv_start);
-#endif
-  fprintf(F_fp, "[%d] Enter COMPILE\n",getpid()); fflush(F_fp);
-  fprintf(F_fp, "[%d] compile_file: \"%s\"\n",getpid(), file_handle->filename); fflush(F_fp);
+  ea_debug_printf(EA_TEST_PERFORMANCE, "[%d] Enter COMPILE\n",getpid());
+  ea_debug_start_time(&tv_start);
+  ea_debug_printf(EA_DEBUG, "[%d] Enter COMPILE\n",getpid());
+  ea_debug_printf(EA_DEBUG, "[%d] compile_file: \"%s\"\n",getpid(), file_handle->filename);
+#ifdef DEBUG
   MMCG(xpad)+=2;
 #endif
   compile_time = time(0);
   if (buf.st_mtime >= compile_time && eaccelerator_debug > 0) {
-	debug_printf("[%d] EACCELERATOR: Warning: \"%s\" is cached but it's mtime is in the future.\n", 
+	ea_debug_log("[%d] EACCELERATOR: Warning: \"%s\" is cached but it's mtime is in the future.\n", 
 		getpid(), file_handle->filename);
   }
 
@@ -3012,21 +2883,14 @@ ZEND_DLEXPORT zend_op_array* eaccelerator_compile_file(zend_file_handle *file_ha
 #else
       !eaccelerator_ok_to_cache(realname TSRMLS_CC)) {
 #endif
-#if defined(DEBUG) || defined(TEST_PERFORMANCE)
-    fprintf(F_fp, "\t[%d] compile_file: compiling\n",getpid()); fflush(F_fp);
-#endif
+    ea_debug_printf(EA_DEBUG, "\t[%d] compile_file: compiling\n", getpid());
     t = mm_saved_zend_compile_file(file_handle, type TSRMLS_CC);
-#if defined(DEBUG) || defined(TEST_PERFORMANCE)
-#ifdef TEST_PERFORMANCE
-    fprintf(F_fp, "\t[%d] compile_file: end (%ld)\n",getpid(),elapsed_time(&tv_start)); fflush(F_fp);
-#else
-    fprintf(F_fp, "\t[%d] compile_file: end\n",getpid()); fflush(F_fp);
-#endif
+    ea_debug_printf(EA_TEST_PERFORMANCE, "\t[%d] compile_file: end (%ld)\n", getpid(), ea_debug_elapsed_time(&tv_start));
+    ea_debug_printf(EA_DEBUG, "\t[%d] compile_file: end\n", getpid());
+#ifdef DEBUG
     MMCG(xpad)-=2;
 #endif
-#if defined(DEBUG)
-    fprintf(F_fp, "[%d] Leave COMPILE\n",getpid()); fflush(F_fp);
-#endif
+    ea_debug_printf(EA_DEBUG, "[%d] Leave COMPILE\n", getpid());
     return t;
   }
 
@@ -3044,9 +2908,7 @@ ZEND_DLEXPORT zend_op_array* eaccelerator_compile_file(zend_file_handle *file_ha
   zend_is_auto_global("_FILES", sizeof("_FILES")-1 TSRMLS_CC);
 #endif
   if (t != NULL) {
-    if (eaccelerator_debug > 0) {
-      debug_printf("[%d] EACCELERATOR hit: \"%s\"\n", getpid(), t->filename);
-    }
+    ea_debug_log("[%d] EACCELERATOR hit: \"%s\"\n", getpid(), t->filename);
     /* restored from cache */
 
     zend_llist_add_element(&CG(open_files), file_handle);
@@ -3065,18 +2927,12 @@ ZEND_DLEXPORT zend_op_array* eaccelerator_compile_file(zend_file_handle *file_ha
       file_handle->opened_path = estrdup(MMCG(mem));
 */
     }
-#if defined(DEBUG) || defined(TEST_PERFORMANCE)
-#ifdef TEST_PERFORMANCE
-    fprintf(F_fp, "\t[%d] compile_file: restored (%ld)\n",getpid(),elapsed_time(&tv_start)); fflush(F_fp);
-#else
-    fprintf(F_fp, "\t[%d] compile_file: restored\n",getpid()); fflush(F_fp);
-#endif
+    ea_debug_printf(EA_TEST_PERFORMANCE, "\t[%d] compile_file: restored (%ld)\n", getpid(), ea_debug_elapsed_time(&tv_start));
+    ea_debug_printf(EA_DEBUG, "\t[%d] compile_file: restored\n", getpid());
+#ifdef DEBUG
     MMCG(xpad)-=2;
 #endif
-#if defined(DEBUG)
-    fprintf(F_fp, "[%d] Leave COMPILE\n",getpid()); fflush(F_fp);
-    //dprint_compiler_retval(t, 1);
-#endif
+    ea_debug_printf(EA_DEBUG, "[%d] Leave COMPILE\n", getpid());
     return t;
   } else {
     /* not in cache or must be recompiled */
@@ -3091,18 +2947,17 @@ ZEND_DLEXPORT zend_op_array* eaccelerator_compile_file(zend_file_handle *file_ha
     zend_class_entry tmp_class;
     int bailout;
 
-#if defined(DEBUG) || defined(TEST_PERFORMANCE)
-    fprintf(F_fp, "\t[%d] compile_file: marking\n",getpid()); fflush(F_fp);
+    ea_debug_printf(EA_DEBUG, "\t[%d] compile_file: marking\n", getpid());
     if (CG(class_table) != EG(class_table))
     {
-      fprintf(F_fp, "\t[%d] oops, CG(class_table)[%08x] != EG(class_table)[%08x]\n", getpid(), CG(class_table), EG(class_table));
-      //log_hashkeys("CG(class_table)\n", CG(class_table));
-      //log_hashkeys("EG(class_table)\n", EG(class_table));
+      ea_debug_printf(EA_DEBUG, "\t[%d] oops, CG(class_table)[%08x] != EG(class_table)[%08x]\n", getpid(), CG(class_table), EG(class_table));
+      ea_debug_log_hashkeys("CG(class_table)\n", CG(class_table));
+      ea_debug_log_hashkeys("EG(class_table)\n", EG(class_table));
     }
-    else
-      fprintf(F_fp, "\t[%d] OKAY. That what I thought, CG(class_table)[%08x] == EG(class_table)[%08x]\n", getpid(), CG(class_table), EG(class_table));
-      //log_hashkeys("CG(class_table)\n", CG(class_table));
-#endif
+    else {
+      ea_debug_printf(EA_DEBUG, "\t[%d] OKAY. That what I thought, CG(class_table)[%08x] == EG(class_table)[%08x]\n", getpid(), CG(class_table), EG(class_table));
+      ea_debug_log_hashkeys("CG(class_table)\n", CG(class_table));
+    }
 
     zend_hash_init_ex(&tmp_function_table, 100, NULL, ZEND_FUNCTION_DTOR, 1, 0);
     zend_hash_copy(&tmp_function_table, &eaccelerator_global_function_table, NULL, &tmp_func, sizeof(zend_function));
@@ -3123,13 +2978,9 @@ ZEND_DLEXPORT zend_op_array* eaccelerator_compile_file(zend_file_handle *file_ha
     function_table_tail = CG(function_table)->pListTail;
     class_table_tail = CG(class_table)->pListTail;
 
-#if defined(DEBUG) || defined(TEST_PERFORMANCE)
-#ifdef TEST_PERFORMANCE
-    fprintf(F_fp, "\t[%d] compile_file: compiling (%ld)\n",getpid(),elapsed_time(&tv_start)); fflush(F_fp);
-#else
-    fprintf(F_fp, "\t[%d] compile_file: compiling tmp_class_table=%d class_table=%d\n", getpid(), tmp_class_table.nNumOfElements, orig_class_table->nNumOfElements); fflush(F_fp);
-#endif
-#endif
+    ea_debug_printf(EA_TEST_PERFORMANCE, "\t[%d] compile_file: compiling (%ld)\n",getpid(),ea_debug_elapsed_time(&tv_start));
+    ea_debug_printf(EA_DEBUG, "\t[%d] compile_file: compiling tmp_class_table=%d class_table=%d\n", 
+        getpid(), tmp_class_table.nNumOfElements, orig_class_table->nNumOfElements);
     if (MMCG(optimizer_enabled) && eaccelerator_mm_instance->optimizer_enabled) {
       MMCG(compiler) = 1;
     }
@@ -3148,9 +2999,7 @@ ZEND_DLEXPORT zend_op_array* eaccelerator_compile_file(zend_file_handle *file_ha
     if (bailout) {
       zend_bailout();
     }
-#if defined(DEBUG)
-    //log_hashkeys("class_table\n", CG(class_table));
-#endif
+    ea_debug_log_hashkeys("class_table\n", CG(class_table));
 
 /*???
     if (file_handle->opened_path == NULL && t != NULL) {
@@ -3166,13 +3015,8 @@ ZEND_DLEXPORT zend_op_array* eaccelerator_compile_file(zend_file_handle *file_ha
         (eaccelerator_check_mtime ||
          ((stat(file_handle->opened_path, &buf) == 0) && S_ISREG(buf.st_mode)))) {
 #endif
-#if defined(DEBUG) || defined(TEST_PERFORMANCE)
-#ifdef TEST_PERFORMANCE
-      fprintf(F_fp, "\t[%d] compile_file: storing in cache (%ld)\n",getpid(),elapsed_time(&tv_start)); fflush(F_fp);
-#else
-      fprintf(F_fp, "\t[%d] compile_file: storing in cache\n",getpid()); fflush(F_fp);
-#endif
-#endif
+      ea_debug_printf(EA_TEST_PERFORMANCE, "\t[%d] compile_file: storing in cache (%ld)\n", getpid(), ea_debug_elapsed_time(&tv_start));
+      ea_debug_printf(EA_DEBUG, "\t[%d] compile_file: storing in cache\n", getpid());
 #ifdef WITH_EACCELERATOR_LOADER
       if (t->last >= 3 &&
           t->opcodes[0].opcode == ZEND_SEND_VAL &&
@@ -3225,14 +3069,10 @@ ZEND_DLEXPORT zend_op_array* eaccelerator_compile_file(zend_file_handle *file_ha
                                           CG(class_table)->pListHead;
       if (eaccelerator_store(file_handle->opened_path, &buf, nreloads, t,
                         function_table_tail, class_table_tail TSRMLS_CC)) {
-        if (eaccelerator_debug > 0) {
-          debug_printf("[%d] EACCELERATOR %s: \"%s\"\n", getpid(),
+        ea_debug_log("[%d] EACCELERATOR %s: \"%s\"\n", getpid(),
               (nreloads == 1) ? "cached" : "re-cached", file_handle->opened_path);
-        }
       } else {
-        if (eaccelerator_debug > 0) {
-          debug_printf("[%d] EACCELERATOR cann't cache: \"%s\"\n", getpid(), file_handle->opened_path);
-        }
+        ea_debug_log("[%d] EACCELERATOR cann't cache: \"%s\"\n", getpid(), file_handle->opened_path);
       }
     } else {
       function_table_tail = function_table_tail?function_table_tail->pListNext:
@@ -3244,9 +3084,7 @@ ZEND_DLEXPORT zend_op_array* eaccelerator_compile_file(zend_file_handle *file_ha
     CG(class_table) = orig_class_table;
 #ifdef ZEND_ENGINE_2
     EG(class_table) = orig_eg_class_table;
-#ifdef DEBUG
-    fprintf(F_fp, "\t[%d] restoring CG(class_table)[%08x] != EG(class_table)[%08x]\n", getpid(), CG(class_table), EG(class_table));
-#endif
+    ea_debug_printf(EA_DEBUG, "\t[%d] restoring CG(class_table)[%08x] != EG(class_table)[%08x]\n", getpid(), CG(class_table), EG(class_table));
 #endif
     while (function_table_tail != NULL) {
       zend_op_array *op_array = (zend_op_array*)function_table_tail->pData;
@@ -3308,23 +3146,16 @@ ZEND_DLEXPORT zend_op_array* eaccelerator_compile_file(zend_file_handle *file_ha
     zend_hash_destroy(&tmp_function_table);
     zend_hash_destroy(&tmp_class_table);
   }
-#if defined(DEBUG) || defined(TEST_PERFORMANCE)
-#ifdef TEST_PERFORMANCE
-  fprintf(F_fp, "\t[%d] compile_file: end (%ld)\n",getpid(),elapsed_time(&tv_start)); fflush(F_fp);
-#else
-  fprintf(F_fp, "\t[%d] compile_file: end\n",getpid()); fflush(F_fp);
-#endif
+  ea_debug_printf(EA_TEST_PERFORMANCE, "\t[%d] compile_file: end (%ld)\n", getpid(), ea_debug_elapsed_time(&tv_start));
+  ea_debug_printf(EA_DEBUG, "\t[%d] compile_file: end\n", getpid());
+#ifdef DEBUG
   MMCG(xpad)-=2;
-  fflush(F_fp);
 #endif
-#if defined(DEBUG)
-  fprintf(F_fp, "[%d] Leave COMPILE\n",getpid()); fflush(F_fp);
-  //dprint_compiler_retval(t, 0);
-#endif
+  ea_debug_printf(EA_DEBUG, "[%d] Leave COMPILE\n", getpid());
   return t;
 }
 
-#ifdef PROFILE_OPCODES
+#ifdef DEBUG
 static void profile_execute(zend_op_array *op_array TSRMLS_DC)
 {
   int i;
@@ -3332,10 +3163,9 @@ static void profile_execute(zend_op_array *op_array TSRMLS_DC)
   long usec;
 
   for (i=0;i<MMCG(profile_level);i++)
-    fputs("  ", F_fp);
-  fprintf(F_fp,"enter: %s:%s\n", op_array->filename, op_array->function_name);
-  fflush(F_fp);
-  start_time(&tv_start);
+    ea_debug_put(EA_PROFILE_OPCODES, "  ");
+  ea_debug_printf(EA_PROFILE_OPCODES, "enter: %s:%s\n", op_array->filename, op_array->function_name);
+  ea_debug_start_time(&tv_start);
   MMCG(self_time)[MMCG(profile_level)] = 0;
   MMCG(profile_level)++;
 #ifdef WITH_EACCELERATOR_EXECUTOR
@@ -3343,14 +3173,13 @@ static void profile_execute(zend_op_array *op_array TSRMLS_DC)
 #else
   mm_saved_zend_execute(op_array TSRMLS_CC);
 #endif
-  usec = elapsed_time(&tv_start);
+  usec = ea_debug_elapsed_time(&tv_start);
   MMCG(profile_level)--;
   if (MMCG(profile_level) > 0)
     MMCG(self_time)[MMCG(profile_level)-1] += usec;
   for (i=0;i<MMCG(profile_level);i++)
-    fputs("  ", F_fp);
-  fprintf(F_fp,"leave: %s:%s (%ld,%ld)\n", op_array->filename, op_array->function_name, usec, usec-MMCG(self_time)[MMCG(profile_level)]);
-  fflush(F_fp);
+    ea_debug_put(EA_PROFILE_OPCODES, "  ");
+  ea_debug_printf(EA_PROFILE_OPCODES, "leave: %s:%s (%ld,%ld)\n", op_array->filename, op_array->function_name, usec, usec-MMCG(self_time)[MMCG(profile_level)]);
 }
 
 ZEND_DLEXPORT zend_op_array* profile_compile_file(zend_file_handle *file_handle, int type TSRMLS_DC) {
@@ -3359,20 +3188,19 @@ ZEND_DLEXPORT zend_op_array* profile_compile_file(zend_file_handle *file_handle,
   struct timeval tv_start;
   long usec;
 
-  start_time(&tv_start);
+  ea_debug_start_time(&tv_start);
   MMCG(self_time)[MMCG(profile_level)] = 0;
   t = eaccelerator_compile_file(file_handle, type TSRMLS_CC);
-  usec = elapsed_time(&tv_start);
+  usec = ea_debug_elapsed_time(&tv_start);
   if (MMCG(profile_level) > 0)
     MMCG(self_time)[MMCG(profile_level)-1] += usec;
   for (i=0;i<MMCG(profile_level);i++)
-    fputs("  ", F_fp);
-  fprintf(F_fp,"compile: %s (%ld)\n", file_handle->filename, usec);
-  fflush(F_fp);
+    ea_debug_put(EA_PROFILE_OPCODES, "  ");
+  ea_debug_printf(EA_DEBUG, "compile: %s (%ld)\n", file_handle->filename, usec);
   return t;
 }
 
-#endif  /* #ifdef PROFILE_OPCODES */
+#endif  /* DEBUG */
 
 /* Format Bytes */
 void format_size(char* s, unsigned int size, int legend) {
@@ -3519,13 +3347,14 @@ STD_PHP_INI_ENTRY("eaccelerator.enable",         "1", PHP_INI_ALL, OnUpdateBool,
 STD_PHP_INI_ENTRY("eaccelerator.optimizer",      "1", PHP_INI_ALL, OnUpdateBool, optimizer_enabled, zend_eaccelerator_globals, eaccelerator_globals)
 STD_PHP_INI_ENTRY("eaccelerator.compress",       "1", PHP_INI_ALL, OnUpdateBool, compression_enabled, zend_eaccelerator_globals, eaccelerator_globals)
 STD_PHP_INI_ENTRY("eaccelerator.compress_level", "9", PHP_INI_ALL, OnUpdateLong, compress_level, zend_eaccelerator_globals, eaccelerator_globals)                  
-ZEND_INI_ENTRY1("eaccelerator.shm_size",         "0", PHP_INI_SYSTEM, eaccelerator_OnUpdateLong, &eaccelerator_shm_size)
-ZEND_INI_ENTRY1("eaccelerator.shm_max",          "0", PHP_INI_SYSTEM, eaccelerator_OnUpdateLong, &eaccelerator_shm_max)
-ZEND_INI_ENTRY1("eaccelerator.shm_ttl",          "0", PHP_INI_SYSTEM, eaccelerator_OnUpdateLong, &eaccelerator_shm_ttl)
+ZEND_INI_ENTRY1("eaccelerator.shm_size",        "0", PHP_INI_SYSTEM, eaccelerator_OnUpdateLong, &eaccelerator_shm_size)
+ZEND_INI_ENTRY1("eaccelerator.shm_max",         "0", PHP_INI_SYSTEM, eaccelerator_OnUpdateLong, &eaccelerator_shm_max)
+ZEND_INI_ENTRY1("eaccelerator.shm_ttl",         "0", PHP_INI_SYSTEM, eaccelerator_OnUpdateLong, &eaccelerator_shm_ttl)
 ZEND_INI_ENTRY1("eaccelerator.shm_prune_period", "0", PHP_INI_SYSTEM, eaccelerator_OnUpdateLong, &eaccelerator_shm_prune_period)
-ZEND_INI_ENTRY1("eaccelerator.debug",            "0", PHP_INI_SYSTEM, eaccelerator_OnUpdateLong, &eaccelerator_debug)
-ZEND_INI_ENTRY1("eaccelerator.check_mtime",      "1", PHP_INI_SYSTEM, eaccelerator_OnUpdateBool, &eaccelerator_check_mtime)
-ZEND_INI_ENTRY1("eaccelerator.shm_only",         "0", PHP_INI_SYSTEM, eaccelerator_OnUpdateBool, &eaccelerator_scripts_shm_only)
+ZEND_INI_ENTRY1("eaccelerator.debug",           "1", PHP_INI_SYSTEM, eaccelerator_OnUpdateLong, &eaccelerator_debug)
+STD_PHP_INI_ENTRY("eaccelerator.log_file",      "", PHP_INI_SYSTEM, OnUpdateString, eaccelerator_log_file, zend_eaccelerator_globals, eaccelerator_globals)
+ZEND_INI_ENTRY1("eaccelerator.check_mtime",     "1", PHP_INI_SYSTEM, eaccelerator_OnUpdateBool, &eaccelerator_check_mtime)
+ZEND_INI_ENTRY1("eaccelerator.shm_only",        "0", PHP_INI_SYSTEM, eaccelerator_OnUpdateBool, &eaccelerator_scripts_shm_only)
 #ifdef WITH_EACCELERATOR_SHM
 ZEND_INI_ENTRY("eaccelerator.keys",             "shm_and_disk", PHP_INI_SYSTEM, eaccelerator_OnUpdateKeysCachePlace)
 #endif
@@ -3614,17 +3443,15 @@ static void __attribute__((destructor)) eaccelerator_clean_shutdown(void) {
       fflush(stdout);
       fflush(stderr);
       eaccelerator_clean_request(TSRMLS_C);
-      if (eaccelerator_debug > 0) {
-        if (EG(active_op_array)) {
-          fprintf(stderr, "[%d] EACCELERATOR: PHP unclean shutdown on opline %ld of %s() at %s:%u\n\n",
-            getpid(),
-            (long)(active_opline-EG(active_op_array)->opcodes),
-            get_active_function_name(TSRMLS_C),
-            zend_get_executed_filename(TSRMLS_C),
-            zend_get_executed_lineno(TSRMLS_C));
-        }  else {
-          fprintf(stderr, "[%d] EACCELERATOR: PHP unclean shutdown\n\n",getpid());
-        }
+      if (EG(active_op_array)) {
+        ea_debug_error("[%d] EACCELERATOR: PHP unclean shutdown on opline %ld of %s() at %s:%u\n\n",
+          getpid(),
+          (long)(active_opline-EG(active_op_array)->opcodes),
+          get_active_function_name(TSRMLS_C),
+          zend_get_executed_filename(TSRMLS_C),
+          zend_get_executed_lineno(TSRMLS_C));
+      } else {
+        ea_debug_error("[%d] EACCELERATOR: PHP unclean shutdown\n\n",getpid());
       }
     }
   }
@@ -3703,6 +3530,7 @@ static void eaccelerator_init_globals(zend_eaccelerator_globals *eaccelerator_gl
 #ifdef WITH_EACCELERATOR_SESSIONS
   eaccelerator_globals->session           = NULL;
 #endif
+  eaccelerator_globals->eaccelerator_log_file = '\000';
   eaccelerator_globals->name_space        = '\000';
   eaccelerator_globals->hostname[0]       = '\000';
   eaccelerator_globals->in_request        = 0;
@@ -3804,30 +3632,23 @@ PHP_MINIT_FUNCTION(eaccelerator) {
   binary_php_version = encode_version(PHP_VERSION);
   binary_zend_version = encode_version(ZEND_VERSION);
   eaccelerator_is_extension = 1;
+
+  ea_debug_init(TSRMLS_C);
+
   if (type == MODULE_PERSISTENT &&
       strcmp(sapi_module.name, "cgi") != 0 &&
       strcmp(sapi_module.name, "cli") != 0) {
-#if defined(DEBUG) || defined(TEST_PERFORMANCE) || defined(PROFILE_OPCODES)
-    F_fp = fopen(DEBUG_LOGFILE, "a");
-    if (!F_fp) {
-      F_fp = fopen(DEBUG_LOGFILE_CGI, "a");
-      if (!F_fp) {
-        fprintf(stderr, "Cann't open log file '%s'.", DEBUG_LOGFILE);
-      }
-      chmod(DEBUG_LOGFILE_CGI, 0777);
-    }
-    fputs("\n=======================================\n", F_fp);
-    fprintf(F_fp, "[%d] EACCELERATOR STARTED\n", getpid());
-    fputs("=======================================\n", F_fp);
-    fflush(F_fp);
-#endif
+    ea_debug_put(EA_DEBUG, "\n=======================================\n");
+    ea_debug_printf(EA_DEBUG, "[%d] EACCELERATOR STARTED\n", getpid());
+    ea_debug_put(EA_DEBUG, "=======================================\n");
 
     if (init_mm(TSRMLS_C) == FAILURE) {
-      zend_error(E_CORE_WARNING,"[%s] Can not create shared memory area\n", EACCELERATOR_EXTENSION_NAME);
+      zend_error(E_CORE_WARNING,"[%s] Can not create shared memory area", EACCELERATOR_EXTENSION_NAME);
     }
 
     mm_saved_zend_compile_file = zend_compile_file;
-#ifdef PROFILE_OPCODES
+
+#ifdef DEBUG
     zend_compile_file = profile_compile_file;
     mm_saved_zend_execute = zend_execute;
     zend_execute = profile_execute;
@@ -3838,6 +3659,7 @@ PHP_MINIT_FUNCTION(eaccelerator) {
     zend_execute = eaccelerator_execute;
 #endif
 #endif
+
 #ifndef HAS_ATTRIBUTE
     atexit(eaccelerator_clean_shutdown);
 #endif
@@ -3865,20 +3687,17 @@ PHP_MSHUTDOWN_FUNCTION(eaccelerator) {
     return SUCCESS;
   }
   zend_compile_file = mm_saved_zend_compile_file;
-#if defined(PROFILE_OPCODES) || defined(WITH_EACCELERATOR_EXECUTOR)
+#if defined(DEBUG) || defined(WITH_EACCELERATOR_EXECUTOR)
   zend_execute = mm_saved_zend_execute;
 #endif
 #ifdef WITH_EACCELERATOR_CONTENT_CACHING
   eaccelerator_content_cache_shutdown();
 #endif
   shutdown_mm(TSRMLS_C);
-#if defined(DEBUG) || defined(TEST_PERFORMANCE) || defined(PROFILE_OPCODES)
-  fputs("========================================\n", F_fp);
-  fprintf(F_fp, "[%d] EACCELERATOR STOPPED\n", getpid());
-  fputs("========================================\n\n", F_fp);
-  fclose(F_fp);
-  F_fp = NULL;
-#endif
+  ea_debug_put(EA_DEBUG, "========================================\n");
+  ea_debug_printf(EA_DEBUG, "[%d] EACCELERATOR STOPPED\n", getpid());
+  ea_debug_put(EA_DEBUG, "========================================\n\n");
+  ea_debug_shutdown();
   UNREGISTER_INI_ENTRIES();
 #ifndef ZTS
   eaccelerator_globals_dtor(&eaccelerator_globals TSRMLS_CC);
@@ -3912,13 +3731,9 @@ PHP_RINIT_FUNCTION(eaccelerator)
 		zend_hash_init_ex(&eaccelerator_global_class_table, 10, NULL, NULL, 1, 0);
 		zend_hash_copy(&eaccelerator_global_class_table, CG(class_table), NULL, &tmp_class, sizeof(zend_class_entry));
 	}
-#if defined(DEBUG)
-	fprintf(F_fp, "[%d] Enter RINIT\n",getpid()); fflush(F_fp);
-#endif
-#ifdef PROFILE_OPCODES
-	fputs("\n========================================\n", F_fp);
-	fflush(F_fp);
-#endif
+	ea_debug_printf(EA_DEBUG, "[%d] Enter RINIT\n",getpid());
+	ea_debug_put(EA_PROFILE_OPCODES, "\n========================================\n");
+
 	MMCG(in_request) = 1;
 	MMCG(used_entries) = NULL;
 	MMCG(compiler) = 0;
@@ -3948,13 +3763,9 @@ PHP_RINIT_FUNCTION(eaccelerator)
 			}
 		}
 	}
-#if defined(DEBUG)
-	fprintf(F_fp, "[%d] Leave RINIT\n",getpid()); fflush(F_fp);
-#endif
-#if defined(DEBUG) || defined(TEST_PERFORMANCE)  || defined(PROFILE_OPCODES)
+	ea_debug_printf(EA_DEBUG, "[%d] Leave RINIT\n",getpid());
+#ifdef DEBUG
 	MMCG(xpad) = 0;
-#endif
-#ifdef PROFILE_OPCODES
 	MMCG(profile_level) = 0;
 #endif
 #ifdef WITH_EACCELERATOR_CRASH_DETECTION
@@ -4035,13 +3846,9 @@ PHP_RSHUTDOWN_FUNCTION(eaccelerator)
 	}
 #endif
 #endif
-#if defined(DEBUG)
-	fprintf(F_fp, "[%d] Enter RSHUTDOWN\n",getpid()); fflush(F_fp);
-#endif
+	ea_debug_printf(EA_DEBUG, "[%d] Enter RSHUTDOWN\n",getpid());
 	eaccelerator_clean_request(TSRMLS_C);
-#if defined(DEBUG)
-	fprintf(F_fp, "[%d] Leave RSHUTDOWN\n",getpid()); fflush(F_fp);
-#endif
+	ea_debug_printf(EA_DEBUG, "[%d] Leave RSHUTDOWN\n",getpid());
 	return SUCCESS;
 }
 

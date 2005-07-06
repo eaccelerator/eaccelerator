@@ -3,7 +3,7 @@
    | eAccelerator project                                                 |
    +----------------------------------------------------------------------+
    | Copyright (c) 2004 - 2005 eAccelerator                               |
-   | http://eaccelerator.net                                  			  |
+   | http://eaccelerator.net                                              |
    +----------------------------------------------------------------------+
    | This program is free software; you can redistribute it and/or        |
    | modify it under the terms of the GNU General Public License          |
@@ -22,7 +22,8 @@
    |                                                                      |
    | A copy is availble at http://www.gnu.org/copyleft/gpl.txt            |
    +----------------------------------------------------------------------+
-   | Author(s): Dmitry Stogov <dstogov@users.sourceforge.net>			  |
+   | Author(s): Dmitry Stogov <dstogov@users.sourceforge.net>		      |
+   |		Bart Vanbrabant <zoeloelip@users.sourceforge.net>	          |
    +----------------------------------------------------------------------+
    $Id$
 */
@@ -34,11 +35,36 @@
 #include "zend_API.h"
 #include "zend_extensions.h"
 
-void debug_printf (char *format, ...);
-void binary_print (char *p, int len);
-void log_hashkeys (char *p, HashTable * ht);
-void pad (TSRMLS_D);
-void start_time (struct timeval *tvstart);
-long elapsed_time (struct timeval *tvstart);
+
+/* print information about the file that's loaded or cached */
+#define EA_LOG	 		(1<<0L)
+
+/* print debugging information, mostly about the storing and restoring of a 
+ * script's data structures. Gives you detailed information about what eA is
+ * doing 
+ */
+#define EA_DEBUG		(1<<1L)
+
+/* profile php opcodes */
+#define EA_PROFILE_OPCODES	(1<<2L)
+
+/* print out performance data (start - end time) */
+
+#define EA_TEST_PERFORMANCE	(1<<3L)
+
+/* log the hashkeys used to cache scripts */
+#define EA_LOG_HASHKEYS		(1<<4L)
+
+void ea_debug_init (TSRMLS_D);
+void ea_debug_shutdown ();
+void ea_debug_error (char *format, ...);
+void ea_debug_pad (long debug_level TSRMLS_DC);
+void ea_debug_log (char *format, ...);
+void ea_debug_binary_print (long debug_level, char *p, int len);
+void ea_debug_put (long debug_level, char *message);
+void ea_debug_log_hashkeys (char *p, HashTable * ht);
+
+void ea_debug_start_time (struct timeval *tvstart);
+long ea_debug_elapsed_time (struct timeval *tvstart);
 
 #endif /* INCLUDED_DEBUG_H */

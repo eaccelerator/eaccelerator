@@ -1,3 +1,8 @@
+2005-07-06 Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
+        * Documented namespace option
+        * New debug/log code. Make the code a lot cleaner and easier
+          for the user to debug eaccelerator.
+
 2005-06-27 Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
         * Fixed a buffer overflow in eaccelerator.c and cache.c. A string longer
           then 8 bytes was copied in a char array of length 8. This isn't a
