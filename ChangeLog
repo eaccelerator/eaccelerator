@@ -1,4 +1,5 @@
 2005-07-06 Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
+        * A compile fix for zend engine 1.
         * Documented namespace option
         * New debug/log code. Make the code a lot cleaner and easier
           for the user to debug eaccelerator.
