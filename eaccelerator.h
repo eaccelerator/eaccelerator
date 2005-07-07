@@ -475,13 +475,11 @@ void (*original_sigabrt_handler) (int);
 #endif
 #ifdef DEBUG
 int xpad;
+int profile_level;
+long self_time[256];
 #endif
 #ifdef WITH_EACCELERATOR_SESSIONS
 char *session;
-#endif
-#ifdef PROFILE_OPCODES
-int profile_level;
-long self_time[256];
 #endif
 ZEND_END_MODULE_GLOBALS (eaccelerator)
 
