@@ -1,5 +1,6 @@
 2005-07-07 Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
+        * Added get_zend_destroy_property_info function to ea_restore.h
         * Code refactoring needed for the new encoder. Moved all store/calc
           functions to ea_store.c and all restore/fixup functions to ea_restore.c
 

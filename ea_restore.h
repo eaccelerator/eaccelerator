@@ -38,4 +38,6 @@ void restore_class(mm_fc_entry *p TSRMLS_DC);
 void restore_function(mm_fc_entry *p TSRMLS_DC);
 zend_op_array* restore_op_array(zend_op_array *to, eaccelerator_op_array *from TSRMLS_DC);
 
+dtor_func_t get_zend_destroy_property_info(TSRMLS_D);
+
 #endif /* EA_RESTORE_H */
