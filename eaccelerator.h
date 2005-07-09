@@ -36,13 +36,6 @@
 #include "zend_API.h"
 #include "zend_extensions.h"
 
-/* Handle __attribute__ for nongcc compilers */
-#if (__GNUC__ >= 3)  || ((__GNUC__ == 2) && (__GNUC_MINOR__ >= 95))
-#  define HAS_ATTRIBUTE
-#else
-#  define __attribute__(x)
-#endif
-
 #if !defined(ZEND_WIN32) && defined(HAVE_CONFIG_H)
 #  if ZEND_MODULE_API_NO >= 20001222
 #    include "config.h"

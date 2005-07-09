@@ -1767,7 +1767,12 @@ static void eaccelerator_clean_request(TSRMLS_D) {
   MMCG(in_request) = 0;
 }
 
-static void __attribute__((destructor)) eaccelerator_clean_shutdown(void) {
+#if (__GNUC__ >= 3) || ((__GNUC__ == 2) && (__GNUC_MINOR__ >= 91))
+static void __attribute__((destructor)) eaccelerator_clean_shutdown(void)
+#else
+void _fini(void)
+#endif
+{
   if (eaccelerator_mm_instance != NULL) {
     TSRMLS_FETCH();
     if (MMCG(in_request)) {
@@ -1967,18 +1972,14 @@ PHP_MINIT_FUNCTION(eaccelerator) {
     zend_execute = eaccelerator_execute;
 #endif
 #endif
-
-#ifndef HAS_ATTRIBUTE
-    atexit(eaccelerator_clean_shutdown);
-#endif
   }
 #if defined(WITH_EACCELERATOR_SESSIONS) && defined(HAVE_PHP_SESSIONS_SUPPORT)
-    if (!eaccelerator_session_registered()) {
+  if (!eaccelerator_session_registered()) {
       eaccelerator_register_session();
-    }
+  }
 #endif
 #ifdef WITH_EACCELERATOR_CONTENT_CACHING
-    eaccelerator_content_cache_startup();
+  eaccelerator_content_cache_startup();
 #endif
   if (!eaccelerator_is_zend_extension) {
     register_eaccelerator_as_zend_extension();

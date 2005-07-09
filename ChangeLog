@@ -1,6 +1,8 @@
 2005-07-08 Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
         * A compile fix for php4 (bug #1235017)
+        * Removed atexit code that only produced segfaults and didn't work
+          (Patch from Rob Foehl <rwf at loonybin.net>)
 
 2005-07-07 Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
