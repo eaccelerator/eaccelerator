@@ -552,7 +552,12 @@ eaccelerator_op_array *store_op_array (zend_op_array * from TSRMLS_DC)
     ea_debug_printf (EA_DEBUG, "[%d] store_op_array: %s [scope=%s]\n",
                      getpid (),
                      from->function_name ? from->function_name : "(top)",
-                     from->scope ? from->scope->name : "NULL");
+#ifdef ZEND_ENGINE_2
+                     from->scope ? from->scope->name : "NULL"
+#else
+                    "NULL"
+#endif
+                        );
 
     if (from->type == ZEND_INTERNAL_FUNCTION) {
         EACCELERATOR_ALIGN (MMCG (mem));
