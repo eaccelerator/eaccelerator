@@ -57,6 +57,7 @@
 
 void ea_debug_init (TSRMLS_D);
 void ea_debug_shutdown ();
+void ea_debug_printf (long debug_level, char *format, ...);
 void ea_debug_error (char *format, ...);
 void ea_debug_pad (long debug_level TSRMLS_DC);
 void ea_debug_log (char *format, ...);

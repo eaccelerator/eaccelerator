@@ -108,7 +108,7 @@ void ea_debug_error (char *format, ...)
     va_end (args);
 
 #ifdef ZEND_WIN32
-    OutputDebugString (*buffer);
+    OutputDebugString (*output_buf);
 #else
     fputs (output_buf, stderr);
     fflush (stderr);

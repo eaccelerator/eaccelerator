@@ -257,33 +257,6 @@ void fixup_class_entry (eaccelerator_class_entry * from TSRMLS_DC)
             (fixup_bucket_t) fixup_op_array TSRMLS_CC);
 }
 
-void eaccelerator_fixup (mm_cache_entry * p TSRMLS_DC)
-{
-    mm_fc_entry *q;
-
-    MMCG (mem) = (char *) ((long) p - (long) p->next);
-    MMCG (compress) = 1;
-    p->next = NULL;
-    FIXUP (p->op_array);
-    FIXUP (p->f_head);
-    FIXUP (p->c_head);
-    fixup_op_array (p->op_array TSRMLS_CC);
-    q = p->f_head;
-    while (q != NULL) {
-        FIXUP (q->fc);
-        fixup_op_array ((eaccelerator_op_array *) q->fc TSRMLS_CC);
-        FIXUP (q->next);
-        q = q->next;
-    }
-    q = p->c_head;
-    while (q != NULL) {
-        FIXUP (q->fc);
-        fixup_class_entry ((eaccelerator_class_entry *) q->fc TSRMLS_CC);
-        FIXUP (q->next);
-        q = q->next;
-    }
-}
-
 /******************************************************************************/
 /* Functions to restore a php script from shared memory                       */
 /******************************************************************************/
@@ -468,7 +441,7 @@ zend_op_array *restore_op_array (zend_op_array * to,
     char *fname_lc = NULL;
 #endif
 
-    ea_debug_pad (EA_DEBUG TSRMLS_C);
+    ea_debug_pad (EA_DEBUG TSRMLS_CC);
     ea_debug_printf (EA_DEBUG, "[%d] restore_op_array: %s\n", getpid (),
             from->function_name ? from->function_name : "(top)");
 
@@ -564,13 +537,13 @@ zend_op_array *restore_op_array (zend_op_array * to,
         if (zend_hash_find
                 (CG (class_table), (void *) from_scope_lc, from->scope_name_len + 1,
                  (void **) &to->scope) != SUCCESS) {
-            ea_debug_pad (EA_DEBUG TSRMLS_C);
+            ea_debug_pad (EA_DEBUG TSRMLS_CC);
             ea_debug_printf (EA_DEBUG,
                     "[%d]                   can't find '%s' in hash. use MMCG(class_entry).\n",
                     getpid (), from_scope_lc);
             to->scope = MMCG (class_entry);
         } else {
-            ea_debug_pad (EA_DEBUG TSRMLS_C);
+            ea_debug_pad (EA_DEBUG TSRMLS_CC);
             ea_debug_printf (EA_DEBUG,
                     "[%d]                   found '%s' in hash\n",
                     getpid (), from_scope_lc);
@@ -578,21 +551,21 @@ zend_op_array *restore_op_array (zend_op_array * to,
         }
         efree (from_scope_lc);
     } else {
-        ea_debug_pad (EA_DEBUG TSRMLS_C);
+        ea_debug_pad (EA_DEBUG TSRMLS_CC);
         ea_debug_printf (EA_DEBUG, "[%d]                   from is NULL\n",
                 getpid ());
         if (MMCG (class_entry)) {
             zend_class_entry *p;
 
             for (p = MMCG (class_entry)->parent; p; p = p->parent) {
-                ea_debug_pad (EA_DEBUG TSRMLS_C);
+                ea_debug_pad (EA_DEBUG TSRMLS_CC);
                 ea_debug_printf (EA_DEBUG,
                         "[%d]                   checking parent '%s' have '%s'\n",
                         getpid (), p->name, fname_lc);
                 if (zend_hash_find
                         (&p->function_table, fname_lc, fname_len + 1,
                          (void **) &function) == SUCCESS) {
-                    ea_debug_pad (EA_DEBUG TSRMLS_C);
+                    ea_debug_pad (EA_DEBUG TSRMLS_CC);
                     ea_debug_printf (EA_DEBUG,
                             "[%d]                                   '%s' has '%s' of scope '%s'\n",
                             getpid (), p->name, fname_lc,
@@ -605,7 +578,7 @@ zend_op_array *restore_op_array (zend_op_array * to,
             to->scope = NULL;
     }
 
-    ea_debug_pad (EA_DEBUG TSRMLS_C);
+    ea_debug_pad (EA_DEBUG TSRMLS_CC);
     ea_debug_printf (EA_DEBUG, "[%d]                   %s's scope is '%s'\n",
             getpid (),
             from->function_name ? from->function_name : "(top)",
@@ -613,12 +586,12 @@ zend_op_array *restore_op_array (zend_op_array * to,
 #endif
     if (from->type == ZEND_INTERNAL_FUNCTION) {
         zend_class_entry *ce = MMCG (class_entry);
-        ea_debug_pad (EA_DEBUG TSRMLS_C);
+        ea_debug_pad (EA_DEBUG TSRMLS_CC);
         ea_debug_printf (EA_DEBUG,
                 "[%d]                   [internal function from=%08x,to=%08x] ce='%s' [%08x]\n",
                 getpid (), from, to, ce->name, ce);
         if (ce) {
-            ea_debug_pad (EA_DEBUG TSRMLS_C);
+            ea_debug_pad (EA_DEBUG TSRMLS_CC);
             ea_debug_printf (EA_DEBUG,
                     "[%d]                                       ce->parent='%s' [%08x]\n",
                     getpid (), ce->parent->name, ce->parent);
@@ -634,7 +607,7 @@ zend_op_array *restore_op_array (zend_op_array * to,
 #endif
                     (void **) &function) ==
                 SUCCESS && function->type == ZEND_INTERNAL_FUNCTION) {
-            ea_debug_pad (EA_DEBUG TSRMLS_C);
+            ea_debug_pad (EA_DEBUG TSRMLS_CC);
             ea_debug_printf (EA_DEBUG,
                     "[%d]                                       found in function table\n",
                     getpid ());
@@ -646,7 +619,7 @@ zend_op_array *restore_op_array (zend_op_array * to,
              * HOESH TODO: must solve this somehow, to avoid returnin
              * damaged structure...
              */
-            ea_debug_pad (EA_DEBUG TSRMLS_C);
+            ea_debug_pad (EA_DEBUG TSRMLS_CC);
             ea_debug_printf (EA_DEBUG,
                     "[%d]                                       can't find\n",
                     getpid ());
@@ -730,9 +703,9 @@ static zend_class_entry *restore_class_entry (zend_class_entry * to,
         from TSRMLS_DC)
 {
     zend_class_entry *old;
-    zend_function *f;
-    int fname_len;
-    char *fname_lc;
+    zend_function *f = NULL;
+    int fname_len = 0;
+    char *fname_lc = NULL;
 #ifdef ZEND_ENGINE_2
     int cname_len;
     char *cname_lc;
@@ -740,7 +713,7 @@ static zend_class_entry *restore_class_entry (zend_class_entry * to,
     union _zend_function *old_ctor;
 #endif
 
-    ea_debug_pad (EA_DEBUG TSRMLS_C);
+    ea_debug_pad (EA_DEBUG TSRMLS_CC);
     ea_debug_printf (EA_DEBUG, "[%d] retore_class_entry: %s\n", getpid (),
             from->name ? from->name : "(top)");
 #ifdef DEBUG
@@ -838,7 +811,7 @@ static zend_class_entry *restore_class_entry (zend_class_entry * to,
         }
 #endif
     } else {
-        ea_debug_pad (EA_DEBUG TSRMLS_C);
+        ea_debug_pad (EA_DEBUG TSRMLS_CC);
         ea_debug_printf (EA_DEBUG, "[%d] parent = NULL\n", getpid ());
         to->parent = NULL;
     }

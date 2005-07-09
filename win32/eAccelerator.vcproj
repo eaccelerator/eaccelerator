@@ -78,7 +78,7 @@
 				Name="VCAuxiliaryManagedWrapperGeneratorTool"/>
 		</Configuration>
 		<Configuration
-			Name="Release|Win32"
+			Name="Release PHP4|Win32"
 			OutputDirectory=".\Release"
 			IntermediateDirectory=".\Release"
 			ConfigurationType="2"
@@ -144,7 +144,7 @@
 				Name="VCAuxiliaryManagedWrapperGeneratorTool"/>
 		</Configuration>
 		<Configuration
-			Name="Debug|Win32"
+			Name="Debug PHP4|Win32"
 			OutputDirectory=".\Debug"
 			IntermediateDirectory=".\Debug"
 			ConfigurationType="2"
@@ -291,6 +291,12 @@
 			<File
 				RelativePath="..\debug.c">
 			</File>
+            <File
+                RelativePath="..\ea_restore.c">
+            </File>
+            <File
+                RelativePath="..\ea_store.c">
+            </File>
 			<File
 				RelativePath="..\eaccelerator.c">
 			</File>
@@ -334,6 +340,12 @@
 			<File
 				RelativePath="..\debug.h">
 			</File>
+            <File
+                RelativePath="..\ea_restore.h">
+            </File>
+            <File
+                RelativePath="..\ea_store.h">
+            </File>
 			<File
 				RelativePath="..\eaccelerator.h">
 			</File>

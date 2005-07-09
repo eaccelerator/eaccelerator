@@ -548,7 +548,7 @@ eaccelerator_op_array *store_op_array (zend_op_array * from TSRMLS_DC)
     zend_op *opline;
     zend_op *end;
 
-    ea_debug_pad (EA_DEBUG TSRMLS_C);
+    ea_debug_pad (EA_DEBUG TSRMLS_CC);
     ea_debug_printf (EA_DEBUG, "[%d] store_op_array: %s [scope=%s]\n",
                      getpid (),
                      from->function_name ? from->function_name : "(top)",
@@ -636,7 +636,7 @@ eaccelerator_op_array *store_op_array (zend_op_array * from TSRMLS_DC)
                     store_string (q->arKey, q->nKeyLength TSRMLS_CC);
                 to->scope_name_len = q->nKeyLength - 1;
 
-                ea_debug_pad (EA_DEBUG TSRMLS_C);
+                ea_debug_pad (EA_DEBUG TSRMLS_CC);
                 ea_debug_printf (EA_DEBUG,
                                  "[%d]                 find scope '%s' in CG(class_table) save hashkey '%s' [%08x] as to->scope_name\n",
                                  getpid (),
@@ -647,7 +647,7 @@ eaccelerator_op_array *store_op_array (zend_op_array * from TSRMLS_DC)
             q = q->pListNext;
         }
         if (to->scope_name == NULL) {
-            ea_debug_pad (EA_DEBUG TSRMLS_C);
+            ea_debug_pad (EA_DEBUG TSRMLS_CC);
             ea_debug_printf (EA_DEBUG,
                              "[%d]                 could not find scope '%s' in CG(class_table), saving it to NULL\n",
                              getpid (),
@@ -797,7 +797,7 @@ eaccelerator_class_entry *store_class_entry (zend_class_entry *from TSRMLS_DC)
 
 #endif
 
-    ea_debug_pad (EA_DEBUG TSRMLS_C);
+    ea_debug_pad (EA_DEBUG TSRMLS_CC);
     ea_debug_printf (EA_DEBUG, "[%d] store_class_entry: %s parent was '%s'\n",
                      getpid (), from->name ? from->name : "(top)",
                      from->parent ? from->parent->name : "NULL");

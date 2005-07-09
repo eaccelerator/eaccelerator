@@ -559,6 +559,33 @@ unsigned int eaccelerator_crc32(const char *p, size_t n) {
   return ~crc;
 }
 
+void eaccelerator_fixup (mm_cache_entry * p TSRMLS_DC)
+{
+  mm_fc_entry *q;
+
+  MMCG (mem) = (char *) ((long) p - (long) p->next);
+  MMCG (compress) = 1;
+  p->next = NULL;
+  FIXUP (p->op_array);
+  FIXUP (p->f_head);
+  FIXUP (p->c_head);
+  fixup_op_array (p->op_array TSRMLS_CC);
+  q = p->f_head;
+  while (q != NULL) {
+    FIXUP (q->fc);
+    fixup_op_array ((eaccelerator_op_array *) q->fc TSRMLS_CC);
+    FIXUP (q->next);
+    q = q->next;
+  }
+  q = p->c_head;
+  while (q != NULL) {
+    FIXUP (q->fc);
+    fixup_class_entry ((eaccelerator_class_entry *) q->fc TSRMLS_CC);
+    FIXUP (q->next);
+    q = q->next;
+  }
+}
+
 /******************************************************************************/
 /* Cache file functions.													  */
 /* TODO: create cache subdirectories -> speed improvement highly used servers */
@@ -716,7 +743,7 @@ static mm_cache_entry *eaccelerator_store_int (char *key, int len,
   mm_fc_entry *q;
   char *x;
 
-  ea_debug_pad (EA_DEBUG TSRMLS_C);
+  ea_debug_pad (EA_DEBUG TSRMLS_CC);
   ea_debug_printf (EA_DEBUG, "[%d] eaccelerator_store_int: key='%s'\n", 
           getpid (), key);
 
@@ -736,7 +763,7 @@ static mm_cache_entry *eaccelerator_store_int (char *key, int len,
 
   q = NULL;
   while (c != NULL) {
-    ea_debug_pad (EA_DEBUG TSRMLS_C);
+    ea_debug_pad (EA_DEBUG TSRMLS_CC);
     ea_debug_printf (EA_DEBUG, 
             "[%d] eaccelerator_store_int:     class hashkey=", getpid ());
     ea_debug_binary_print (EA_DEBUG, c->arKey, c->nKeyLength);
@@ -766,7 +793,7 @@ static mm_cache_entry *eaccelerator_store_int (char *key, int len,
 
   q = NULL;
   while (f != NULL) {
-      ea_debug_pad (EA_DEBUG TSRMLS_C);
+      ea_debug_pad (EA_DEBUG TSRMLS_CC);
       ea_debug_printf (EA_DEBUG, 
               "[%d] eaccelerator_store_int:     function hashkey='%s'\n", getpid (), f->arKey);
 
@@ -1271,7 +1298,7 @@ ZEND_DLEXPORT zend_op_array* eaccelerator_compile_file(zend_file_handle *file_ha
     Bucket *class_table_tail;
     HashTable* orig_function_table;
     HashTable* orig_class_table;
-    HashTable* orig_eg_class_table;
+    HashTable* orig_eg_class_table = NULL;
     HashTable tmp_function_table;
     HashTable tmp_class_table;
     zend_function tmp_func;
@@ -1975,7 +2002,7 @@ PHP_MINIT_FUNCTION(eaccelerator) {
   }
 #if defined(WITH_EACCELERATOR_SESSIONS) && defined(HAVE_PHP_SESSIONS_SUPPORT)
   if (!eaccelerator_session_registered()) {
-      eaccelerator_register_session();
+    eaccelerator_register_session();
   }
 #endif
 #ifdef WITH_EACCELERATOR_CONTENT_CACHING
