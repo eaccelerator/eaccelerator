@@ -1211,6 +1211,7 @@ ZEND_DLEXPORT zend_op_array* eaccelerator_compile_file(zend_file_handle *file_ha
   char  realname[MAXPATHLEN];
   int   nreloads;
   time_t compile_time;
+  int stat_result = 0;
 
 #ifdef EACCELERATOR_USE_INODE
   realname[0] = '\000';
@@ -1225,17 +1226,15 @@ ZEND_DLEXPORT zend_op_array* eaccelerator_compile_file(zend_file_handle *file_ha
   MMCG(xpad)+=2;
 #endif
   compile_time = time(0);
+  stat_result = eaccelerator_stat(file_handle, realname, &buf TSRMLS_CC);
   if (buf.st_mtime >= compile_time && eaccelerator_debug > 0) {
 	ea_debug_log("[%d] EACCELERATOR: Warning: \"%s\" is cached but it's mtime is in the future.\n", 
 		getpid(), file_handle->filename);
   }
   
-  if (!MMCG(enabled) ||
-      (eaccelerator_mm_instance == NULL) ||
-      !eaccelerator_mm_instance->enabled ||
-      file_handle == NULL ||
-      file_handle->filename == NULL ||
-      eaccelerator_stat(file_handle, realname, &buf TSRMLS_CC) != 0 ||
+  if (!MMCG(enabled) || (eaccelerator_mm_instance == NULL) ||
+      !eaccelerator_mm_instance->enabled || file_handle == NULL ||
+      file_handle->filename == NULL || stat_result != 0 ||
 #ifdef EACCELERATOR_USE_INODE
       0) {
 #else
