@@ -34,6 +34,9 @@
 #include "zend.h"
 #include "zend_API.h"
 #include "zend_extensions.h"
+#ifdef ZEND_WIN32
+#include "win32/time.h"
+#endif
 
 
 /* print information about the file that's loaded or cached */

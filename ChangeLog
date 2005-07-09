@@ -6,6 +6,7 @@
         * Code clean up and compile fixes for VC.net + VC.net project files update
           (Based on patch #1234919)
         * Future check warning was done on uninitialised buf.
+        * Some code clean ups and updated VS6 project files.
 
 2005-07-07 Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
