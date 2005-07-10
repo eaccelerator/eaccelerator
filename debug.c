@@ -55,7 +55,7 @@ void ea_debug_init (TSRMLS_D)
     REGISTER_MAIN_LONG_CONSTANT ("EA_LOG_HASHKEYS", EA_LOG_HASHKEYS,
                             CONST_PERSISTENT | CONST_CS);
 
-    F_fp = fopen (MMCG (eaccelerator_log_file), "a");
+    F_fp = fopen (EAG (eaccelerator_log_file), "a");
     if (!F_fp)
         F_fp = stderr;
 }
@@ -218,7 +218,7 @@ void ea_debug_log_hashkeys (char *p, HashTable * ht)
 void ea_debug_pad (long debug_level TSRMLS_DC)
 {
     if (eaccelerator_debug & debug_level) {
-        int i = MMCG (xpad);
+        int i = EAG (xpad);
         while (i-- > 0) {
             fputc ('\t', F_fp);
         }

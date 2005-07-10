@@ -1196,12 +1196,12 @@ static void eaccelerator_clean (TSRMLS_D)
 		struct dirent *entry;
 		char s[MAXPATHLEN];
 
-		if ((dp = opendir (MMCG (cache_dir))) != NULL) {
+		if ((dp = opendir (EAG (cache_dir))) != NULL) {
 			while ((entry = readdir (dp)) != NULL) {
 				if (strstr
 					(entry->d_name, "eaccelerator-user") == entry->d_name) {
 					int f;
-					strncpy (s, MMCG (cache_dir), MAXPATHLEN - 1);
+					strncpy (s, EAG (cache_dir), MAXPATHLEN - 1);
 					strlcat (s, "/", MAXPATHLEN);
 					strlcat (s, entry->d_name, MAXPATHLEN);
 					if ((f = open (s, O_RDONLY | O_BINARY)) > 0) {
@@ -1233,12 +1233,12 @@ static void eaccelerator_clean (TSRMLS_D)
 		char s[MAXPATHLEN];
 
 		snprintf (szDir, MAXPATHLEN, "%s\\eaccelerator-user*",
-				  MMCG (cache_dir));
+				  EAG (cache_dir));
 
 		if ((hList = FindFirstFile (szDir, &FileData)) != INVALID_HANDLE_VALUE) {
 			do {
 				int f;
-				strncpy (s, MMCG (cache_dir), MAXPATHLEN - 1);
+				strncpy (s, EAG (cache_dir), MAXPATHLEN - 1);
 				strlcat (s, "\\", MAXPATHLEN);
 				strlcat (s, FileData.cFileName, MAXPATHLEN);
 				if ((f = open (s, O_RDONLY | O_BINARY)) > 0) {
@@ -1311,10 +1311,10 @@ static void eaccelerator_clear (TSRMLS_D)
 		struct dirent *entry;
 		char s[MAXPATHLEN];
 
-		if ((dp = opendir (MMCG (cache_dir))) != NULL) {
+		if ((dp = opendir (EAG (cache_dir))) != NULL) {
 			while ((entry = readdir (dp)) != NULL) {
 				if (strstr (entry->d_name, "eaccelerator") == entry->d_name) {
-					strncpy (s, MMCG (cache_dir), MAXPATHLEN - 1);
+					strncpy (s, EAG (cache_dir), MAXPATHLEN - 1);
 					strlcat (s, "/", MAXPATHLEN);
 					strlcat (s, entry->d_name, MAXPATHLEN);
 					unlink (s);
@@ -1330,11 +1330,11 @@ static void eaccelerator_clear (TSRMLS_D)
 		WIN32_FIND_DATA FileData;
 		char s[MAXPATHLEN];
 
-		snprintf (szDir, MAXPATHLEN, "%s\\eaccelerator*", MMCG (cache_dir));
+		snprintf (szDir, MAXPATHLEN, "%s\\eaccelerator*", EAG (cache_dir));
 
 		if ((hList = FindFirstFile (szDir, &FileData)) != INVALID_HANDLE_VALUE) {
 			do {
-				strncpy (s, MMCG (cache_dir), MAXPATHLEN - 1);
+				strncpy (s, EAG (cache_dir), MAXPATHLEN - 1);
 				strlcat (s, "\\", MAXPATHLEN);
 				strlcat (s, FileData.cFileName, MAXPATHLEN);
 				unlink (s);
@@ -1647,7 +1647,7 @@ PHP_FUNCTION (eaccelerator)
 	EACCELERATOR_LOCK_RD ();
 	EACCELERATOR_PROTECT ();
 	ZEND_PUTS ("<form method=\"POST\"><center>\n");
-	if (MMCG (enabled) && eaccelerator_mm_instance->enabled) {
+	if (EAG (enabled) && eaccelerator_mm_instance->enabled) {
 		ZEND_PUTS
 			("<input type=\"submit\" name=\"disable\" value=\"Disable\" title=\"Disable caching of PHP scripts\" style=\"width:100px\">\n");
 	} else {
@@ -1655,7 +1655,7 @@ PHP_FUNCTION (eaccelerator)
 			("<input type=\"submit\" name=\"enable\" value=\"Enable\" title=\"Enable caching of PHP scripts\" style=\"width:100px\">\n");
 	}
 #ifdef WITH_EACCELERATOR_OPTIMIZER
-	if (MMCG (optimizer_enabled)
+	if (EAG (optimizer_enabled)
 		&& eaccelerator_mm_instance->optimizer_enabled) {
 		ZEND_PUTS
 			("&nbsp;<input type=\"submit\" name=\"disable_opt\" value=\"Disable Opt.\" title=\"Disable optimization of cached PHP scripts\" style=\"width:100px\">\n");
@@ -1682,13 +1682,13 @@ PHP_FUNCTION (eaccelerator)
 		("<tr valign=\"middle\" bgcolor=\"#9999cc\"><th>eAccelerator support</th><th>enabled</th></tr>\n");
 	zend_printf
 		("<tr valign=\"baseline\" bgcolor=\"#cccccc\"><td bgcolor=\"#ccccff\" ><b>%s</b></td><td align=\"left\">%s</td></tr>\n",
-		 "Caching Enabled", (MMCG (enabled)
+		 "Caching Enabled", (EAG (enabled)
 							 && (eaccelerator_mm_instance != NULL)
 							 && eaccelerator_mm_instance->
 							 enabled) ? "true" : "false");
 	zend_printf
 		("<tr valign=\"baseline\" bgcolor=\"#cccccc\"><td bgcolor=\"#ccccff\" ><b>%s</b></td><td align=\"left\">%s</td></tr>\n",
-		 "Optimizer Enabled", (MMCG (optimizer_enabled)
+		 "Optimizer Enabled", (EAG (optimizer_enabled)
 							   && (eaccelerator_mm_instance != NULL)
 							   && eaccelerator_mm_instance->
 							   optimizer_enabled) ? "true" : "false");

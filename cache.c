@@ -56,12 +56,12 @@ static char *build_key (const char *key, int key_len, int *xlen TSRMLS_DC)
 	/*
 	 * namespace 
 	 */
-	len = strlen (MMCG (name_space));
+	len = strlen (EAG (name_space));
 	if (len > 0) {
 		char *xkey;
 		*xlen = len + key_len + 1;
 		xkey = emalloc ((*xlen) + 1);
-		memcpy (xkey, MMCG (name_space), len);
+		memcpy (xkey, EAG (name_space), len);
 		xkey[len] = ':';
 		memcpy (xkey + len + 1, key, key_len + 1);
 		return xkey;
@@ -70,12 +70,12 @@ static char *build_key (const char *key, int key_len, int *xlen TSRMLS_DC)
 	/*
 	 * hostname 
 	 */
-	len = strlen (MMCG (hostname));
+	len = strlen (EAG (hostname));
 	if (len > 0) {
 		char *xkey;
 		*xlen = len + key_len + 1;
 		xkey = emalloc ((*xlen) + 1);
-		memcpy (xkey, MMCG (hostname), len);
+		memcpy (xkey, EAG (hostname), len);
 		xkey[len] = ':';
 		memcpy (xkey + len + 1, key, key_len + 1);
 		return xkey;
@@ -218,49 +218,49 @@ int eaccelerator_put (const char *key, int key_len, zval * val, time_t ttl,
 	char *xkey;
 
 	xkey = build_key (key, key_len, &xlen TSRMLS_CC);
-	MMCG (compress) = 1;
-	MMCG (mem) = NULL;
-	zend_hash_init (&MMCG (strings), 0, NULL, NULL, 0);
-	EACCELERATOR_ALIGN (MMCG (mem));
-	MMCG (mem) += offsetof (mm_user_cache_entry, key) + xlen + 1;
+	EAG (compress) = 1;
+	EAG (mem) = NULL;
+	zend_hash_init (&EAG (strings), 0, NULL, NULL, 0);
+	EACCELERATOR_ALIGN (EAG (mem));
+	EAG (mem) += offsetof (mm_user_cache_entry, key) + xlen + 1;
 	calc_zval (val TSRMLS_CC);
-	zend_hash_destroy (&MMCG (strings));
+	zend_hash_destroy (&EAG (strings));
 
-	size = (long) MMCG (mem);
+	size = (long) EAG (mem);
 
-	MMCG (mem) = NULL;
+	EAG (mem) = NULL;
 	if (eaccelerator_mm_instance != NULL &&
 		(where == eaccelerator_shm_and_disk ||
 		 where == eaccelerator_shm || where == eaccelerator_shm_only)) {
 		EACCELERATOR_UNPROTECT ();
 		if (eaccelerator_shm_max == 0 || size <= eaccelerator_shm_max) {
-			MMCG (mem) = eaccelerator_malloc (size);
-			if (MMCG (mem) == NULL) {
-				MMCG (mem) = eaccelerator_malloc2 (size TSRMLS_CC);
+			EAG (mem) = eaccelerator_malloc (size);
+			if (EAG (mem) == NULL) {
+				EAG (mem) = eaccelerator_malloc2 (size TSRMLS_CC);
 			}
 		}
-		if (MMCG (mem) == NULL) {
+		if (EAG (mem) == NULL) {
 			EACCELERATOR_PROTECT ();
 		}
 	}
-	if (MMCG (mem) == NULL &&
+	if (EAG (mem) == NULL &&
 		(where == eaccelerator_shm_and_disk ||
 		 where == eaccelerator_shm || where == eaccelerator_disk_only)) {
 		use_shm = 0;
-		MMCG (mem) = emalloc (size);
+		EAG (mem) = emalloc (size);
 	}
-	if (MMCG (mem)) {
-		zend_hash_init (&MMCG (strings), 0, NULL, NULL, 0);
-		EACCELERATOR_ALIGN (MMCG (mem));
-		q = (mm_user_cache_entry *) MMCG (mem);
+	if (EAG (mem)) {
+		zend_hash_init (&EAG (strings), 0, NULL, NULL, 0);
+		EACCELERATOR_ALIGN (EAG (mem));
+		q = (mm_user_cache_entry *) EAG (mem);
 		q->size = size;
-		MMCG (mem) += offsetof (mm_user_cache_entry, key) + xlen + 1;
+		EAG (mem) += offsetof (mm_user_cache_entry, key) + xlen + 1;
 		q->hv = hash_mm (xkey, xlen);
 		memcpy (q->key, xkey, xlen + 1);
 		memcpy (&q->value, val, sizeof (zval));
 		q->ttl = ttl ? time (0) + ttl : 0;
 		store_zval (&q->value TSRMLS_CC);
-		zend_hash_destroy (&MMCG (strings));
+		zend_hash_destroy (&EAG (strings));
 
 		/*
 		 * storing to file 
@@ -438,8 +438,8 @@ int eaccelerator_get (const char *key, int key_len, zval * return_value,
 					if (read (f, p, hdr.size) == hdr.size && hdr.size == p->size
 						&& hdr.crc32 ==
 						eaccelerator_crc32 ((const char *) p, p->size)) {
-						MMCG (mem) = (char *) ((long) p - (long) p->next);
-						MMCG (compress) = 1;
+						EAG (mem) = (char *) ((long) p - (long) p->next);
+						EAG (compress) = 1;
 						fixup_zval (&p->value TSRMLS_CC);
 
 						if (strcmp (xkey, p->key) != 0) {

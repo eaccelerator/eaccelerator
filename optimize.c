@@ -1437,7 +1437,7 @@ jmp_2:
 }
 
 static int opt_get_constant(const char* name, int name_len, zend_constant** result TSRMLS_DC) {
-  if (!MMCG(encoder) ||
+  if (!EAG(encoder) ||
       (name_len == sizeof("false")-1 && strcmp(name,"false") == 0) ||
       (name_len == sizeof("true")-1 && strcmp(name,"true") == 0)) {
     zend_constant *c;
@@ -1471,7 +1471,7 @@ static int opt_get_constant(const char* name, int name_len, zend_constant** resu
 }
 
 static int opt_function_exists(const char* name, int name_len TSRMLS_DC) {
-  if (!MMCG(encoder)) {
+  if (!EAG(encoder)) {
     char *lcname;
     char *lcfname;
     Bucket *p;
@@ -1505,7 +1505,7 @@ static int opt_function_exists(const char* name, int name_len TSRMLS_DC) {
 }
 
 static int opt_extension_loaded(const char* name, int name_len TSRMLS_DC) {
-  if (!MMCG(encoder)) {
+  if (!EAG(encoder)) {
     Bucket *p = module_registry.pListHead;
     while (p != NULL) {
       zend_module_entry *m = (zend_module_entry*)p->pData;
@@ -3221,7 +3221,7 @@ void eaccelerator_optimize(zend_op_array *op_array)
   return;
 #endif
 */
-  if (!MMCG(compiler) || op_array->type != ZEND_USER_FUNCTION) {
+  if (!EAG(compiler) || op_array->type != ZEND_USER_FUNCTION) {
     return;
   }
 

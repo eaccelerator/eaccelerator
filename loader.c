@@ -82,7 +82,11 @@ static unsigned int decode_var(unsigned int count, char** p, unsigned int* l) {
   if (var >= count) {
     zend_bailout();
   }
+#ifdef ZEND_ENGINE_2
+  return (unsigned int)(((temp_variable*)NULL) + var);
+#else
   return var;
+#endif
 }
 
 static unsigned int decode_opline(unsigned int last, char** p, unsigned int* l) {
@@ -144,7 +148,7 @@ static char* decode_zstr_noalloc(char** p, unsigned int* l) {
   }
 }
 
-#if MMC_ENCODER_VERSION < 2
+#if EA_ENCODER_VERSION < 2
 static char* decode_filename(char** p, unsigned int* l TSRMLS_DC) {
   char *s = *p;
   unsigned int len = 0;
@@ -159,15 +163,15 @@ static char* decode_filename(char** p, unsigned int* l TSRMLS_DC) {
     (*l)--;
     return NULL;
   } else {
-    if (((loader_data*)MMCG(mem))->filename == NULL ||
-        strcmp(((loader_data*)MMCG(mem))->filename,*p) != 0) {
+    if (((loader_data*)EAG(mem))->filename == NULL ||
+        strcmp(((loader_data*)EAG(mem))->filename,*p) != 0) {
       char* old = CG(compiled_filename);
-      ((loader_data*)MMCG(mem))->filename = zend_set_compiled_filename(*p TSRMLS_CC);
+      ((loader_data*)EAG(mem))->filename = zend_set_compiled_filename(*p TSRMLS_CC);
       CG(compiled_filename) = old;
     }
     *p += len+1;
     *l -= len+1;
-    return ((loader_data*)MMCG(mem))->filename;
+    return ((loader_data*)EAG(mem))->filename;
   }
 }
 #endif
@@ -428,7 +432,7 @@ static zend_op_array* decode_op_array(zend_op_array *to, char** p, unsigned int*
 #endif
   to->function_name = decode_zstr(p, l);
 #ifdef ZEND_ENGINE_2
-	to->scope            = MMCG(class_entry);
+	to->scope            = EAG(class_entry);
 	to->fn_flags         = decode32(p, l);
 	scope_name = decode_lstr((unsigned int*)&scope_name_len, p, l);
 	if (to->scope == NULL && scope_name != NULL)
@@ -568,13 +572,13 @@ static zend_op_array* decode_op_array(zend_op_array *to, char** p, unsigned int*
         opline->handler = get_opcode_handler(opline->opcode TSRMLS_CC);
 #endif
 #endif
-#if MMC_ENCODER_VERSION < 2
+#if EA_ENCODER_VERSION < 2
         opline->lineno = decode32(p, l);
 #else
-        if (((loader_data*)MMCG(mem))->version < 2) {
+        if (((loader_data*)EAG(mem))->version < 2) {
           opline->lineno = decode32(p, l);
         }
-        opline->lineno = ((loader_data*)MMCG(mem))->lineno;
+        opline->lineno = ((loader_data*)EAG(mem))->lineno;
 #endif
         opline->extended_value = 0;
         opline->result.op_type = IS_UNUSED;
@@ -602,9 +606,9 @@ static zend_op_array* decode_op_array(zend_op_array *to, char** p, unsigned int*
           case EXT_ASSIGN:
             opline->extended_value = decode(p, l);
             break;
-          case EXT_FE: /* EXT_FE is added at MMC_ENCODER_VERSION = 3 to support php 4.3.10 */
-#if MMC_ENCODER_VERSION >= 3
-            if (((loader_data*)MMCG(mem))->version >= 3) {
+          case EXT_FE: /* EXT_FE is added at EA_ENCODER_VERSION = 3 to support php 4.3.10 */
+#if EA_ENCODER_VERSION >= 3
+            if (((loader_data*)EAG(mem))->version >= 3) {
               opline->extended_value = decode(p, l);
             }
 #endif
@@ -620,10 +624,10 @@ static zend_op_array* decode_op_array(zend_op_array *to, char** p, unsigned int*
             break;
         }
 
-#if MMC_ENCODER_VERSION >= 3 && defined(ZEND_FE_FETCH_WITH_KEY) && !defined(ZEND_ENGINE_2)
+#if EA_ENCODER_VERSION >= 3 && defined(ZEND_FE_FETCH_WITH_KEY) && !defined(ZEND_ENGINE_2)
         /* correct ZEND_FE_FETCH's extended value with old version (1,2) */
         if (opline->opcode == ZEND_FE_FETCH) {
-          if (((loader_data*)MMCG(mem))->version < 3) {
+          if (((loader_data*)EAG(mem))->version < 3) {
             opline->extended_value |= ZEND_FE_FETCH_WITH_KEY;
           }
         }
@@ -766,14 +770,14 @@ static zend_op_array* decode_op_array(zend_op_array *to, char** p, unsigned int*
   if (to->static_variables) {
     to->static_variables->pDestructor = ZVAL_PTR_DTOR;
   }
-#if MMC_ENCODER_VERSION < 2
+#if EA_ENCODER_VERSION < 2
   to->filename = decode_filename(p, l TSRMLS_CC);
 #else
-  if (((loader_data*)MMCG(mem))->version < 2) {
+  if (((loader_data*)EAG(mem))->version < 2) {
     to->filename = decode_zstr(p, l);
     efree(to->filename);
   }
-  to->filename = ((loader_data*)MMCG(mem))->filename;
+  to->filename = ((loader_data*)EAG(mem))->filename;
 #endif
 #ifdef ZEND_ENGINE_2
   to->line_start = decode32(p, l);
@@ -866,26 +870,26 @@ static zend_class_entry* decode_class_entry(zend_class_entry* to, char** p, unsi
     efree(s);
   }
 
-  old = MMCG(class_entry);
-  MMCG(class_entry) = to;
+  old = EAG(class_entry);
+  EAG(class_entry) = to;
 
 #ifdef ZEND_ENGINE_2
   to->refcount = 1;
 
-#if MMC_ENCODER_VERSION < 2
+#if EA_ENCODER_VERSION < 2
   to->line_start = decode32(p, l);
   to->line_end = decode32(p, l);
   to->filename = decode_filename(p, l TSRMLS_CC);
 #else
-  if (((loader_data*)MMCG(mem))->version < 2) {
+  if (((loader_data*)EAG(mem))->version < 2) {
     to->line_start = decode32(p, l);
     to->line_end = decode32(p, l);
     to->filename = decode_zstr(p, l);
     efree(to->filename);
   }
-  to->line_start = ((loader_data*)MMCG(mem))->lineno;
-  to->line_end = ((loader_data*)MMCG(mem))->lineno;
-  to->filename = ((loader_data*)MMCG(mem))->filename;
+  to->line_start = ((loader_data*)EAG(mem))->lineno;
+  to->line_end = ((loader_data*)EAG(mem))->lineno;
+  to->filename = ((loader_data*)EAG(mem))->filename;
 #endif
   to->doc_comment = decode_lstr(&to->doc_comment_len, p, l);
 
@@ -981,7 +985,7 @@ static zend_class_entry* decode_class_entry(zend_class_entry* to, char** p, unsi
   }
 #endif
 
-  MMCG(class_entry) = old;
+  EAG(class_entry) = old;
 
   return to;
 }
@@ -1023,20 +1027,20 @@ zend_op_array* eaccelerator_load(char* src, int src_len TSRMLS_DC) {
         s = decode_zstr_noalloc(&p, &l);
         if (s != NULL && strcmp(s,"EACCELERATOR") == 0) {
           v = decode32(&p, &l);
-          if (v <= MMC_ENCODER_VERSION) {
+          if (v <= EA_ENCODER_VERSION) {
             loader_data data;
             data.version  = v;
             data.filename = NULL;
             data.lineno = 0;
-            MMCG(mem) = (char*)&data;
+            EAG(mem) = (char*)&data;
             c = decode(&p, &l);
 #ifdef ZEND_ENGINE_2
             if (c == 2) {
 #else
             if (c == 1) {
 #endif
-              MMCG(class_entry) = NULL;
-#if MMC_ENCODER_VERSION > 1
+              EAG(class_entry) = NULL;
+#if EA_ENCODER_VERSION > 1
               if (CG(in_compilation)) {
                 data.filename = CG(compiled_filename);
                 data.lineno = 0;
@@ -1051,7 +1055,7 @@ zend_op_array* eaccelerator_load(char* src, int src_len TSRMLS_DC) {
 #endif
               while (1) {
                 c = decode(&p, &l);
-                if (c == MMC_ENCODER_CLASS) {
+                if (c == EA_ENCODER_CLASS) {
 #ifdef ZEND_ENGINE_2
                   zend_class_entry* x;
                   s = decode_lstr_noalloc(&v, &p, &l);
@@ -1073,7 +1077,7 @@ zend_op_array* eaccelerator_load(char* src, int src_len TSRMLS_DC) {
                     error_reported = 1;
                     zend_error(E_ERROR, "Cannot redeclare class %s", s);
                   }
-                } else if (c == MMC_ENCODER_END) {
+                } else if (c == EA_ENCODER_END) {
                   break;
                 } else {
                   zend_bailout();
@@ -1081,7 +1085,7 @@ zend_op_array* eaccelerator_load(char* src, int src_len TSRMLS_DC) {
               }
               while (1) {
                 c = decode(&p, &l);
-                if (c == MMC_ENCODER_FUNCTION) {
+                if (c == EA_ENCODER_FUNCTION) {
                   zend_op_array x;
                   s = decode_lstr_noalloc(&v, &p, &l);
                   decode_op_array(&x, &p, &l TSRMLS_CC);
@@ -1092,7 +1096,7 @@ zend_op_array* eaccelerator_load(char* src, int src_len TSRMLS_DC) {
                     error_reported = 1;
                     zend_error(E_ERROR, "Cannot redeclare %s()", s);
                   }
-                } else if (c == MMC_ENCODER_END) {
+                } else if (c == EA_ENCODER_END) {
                   break;
                 } else {
                   zend_bailout();

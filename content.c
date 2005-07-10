@@ -79,11 +79,11 @@ static int eaccelerator_check_compression(sapi_header_struct *sapi_header TSRMLS
     if (*ch == ':') {ch++;}
     while (*ch == ' ') {ch++;}
     if (strstr(ch, "text") != ch) {
-      MMCG(compress_content) = 0;
+      EAG(compress_content) = 0;
       return 0;
     }
   } else if (strstr(sapi_header->header, "Content-Encoding") == sapi_header->header) {
-    MMCG(compress_content) = 0;
+    EAG(compress_content) = 0;
     return 0;
   }
   return 1;
@@ -94,11 +94,11 @@ static void eaccelerator_free_header(sapi_header_struct *sapi_header) {
 }
 
 static int eaccelerator_header_handler(sapi_header_struct *sapi_header, sapi_headers_struct *sapi_headers TSRMLS_DC) {
-  if (MMCG(content_headers) != NULL) {
+  if (EAG(content_headers) != NULL) {
     sapi_header_struct x;
     memcpy(&x, sapi_header, sizeof(sapi_header_struct));
     x.header = estrndup(sapi_header->header, sapi_header->header_len);
-    zend_llist_add_element(MMCG(content_headers), &x);
+    zend_llist_add_element(EAG(content_headers), &x);
   }
   eaccelerator_check_compression(sapi_header TSRMLS_CC);
   if (eaccelerator_old_header_handler) {
@@ -152,8 +152,8 @@ static void eaccelerator_put_page(const char* key, int key_len, zval* content, t
   INIT_ZVAL(cache_array);
   array_init(&cache_array);
   MAKE_STD_ZVAL(cache_content);
-  if (MMCG(content_headers) && (MMCG(content_headers)->count > 0)) {
-    zend_llist_element *p = MMCG(content_headers)->head;
+  if (EAG(content_headers) && (EAG(content_headers)->count > 0)) {
+    zend_llist_element *p = EAG(content_headers)->head;
     zval *headers;
     MAKE_STD_ZVAL(headers);
     array_init(headers);
@@ -208,8 +208,8 @@ static int eaccelerator_get_page(const char* key, int key_len, zval* return_valu
 static void eaccelerator_compress(char* key, int key_len, zval* return_value, time_t ttl TSRMLS_DC) {
   zval  **server_vars, **encoding;
 
-  if (MMCG(compression_enabled) &&
-      MMCG(compress_content) &&
+  if (EAG(compression_enabled) &&
+      EAG(compress_content) &&
       !SG(headers_sent) &&
       zend_hash_find(&EG(symbol_table), "_SERVER", sizeof("_SERVER"), (void **) &server_vars) == SUCCESS &&
       Z_TYPE_PP(server_vars) == IS_ARRAY &&
@@ -267,7 +267,7 @@ static void eaccelerator_compress(char* key, int key_len, zval* return_value, ti
       return;
     }
     INIT_ZVAL(level);
-    ZVAL_LONG(&level,MMCG(compress_level));
+    ZVAL_LONG(&level,EAG(compress_level));
     params[1] = &level;
     if (zkey != NULL &&
         zend_hash_exists(EG(function_table), Z_STRVAL(func), Z_STRLEN(func)+1) &&
@@ -318,10 +318,10 @@ static void eaccelerator_compress(char* key, int key_len, zval* return_value, ti
 }
 
 static void eaccelerator_destroy_headers(TSRMLS_D) {
-  if (MMCG(content_headers) != NULL) {
-    zend_llist_destroy(MMCG(content_headers));
-    efree(MMCG(content_headers));
-    MMCG(content_headers) = NULL;
+  if (EAG(content_headers) != NULL) {
+    zend_llist_destroy(EAG(content_headers));
+    efree(EAG(content_headers));
+    EAG(content_headers) = NULL;
   }
 }
 
@@ -390,11 +390,11 @@ PHP_FUNCTION(eaccelerator_cache_page) {
   if (eaccelerator_content_cache_place == eaccelerator_none) {
     RETURN_FALSE;
   }
-  if (MMCG(content_headers) != NULL) {
+  if (EAG(content_headers) != NULL) {
     RETURN_FALSE;
   }
-  if (MMCG(compression_enabled) &&
-      MMCG(compress_content) &&
+  if (EAG(compression_enabled) &&
+      EAG(compress_content) &&
       !SG(headers_sent) &&
       zend_hash_find(&EG(symbol_table), "_SERVER", sizeof("_SERVER"), (void **) &server_vars) == SUCCESS &&
       Z_TYPE_PP(server_vars) == IS_ARRAY &&
@@ -485,8 +485,8 @@ PHP_FUNCTION(eaccelerator_cache_page) {
     zend_printf("%s",key);
     ZEND_PUTC(ch);
     /* Init headers cache */
-    MMCG(content_headers) = emalloc(sizeof(zend_llist));
-    zend_llist_init(MMCG(content_headers), sizeof(sapi_header_struct), (void (*)(void *))eaccelerator_free_header, 0);
+    EAG(content_headers) = emalloc(sizeof(zend_llist));
+    zend_llist_init(EAG(content_headers), sizeof(sapi_header_struct), (void (*)(void *))eaccelerator_free_header, 0);
     RETURN_TRUE;
   }
   RETURN_FALSE;

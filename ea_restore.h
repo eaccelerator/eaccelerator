@@ -30,7 +30,7 @@
 #ifndef EA_RESTORE_H
 #define EA_RESTORE_H
 
-#define FIXUP(x) if((x)!=NULL) {(x) = (void*)(((char*)(x)) + ((long)(MMCG(mem))));}
+#define FIXUP(x) if((x)!=NULL) {(x) = (void*)(((char*)(x)) + ((long)(EAG(mem))));}
 void fixup_op_array (eaccelerator_op_array * from TSRMLS_DC);
 void fixup_class_entry (eaccelerator_class_entry * from TSRMLS_DC);
 

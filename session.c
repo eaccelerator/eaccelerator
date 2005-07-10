@@ -69,10 +69,10 @@ PHP_INI_MH (eaccelerator_OnUpdateSessionCachePlace)
 /* session unlock */
 static int do_session_unlock (TSRMLS_D)
 {
-	if (MMCG (session) != NULL) {
-		eaccelerator_unlock (MMCG (session), strlen (MMCG (session)) TSRMLS_CC);
-		efree (MMCG (session));
-		MMCG (session) = NULL;
+	if (EAG (session) != NULL) {
+		eaccelerator_unlock (EAG (session), strlen (EAG (session)) TSRMLS_CC);
+		efree (EAG (session));
+		EAG (session) = NULL;
 	}
 	return 1;
 }
@@ -80,15 +80,15 @@ static int do_session_unlock (TSRMLS_D)
 /* session locking */
 static int do_session_lock (const char *sess_name TSRMLS_DC)
 {
-	if (MMCG (session) != NULL) {
-		if (strcmp (MMCG (session), sess_name) == 0) {
+	if (EAG (session) != NULL) {
+		if (strcmp (EAG (session), sess_name) == 0) {
 			return 1;
 		} else {
 			do_session_unlock (TSRMLS_C);
 		}
 	}
 	if (eaccelerator_lock (sess_name, strlen (sess_name) TSRMLS_CC)) {
-		MMCG (session) = estrdup (sess_name);
+		EAG (session) = estrdup (sess_name);
 		return 1;
 	} else {
 		return 0;

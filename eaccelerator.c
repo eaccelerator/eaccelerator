@@ -371,7 +371,7 @@ static void decode_version(char *version, int v) {
 #ifdef EACCELERATOR_USE_INODE
 static int eaccelerator_inode_key(char* s, dev_t dev, ino_t ino TSRMLS_DC) {
   int n;
-  strncpy(s, MMCG(cache_dir), MAXPATHLEN-1);
+  strncpy(s, EAG(cache_dir), MAXPATHLEN-1);
   strlcat(s, "/eaccelerator-", MAXPATHLEN-1);
   n = strlen(s);
   while (dev > 0) {
@@ -405,7 +405,7 @@ int eaccelerator_md5(char* s, const char* prefix, const char* key TSRMLS_DC) {
   PHP_MD5Update(&context, (unsigned char*)key, strlen(key));
   PHP_MD5Final(digest, &context);
   make_digest(md5str, digest);
-  snprintf(s, MAXPATHLEN-1, "%s%s%s", MMCG(cache_dir), prefix, md5str);
+  snprintf(s, MAXPATHLEN-1, "%s%s%s", EAG(cache_dir), prefix, md5str);
   return 1;
 #else
   zval retval;
@@ -420,7 +420,7 @@ int eaccelerator_md5(char* s, const char* prefix, const char* key TSRMLS_DC) {
   if (call_user_function(CG(function_table), (zval**)NULL, &md5, &retval, 1, params TSRMLS_CC) == SUCCESS &&
       retval.type == IS_STRING &&
       retval.value.str.len == 32) {
-    strncpy(s, MMCG(cache_dir), MAXPATHLEN-1);
+    strncpy(s, EAG(cache_dir), MAXPATHLEN-1);
     strlcat(s, prefix, MAXPATHLEN);
     strlcat(s, retval.value.str.val, MAXPATHLEN);
     zval_dtor(&retval);
@@ -563,8 +563,8 @@ void eaccelerator_fixup (mm_cache_entry * p TSRMLS_DC)
 {
   mm_fc_entry *q;
 
-  MMCG (mem) = (char *) ((long) p - (long) p->next);
-  MMCG (compress) = 1;
+  EAG (mem) = (char *) ((long) p - (long) p->next);
+  EAG (compress) = 1;
   p->next = NULL;
   FIXUP (p->op_array);
   FIXUP (p->f_head);
@@ -747,10 +747,10 @@ static mm_cache_entry *eaccelerator_store_int (char *key, int len,
   ea_debug_printf (EA_DEBUG, "[%d] eaccelerator_store_int: key='%s'\n", 
           getpid (), key);
 
-  MMCG (compress) = 1;
-  zend_hash_init (&MMCG (strings), 0, NULL, NULL, 0);
-  p = (mm_cache_entry *) MMCG (mem);
-  MMCG (mem) += offsetof (mm_cache_entry, realfilename) + len + 1;
+  EAG (compress) = 1;
+  zend_hash_init (&EAG (strings), 0, NULL, NULL, 0);
+  p = (mm_cache_entry *) EAG (mem);
+  EAG (mem) += offsetof (mm_cache_entry, realfilename) + len + 1;
 
   p->nhits = 0;
   p->use_cnt = 0;
@@ -759,7 +759,7 @@ static mm_cache_entry *eaccelerator_store_int (char *key, int len,
   p->c_head = NULL;
   memcpy (p->realfilename, key, len + 1);
   x = p->realfilename;
-  zend_hash_add (&MMCG (strings), key, len + 1, &x, sizeof (char *), NULL);
+  zend_hash_add (&EAG (strings), key, len + 1, &x, sizeof (char *), NULL);
 
   q = NULL;
   while (c != NULL) {
@@ -768,9 +768,9 @@ static mm_cache_entry *eaccelerator_store_int (char *key, int len,
             "[%d] eaccelerator_store_int:     class hashkey=", getpid ());
     ea_debug_binary_print (EA_DEBUG, c->arKey, c->nKeyLength);
 
-    EACCELERATOR_ALIGN (MMCG (mem));
-    fc = (mm_fc_entry *) MMCG (mem);
-    MMCG (mem) += offsetof (mm_fc_entry, htabkey) + c->nKeyLength;
+    EACCELERATOR_ALIGN (EAG (mem));
+    fc = (mm_fc_entry *) EAG (mem);
+    EAG (mem) += offsetof (mm_fc_entry, htabkey) + c->nKeyLength;
     memcpy (fc->htabkey, c->arKey, c->nKeyLength);
     fc->htablen = c->nKeyLength;
     fc->next = NULL;
@@ -781,7 +781,7 @@ static mm_cache_entry *eaccelerator_store_int (char *key, int len,
 #endif
     c = c->pListNext;
     x = fc->htabkey;
-    zend_hash_add (&MMCG (strings), fc->htabkey, fc->htablen, &x, 
+    zend_hash_add (&EAG (strings), fc->htabkey, fc->htablen, &x, 
             sizeof (char *), NULL);
     if (q == NULL) {
       p->c_head = fc;
@@ -797,16 +797,16 @@ static mm_cache_entry *eaccelerator_store_int (char *key, int len,
       ea_debug_printf (EA_DEBUG, 
               "[%d] eaccelerator_store_int:     function hashkey='%s'\n", getpid (), f->arKey);
 
-      EACCELERATOR_ALIGN (MMCG (mem));
-      fc = (mm_fc_entry *) MMCG (mem);
-      MMCG (mem) += offsetof (mm_fc_entry, htabkey) + f->nKeyLength;
+      EACCELERATOR_ALIGN (EAG (mem));
+      fc = (mm_fc_entry *) EAG (mem);
+      EAG (mem) += offsetof (mm_fc_entry, htabkey) + f->nKeyLength;
       memcpy (fc->htabkey, f->arKey, f->nKeyLength);
       fc->htablen = f->nKeyLength;
       fc->next = NULL;
       fc->fc = f->pData;
       f = f->pListNext;
       x = fc->htabkey;
-      zend_hash_add (&MMCG (strings), fc->htabkey, fc->htablen, &x,
+      zend_hash_add (&EAG (strings), fc->htabkey, fc->htablen, &x,
               sizeof (char *), NULL);
       if (q == NULL) {
           p->f_head = fc;
@@ -833,7 +833,7 @@ static mm_cache_entry *eaccelerator_store_int (char *key, int len,
   }
   p->op_array = store_op_array (op_array TSRMLS_CC);
 
-  zend_hash_destroy (&MMCG (strings));
+  zend_hash_destroy (&EAG (strings));
   return p;
 }
 
@@ -857,17 +857,17 @@ static int eaccelerator_store(char* key, struct stat *buf, int nreloads,
     return 0;
   }
   EACCELERATOR_UNPROTECT();
-  MMCG(mem) = eaccelerator_malloc(size);
-  if (MMCG(mem) == NULL) {
-    MMCG(mem) = eaccelerator_malloc2(size TSRMLS_CC);
+  EAG(mem) = eaccelerator_malloc(size);
+  if (EAG(mem) == NULL) {
+    EAG(mem) = eaccelerator_malloc2(size TSRMLS_CC);
   }
-  if (!MMCG(mem) && !eaccelerator_scripts_shm_only) {
+  if (!EAG(mem) && !eaccelerator_scripts_shm_only) {
     EACCELERATOR_PROTECT();
-    MMCG(mem) = emalloc(size);
+    EAG(mem) = emalloc(size);
     use_shm = 0;
   }
-  if (MMCG(mem)) {
-    memset(MMCG(mem), 0, size);
+  if (EAG(mem)) {
+    memset(EAG(mem), 0, size);
     p = eaccelerator_store_int(key, len, op_array, f, c TSRMLS_CC);
     p->mtime    = buf->st_mtime;
     p->filesize = buf->st_size;
@@ -913,22 +913,22 @@ static zend_op_array* eaccelerator_restore(char *realname, struct stat *buf,
   }
   EACCELERATOR_PROTECT();
   if (p != NULL && p->op_array != NULL) {
-    MMCG(class_entry) = NULL;
+    EAG(class_entry) = NULL;
     op_array = restore_op_array(NULL, p->op_array TSRMLS_CC);
     if (op_array != NULL) {
       mm_fc_entry *e;
       mm_used_entry *used = emalloc(sizeof(mm_used_entry));
       used->entry  = p;
-      used->next   = (mm_used_entry*)MMCG(used_entries);
-      MMCG(used_entries) = (void*)used;
-      MMCG(mem) = op_array->filename;
+      used->next   = (mm_used_entry*)EAG(used_entries);
+      EAG(used_entries) = (void*)used;
+      EAG(mem) = op_array->filename;
       for (e = p->c_head; e!=NULL; e = e->next) {
         restore_class(e TSRMLS_CC);
       }
       for (e = p->f_head; e!=NULL; e = e->next) {
         restore_function(e TSRMLS_CC);
       }
-      MMCG(mem) = p->realfilename;
+      EAG(mem) = p->realfilename;
     }
   }
   return op_array;
@@ -1012,12 +1012,12 @@ static int eaccelerator_ok_to_cache(char *realname TSRMLS_DC) {
   mm_cond_entry *p;
   int ok;
 
-  if (MMCG(cond_list) == NULL) {
+  if (EAG(cond_list) == NULL) {
     return 1;
   }
 
   /* if "realname" matches to any pattern started with "!" then ignore it */
-  for (p = MMCG(cond_list); p != NULL; p = p->next) {
+  for (p = EAG(cond_list); p != NULL; p = p->next) {
     if (p->not && match(realname, p->str)) {
       return 0;
     }
@@ -1025,7 +1025,7 @@ static int eaccelerator_ok_to_cache(char *realname TSRMLS_DC) {
 
   /* else if it matches to any pattern not started with "!" then accept it */
   ok = 1;
-  for (p = MMCG(cond_list); p != NULL; p = p->next) {
+  for (p = EAG(cond_list); p != NULL; p = p->next) {
     if (!p->not) {
       ok = 0;
       if (match(realname, p->str)) {
@@ -1223,7 +1223,7 @@ ZEND_DLEXPORT zend_op_array* eaccelerator_compile_file(zend_file_handle *file_ha
   ea_debug_printf(EA_DEBUG, "[%d] Enter COMPILE\n",getpid());
   ea_debug_printf(EA_DEBUG, "[%d] compile_file: \"%s\"\n",getpid(), file_handle->filename);
 #ifdef DEBUG
-  MMCG(xpad)+=2;
+  EAG(xpad)+=2;
 #endif
   compile_time = time(0);
   stat_result = eaccelerator_stat(file_handle, realname, &buf TSRMLS_CC);
@@ -1232,7 +1232,7 @@ ZEND_DLEXPORT zend_op_array* eaccelerator_compile_file(zend_file_handle *file_ha
 		getpid(), file_handle->filename);
   }
   
-  if (!MMCG(enabled) || (eaccelerator_mm_instance == NULL) ||
+  if (!EAG(enabled) || (eaccelerator_mm_instance == NULL) ||
       !eaccelerator_mm_instance->enabled || file_handle == NULL ||
       file_handle->filename == NULL || stat_result != 0 ||
 #ifdef EACCELERATOR_USE_INODE
@@ -1245,7 +1245,7 @@ ZEND_DLEXPORT zend_op_array* eaccelerator_compile_file(zend_file_handle *file_ha
     ea_debug_printf(EA_TEST_PERFORMANCE, "\t[%d] compile_file: end (%ld)\n", getpid(), ea_debug_elapsed_time(&tv_start));
     ea_debug_printf(EA_DEBUG, "\t[%d] compile_file: end\n", getpid());
 #ifdef DEBUG
-    MMCG(xpad)-=2;
+    EAG(xpad)-=2;
 #endif
     ea_debug_printf(EA_DEBUG, "[%d] Leave COMPILE\n", getpid());
     return t;
@@ -1272,22 +1272,22 @@ ZEND_DLEXPORT zend_op_array* eaccelerator_compile_file(zend_file_handle *file_ha
 #ifdef ZEND_ENGINE_2
     if (file_handle->opened_path == NULL && file_handle->type != ZEND_HANDLE_STREAM) {
       file_handle->handle.stream.handle = (void*)1;
-      file_handle->opened_path = MMCG(mem);
+      file_handle->opened_path = EAG(mem);
 #else
     if (file_handle->opened_path == NULL && file_handle->type != ZEND_HANDLE_FP) {
       int dummy = 1;
-      file_handle->opened_path = MMCG(mem);
+      file_handle->opened_path = EAG(mem);
       zend_hash_add(&EG(included_files), file_handle->opened_path, strlen(file_handle->opened_path)+1, (void *)&dummy, sizeof(int), NULL);
       file_handle->handle.fp = NULL;
 #endif
 /*??? I don't understud way estrdup is not need
-      file_handle->opened_path = estrdup(MMCG(mem));
+      file_handle->opened_path = estrdup(EAG(mem));
 */
     }
     ea_debug_printf(EA_TEST_PERFORMANCE, "\t[%d] compile_file: restored (%ld)\n", getpid(), ea_debug_elapsed_time(&tv_start));
     ea_debug_printf(EA_DEBUG, "\t[%d] compile_file: restored\n", getpid());
 #ifdef DEBUG
-    MMCG(xpad)-=2;
+    EAG(xpad)-=2;
 #endif
     ea_debug_printf(EA_DEBUG, "[%d] Leave COMPILE\n", getpid());
     return t;
@@ -1338,8 +1338,8 @@ ZEND_DLEXPORT zend_op_array* eaccelerator_compile_file(zend_file_handle *file_ha
     ea_debug_printf(EA_TEST_PERFORMANCE, "\t[%d] compile_file: compiling (%ld)\n",getpid(),ea_debug_elapsed_time(&tv_start));
     ea_debug_printf(EA_DEBUG, "\t[%d] compile_file: compiling tmp_class_table=%d class_table=%d\n", 
         getpid(), tmp_class_table.nNumOfElements, orig_class_table->nNumOfElements);
-    if (MMCG(optimizer_enabled) && eaccelerator_mm_instance->optimizer_enabled) {
-      MMCG(compiler) = 1;
+    if (EAG(optimizer_enabled) && eaccelerator_mm_instance->optimizer_enabled) {
+      EAG(compiler) = 1;
     }
 
     bailout = 0;
@@ -1363,7 +1363,7 @@ ZEND_DLEXPORT zend_op_array* eaccelerator_compile_file(zend_file_handle *file_ha
       file_handle->opened_path = t->filename;
     }
 */
-    MMCG(compiler) = 0;
+    EAG(compiler) = 0;
     if (t != NULL &&
         file_handle->opened_path != NULL &&
 #ifdef EACCELERATOR_USE_INODE
@@ -1506,7 +1506,7 @@ ZEND_DLEXPORT zend_op_array* eaccelerator_compile_file(zend_file_handle *file_ha
   ea_debug_printf(EA_TEST_PERFORMANCE, "\t[%d] compile_file: end (%ld)\n", getpid(), ea_debug_elapsed_time(&tv_start));
   ea_debug_printf(EA_DEBUG, "\t[%d] compile_file: end\n", getpid());
 #ifdef DEBUG
-  MMCG(xpad)-=2;
+  EAG(xpad)-=2;
 #endif
   ea_debug_printf(EA_DEBUG, "[%d] Leave COMPILE\n", getpid());
   return t;
@@ -1519,24 +1519,24 @@ static void profile_execute(zend_op_array *op_array TSRMLS_DC)
   struct timeval tv_start;
   long usec;
 
-  for (i=0;i<MMCG(profile_level);i++)
+  for (i=0;i<EAG(profile_level);i++)
     ea_debug_put(EA_PROFILE_OPCODES, "  ");
   ea_debug_printf(EA_PROFILE_OPCODES, "enter: %s:%s\n", op_array->filename, op_array->function_name);
   ea_debug_start_time(&tv_start);
-  MMCG(self_time)[MMCG(profile_level)] = 0;
-  MMCG(profile_level)++;
+  EAG(self_time)[EAG(profile_level)] = 0;
+  EAG(profile_level)++;
 #ifdef WITH_EACCELERATOR_EXECUTOR
   eaccelerator_execute(op_array TSRMLS_CC);
 #else
   mm_saved_zend_execute(op_array TSRMLS_CC);
 #endif
   usec = ea_debug_elapsed_time(&tv_start);
-  MMCG(profile_level)--;
-  if (MMCG(profile_level) > 0)
-    MMCG(self_time)[MMCG(profile_level)-1] += usec;
-  for (i=0;i<MMCG(profile_level);i++)
+  EAG(profile_level)--;
+  if (EAG(profile_level) > 0)
+    EAG(self_time)[EAG(profile_level)-1] += usec;
+  for (i=0;i<EAG(profile_level);i++)
     ea_debug_put(EA_PROFILE_OPCODES, "  ");
-  ea_debug_printf(EA_PROFILE_OPCODES, "leave: %s:%s (%ld,%ld)\n", op_array->filename, op_array->function_name, usec, usec-MMCG(self_time)[MMCG(profile_level)]);
+  ea_debug_printf(EA_PROFILE_OPCODES, "leave: %s:%s (%ld,%ld)\n", op_array->filename, op_array->function_name, usec, usec-EAG(self_time)[EAG(profile_level)]);
 }
 
 ZEND_DLEXPORT zend_op_array* profile_compile_file(zend_file_handle *file_handle, int type TSRMLS_DC) {
@@ -1546,12 +1546,12 @@ ZEND_DLEXPORT zend_op_array* profile_compile_file(zend_file_handle *file_handle,
   long usec;
 
   ea_debug_start_time(&tv_start);
-  MMCG(self_time)[MMCG(profile_level)] = 0;
+  EAG(self_time)[EAG(profile_level)] = 0;
   t = eaccelerator_compile_file(file_handle, type TSRMLS_CC);
   usec = ea_debug_elapsed_time(&tv_start);
-  if (MMCG(profile_level) > 0)
-    MMCG(self_time)[MMCG(profile_level)-1] += usec;
-  for (i=0;i<MMCG(profile_level);i++)
+  if (EAG(profile_level) > 0)
+    EAG(self_time)[EAG(profile_level)-1] += usec;
+  for (i=0;i<EAG(profile_level);i++)
     ea_debug_put(EA_PROFILE_OPCODES, "  ");
   ea_debug_printf(EA_DEBUG, "compile: %s (%ld)\n", file_handle->filename, usec);
   return t;
@@ -1592,8 +1592,8 @@ PHP_MINFO_FUNCTION(eaccelerator) {
   php_info_print_table_start();
   php_info_print_table_header(2, "eAccelerator support", "enabled");
   php_info_print_table_row(2, "Version", EACCELERATOR_VERSION);
-  php_info_print_table_row(2, "Caching Enabled", (MMCG(enabled) && (eaccelerator_mm_instance != NULL) && eaccelerator_mm_instance->enabled)?"true":"false");
-  php_info_print_table_row(2, "Optimizer Enabled", (MMCG(optimizer_enabled) && (eaccelerator_mm_instance != NULL) && eaccelerator_mm_instance->optimizer_enabled)?"true":"false");
+  php_info_print_table_row(2, "Caching Enabled", (EAG(enabled) && (eaccelerator_mm_instance != NULL) && eaccelerator_mm_instance->enabled)?"true":"false");
+  php_info_print_table_row(2, "Optimizer Enabled", (EAG(optimizer_enabled) && (eaccelerator_mm_instance != NULL) && eaccelerator_mm_instance->optimizer_enabled)?"true":"false");
   if (eaccelerator_mm_instance != NULL) {
     size_t available;
     EACCELERATOR_UNPROTECT();
@@ -1641,14 +1641,14 @@ PHP_INI_MH(eaccelerator_filter) {
   char *s = new_value;
   char *ss;
   int  not;
-  for (p = MMCG(cond_list); p != NULL; p = q) {
+  for (p = EAG(cond_list); p != NULL; p = q) {
     q = p->next;
     if (p->str) {
       free(p->str);
     }
     free(p);
   }
-  MMCG(cond_list) = NULL;
+  EAG(cond_list) = NULL;
   while (*s) {
     for (; *s == ' ' || *s == '\t'; s++)
       ;
@@ -1672,8 +1672,8 @@ PHP_INI_MH(eaccelerator_filter) {
       p->str = malloc(p->len+1);
       memcpy(p->str, ss, p->len);
       p->str[p->len] = 0;
-      p->next = MMCG(cond_list);
-      MMCG(cond_list) = p;
+      p->next = EAG(cond_list);
+      EAG(cond_list) = p;
     }
   }
   return SUCCESS;
@@ -1727,7 +1727,7 @@ STD_PHP_INI_ENTRY("eaccelerator.name_space",      "", PHP_INI_SYSTEM, OnUpdateSt
 PHP_INI_END()
 
 static void eaccelerator_clean_request(TSRMLS_D) {
-  mm_used_entry  *p = (mm_used_entry*)MMCG(used_entries);
+  mm_used_entry  *p = (mm_used_entry*)EAG(used_entries);
   if (eaccelerator_mm_instance != NULL) {
     EACCELERATOR_UNPROTECT();
     mm_unlock(eaccelerator_mm_instance->mm);
@@ -1779,7 +1779,7 @@ static void eaccelerator_clean_request(TSRMLS_D) {
       EACCELERATOR_UNLOCK_RW();
     }
     EACCELERATOR_PROTECT();
-    p = (mm_used_entry*)MMCG(used_entries);
+    p = (mm_used_entry*)EAG(used_entries);
     while (p != NULL) {
       mm_used_entry* r = p;
       p = p->next;
@@ -1789,8 +1789,8 @@ static void eaccelerator_clean_request(TSRMLS_D) {
       efree(r);
     }
   }
-  MMCG(used_entries) = NULL;
-  MMCG(in_request) = 0;
+  EAG(used_entries) = NULL;
+  EAG(in_request) = 0;
 }
 
 #if (__GNUC__ >= 3) || ((__GNUC__ == 2) && (__GNUC_MINOR__ >= 91))
@@ -1801,7 +1801,7 @@ void _fini(void)
 {
   if (eaccelerator_mm_instance != NULL) {
     TSRMLS_FETCH();
-    if (MMCG(in_request)) {
+    if (EAG(in_request)) {
       fflush(stdout);
       fflush(stderr);
       eaccelerator_clean_request(TSRMLS_C);
@@ -1826,36 +1826,36 @@ static void eaccelerator_crash_handler(int dummy) {
   fflush(stdout);
   fflush(stderr);
 #ifdef SIGSEGV
-  if (MMCG(original_sigsegv_handler) != eaccelerator_crash_handler) {
-    signal(SIGSEGV, MMCG(original_sigsegv_handler));
+  if (EAG(original_sigsegv_handler) != eaccelerator_crash_handler) {
+    signal(SIGSEGV, EAG(original_sigsegv_handler));
   } else {
     signal(SIGSEGV, SIG_DFL);
   }
 #endif
 #ifdef SIGFPE
-  if (MMCG(original_sigfpe_handler) != eaccelerator_crash_handler) {
-    signal(SIGFPE, MMCG(original_sigfpe_handler));
+  if (EAG(original_sigfpe_handler) != eaccelerator_crash_handler) {
+    signal(SIGFPE, EAG(original_sigfpe_handler));
   } else {
     signal(SIGFPE, SIG_DFL);
   }
 #endif
 #ifdef SIGBUS
-  if (MMCG(original_sigbus_handler) != eaccelerator_crash_handler) {
-    signal(SIGBUS, MMCG(original_sigbus_handler));
+  if (EAG(original_sigbus_handler) != eaccelerator_crash_handler) {
+    signal(SIGBUS, EAG(original_sigbus_handler));
   } else {
     signal(SIGBUS, SIG_DFL);
   }
 #endif
 #ifdef SIGILL
-  if (MMCG(original_sigill_handler) != eaccelerator_crash_handler) {
-    signal(SIGILL, MMCG(original_sigill_handler));
+  if (EAG(original_sigill_handler) != eaccelerator_crash_handler) {
+    signal(SIGILL, EAG(original_sigill_handler));
   } else {
     signal(SIGILL, SIG_DFL);
   }
 #endif
 #ifdef SIGABRT
-  if (MMCG(original_sigabrt_handler) != eaccelerator_crash_handler) {
-    signal(SIGABRT, MMCG(original_sigabrt_handler));
+  if (EAG(original_sigabrt_handler) != eaccelerator_crash_handler) {
+    signal(SIGABRT, EAG(original_sigabrt_handler));
   } else {
     signal(SIGABRT, SIG_DFL);
   }
@@ -2069,15 +2069,15 @@ PHP_RINIT_FUNCTION(eaccelerator)
 	ea_debug_printf(EA_DEBUG, "[%d] Enter RINIT\n",getpid());
 	ea_debug_put(EA_PROFILE_OPCODES, "\n========================================\n");
 
-	MMCG(in_request) = 1;
-	MMCG(used_entries) = NULL;
-	MMCG(compiler) = 0;
-	MMCG(encoder) = 0;
-	MMCG(refcount_helper) = 1;
-	MMCG(compress_content) = 1;
-	MMCG(content_headers) = NULL;
+	EAG(in_request) = 1;
+	EAG(used_entries) = NULL;
+	EAG(compiler) = 0;
+	EAG(encoder) = 0;
+	EAG(refcount_helper) = 1;
+	EAG(compress_content) = 1;
+	EAG(content_headers) = NULL;
 	/* Storing Host Name */
-	MMCG(hostname)[0] = '\000';
+	EAG(hostname)[0] = '\000';
 	{
 		zval  **server_vars, **hostname;
 
@@ -2087,37 +2087,37 @@ PHP_RINIT_FUNCTION(eaccelerator)
 			Z_TYPE_PP(hostname) == IS_STRING &&
 			Z_STRLEN_PP(hostname) > 0)
 		{
-			if (sizeof(MMCG(hostname)) > Z_STRLEN_PP(hostname))
+			if (sizeof(EAG(hostname)) > Z_STRLEN_PP(hostname))
 			{
-				memcpy(MMCG(hostname),Z_STRVAL_PP(hostname),Z_STRLEN_PP(hostname)+1);
+				memcpy(EAG(hostname),Z_STRVAL_PP(hostname),Z_STRLEN_PP(hostname)+1);
 			}
 			else
 			{
-				memcpy(MMCG(hostname),Z_STRVAL_PP(hostname),sizeof(MMCG(hostname))-1);
-				MMCG(hostname)[sizeof(MMCG(hostname))-1] = '\000';
+				memcpy(EAG(hostname),Z_STRVAL_PP(hostname),sizeof(EAG(hostname))-1);
+				EAG(hostname)[sizeof(EAG(hostname))-1] = '\000';
 			}
 		}
 	}
 	ea_debug_printf(EA_DEBUG, "[%d] Leave RINIT\n",getpid());
 #ifdef DEBUG
-	MMCG(xpad) = 0;
-	MMCG(profile_level) = 0;
+	EAG(xpad) = 0;
+	EAG(profile_level) = 0;
 #endif
 #ifdef WITH_EACCELERATOR_CRASH_DETECTION
 #ifdef SIGSEGV
-	MMCG(original_sigsegv_handler) = signal(SIGSEGV, eaccelerator_crash_handler);
+	EAG(original_sigsegv_handler) = signal(SIGSEGV, eaccelerator_crash_handler);
 #endif
 #ifdef SIGFPE
-	MMCG(original_sigfpe_handler) = signal(SIGFPE, eaccelerator_crash_handler);
+	EAG(original_sigfpe_handler) = signal(SIGFPE, eaccelerator_crash_handler);
 #endif
 #ifdef SIGBUS
-	MMCG(original_sigbus_handler) = signal(SIGBUS, eaccelerator_crash_handler);
+	EAG(original_sigbus_handler) = signal(SIGBUS, eaccelerator_crash_handler);
 #endif
 #ifdef SIGILL
-	MMCG(original_sigill_handler) = signal(SIGILL, eaccelerator_crash_handler);
+	EAG(original_sigill_handler) = signal(SIGILL, eaccelerator_crash_handler);
 #endif
 #ifdef SIGABRT
-	MMCG(original_sigabrt_handler) = signal(SIGABRT, eaccelerator_crash_handler);
+	EAG(original_sigabrt_handler) = signal(SIGABRT, eaccelerator_crash_handler);
 #endif
 #endif
 	return SUCCESS;
@@ -2131,9 +2131,9 @@ PHP_RSHUTDOWN_FUNCTION(eaccelerator)
 	}
 #ifdef WITH_EACCELERATOR_CRASH_DETECTION
 #ifdef SIGSEGV
-	if (MMCG(original_sigsegv_handler) != eaccelerator_crash_handler)
+	if (EAG(original_sigsegv_handler) != eaccelerator_crash_handler)
 	{
-		signal(SIGSEGV, MMCG(original_sigsegv_handler));
+		signal(SIGSEGV, EAG(original_sigsegv_handler));
 	}
 	else
 	{
@@ -2141,9 +2141,9 @@ PHP_RSHUTDOWN_FUNCTION(eaccelerator)
 	}
 #endif
 #ifdef SIGFPE
-	if (MMCG(original_sigfpe_handler) != eaccelerator_crash_handler)
+	if (EAG(original_sigfpe_handler) != eaccelerator_crash_handler)
 	{
-		signal(SIGFPE, MMCG(original_sigfpe_handler));
+		signal(SIGFPE, EAG(original_sigfpe_handler));
 	}
 	else
 	{
@@ -2151,9 +2151,9 @@ PHP_RSHUTDOWN_FUNCTION(eaccelerator)
 	}
 #endif
 #ifdef SIGBUS
-	if (MMCG(original_sigbus_handler) != eaccelerator_crash_handler)
+	if (EAG(original_sigbus_handler) != eaccelerator_crash_handler)
 	{
-		signal(SIGBUS, MMCG(original_sigbus_handler));
+		signal(SIGBUS, EAG(original_sigbus_handler));
 	}
 	else
 	{
@@ -2161,9 +2161,9 @@ PHP_RSHUTDOWN_FUNCTION(eaccelerator)
 	}
 #endif
 #ifdef SIGILL
-	if (MMCG(original_sigill_handler) != eaccelerator_crash_handler)
+	if (EAG(original_sigill_handler) != eaccelerator_crash_handler)
 	{
-		signal(SIGILL, MMCG(original_sigill_handler));
+		signal(SIGILL, EAG(original_sigill_handler));
 	}
 	else
 	{
@@ -2171,9 +2171,9 @@ PHP_RSHUTDOWN_FUNCTION(eaccelerator)
 	}
 #endif
 #ifdef SIGABRT
-	if (MMCG(original_sigabrt_handler) != eaccelerator_crash_handler)
+	if (EAG(original_sigabrt_handler) != eaccelerator_crash_handler)
 	{
-		signal(SIGABRT, MMCG(original_sigabrt_handler));
+		signal(SIGABRT, EAG(original_sigabrt_handler));
 	}
 	else
 	{

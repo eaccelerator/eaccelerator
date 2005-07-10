@@ -98,7 +98,7 @@ static void fixup_hash (HashTable * source,
     Bucket *p;
 
     if (source->nNumOfElements > 0) {
-        if (!MMCG (compress)) {
+        if (!EAG (compress)) {
             if (source->arBuckets != NULL) {
                 FIXUP (source->arBuckets);
                 for (i = 0; i < source->nTableSize; i++) {
@@ -150,7 +150,7 @@ void fixup_zval (zval * zv TSRMLS_DC)
             }
             break;
         case IS_OBJECT:
-            if (!MMCG (compress)) {
+            if (!EAG (compress)) {
                 return;
             }
 #ifndef ZEND_ENGINE_2
@@ -195,7 +195,7 @@ void fixup_op_array (eaccelerator_op_array * from TSRMLS_DC)
 
         opline = from->opcodes;
         end = opline + from->last;
-        MMCG (compress) = 0;
+        EAG (compress) = 0;
         for (; opline < end; opline++) {
             /*
                if (opline->result.op_type == IS_CONST) fixup_zval(&opline->result.u.constant  TSRMLS_CC);
@@ -219,7 +219,7 @@ void fixup_op_array (eaccelerator_op_array * from TSRMLS_DC)
             opline->handler = get_opcode_handler (opline->opcode TSRMLS_CC);
 #endif
         }
-        MMCG (compress) = 1;
+        EAG (compress) = 1;
     }
     FIXUP (from->brk_cont_array);
 #ifdef ZEND_ENGINE_2
@@ -367,7 +367,7 @@ void restore_zval (zval * zv TSRMLS_DC)
                 zend_bool incomplete_class = 0;
                 char *class_name = (char *) zv->value.obj.ce;
                 int name_len = 0;
-                if (!MMCG (compress)) {
+                if (!EAG (compress)) {
                     return;
                 }
                 if (class_name != NULL) {
@@ -513,11 +513,11 @@ zend_op_array *restore_op_array (zend_op_array * to,
     to->fn_flags = from->fn_flags;
 
     /* segv74:
-     * to->scope = MMCG(class_entry)
+     * to->scope = EAG(class_entry)
      *
      * if  from->scope_name == NULL,
-     *     ; MMCG(class) == NULL  : we are in function or outside function.
-     *     ; MMCG(class) != NULL  : inherited method not defined in current file, should have to find.
+     *     ; EAG(class) == NULL  : we are in function or outside function.
+     *     ; EAG(class) != NULL  : inherited method not defined in current file, should have to find.
      *                              just LINK (zend_op_array *) to to original entry in parent,
      *                              but, with what? !!! I don't know PARENT CLASS NAME !!!!
      *
@@ -527,7 +527,7 @@ zend_op_array *restore_op_array (zend_op_array * to,
      *
      *     ; we have to find appropriate (zend_class_entry*) to->scope for name from->scope_name
      *     ; if we find in CG(class_table), link to it.
-     *     ; if fail, it should be MMCG(class_entry)
+     *     ; if fail, it should be EAG(class_entry)
      *    
      * am I right here ? ;-(
      */
@@ -539,9 +539,9 @@ zend_op_array *restore_op_array (zend_op_array * to,
                  (void **) &to->scope) != SUCCESS) {
             ea_debug_pad (EA_DEBUG TSRMLS_CC);
             ea_debug_printf (EA_DEBUG,
-                    "[%d]                   can't find '%s' in hash. use MMCG(class_entry).\n",
+                    "[%d]                   can't find '%s' in hash. use EAG(class_entry).\n",
                     getpid (), from_scope_lc);
-            to->scope = MMCG (class_entry);
+            to->scope = EAG (class_entry);
         } else {
             ea_debug_pad (EA_DEBUG TSRMLS_CC);
             ea_debug_printf (EA_DEBUG,
@@ -554,10 +554,10 @@ zend_op_array *restore_op_array (zend_op_array * to,
         ea_debug_pad (EA_DEBUG TSRMLS_CC);
         ea_debug_printf (EA_DEBUG, "[%d]                   from is NULL\n",
                 getpid ());
-        if (MMCG (class_entry)) {
+        if (EAG (class_entry)) {
             zend_class_entry *p;
 
-            for (p = MMCG (class_entry)->parent; p; p = p->parent) {
+            for (p = EAG (class_entry)->parent; p; p = p->parent) {
                 ea_debug_pad (EA_DEBUG TSRMLS_CC);
                 ea_debug_printf (EA_DEBUG,
                         "[%d]                   checking parent '%s' have '%s'\n",
@@ -585,7 +585,7 @@ zend_op_array *restore_op_array (zend_op_array * to,
             to->scope ? to->scope->name : "NULL");
 #endif
     if (from->type == ZEND_INTERNAL_FUNCTION) {
-        zend_class_entry *ce = MMCG (class_entry);
+        zend_class_entry *ce = EAG (class_entry);
         ea_debug_pad (EA_DEBUG TSRMLS_CC);
         ea_debug_printf (EA_DEBUG,
                 "[%d]                   [internal function from=%08x,to=%08x] ce='%s' [%08x]\n",
@@ -663,7 +663,7 @@ zend_op_array *restore_op_array (zend_op_array * to,
         to->static_variables = restore_zval_hash (NULL, from->static_variables);
         to->static_variables->pDestructor = ZVAL_PTR_DTOR;
 #ifndef ZEND_ENGINE_2
-        if (MMCG (class_entry) != NULL) {
+        if (EAG (class_entry) != NULL) {
             Bucket *p = to->static_variables->pListHead;
             while (p != NULL) {
                 ((zval *) (p->pDataPtr))->refcount = 1;
@@ -674,8 +674,8 @@ zend_op_array *restore_op_array (zend_op_array * to,
     }
 
     /* disable deletion in destroy_op_array */
-    ++MMCG (refcount_helper);
-    to->refcount = &MMCG (refcount_helper);
+    ++EAG (refcount_helper);
+    to->refcount = &EAG (refcount_helper);
 
     return to;
 }
@@ -717,7 +717,7 @@ static zend_class_entry *restore_class_entry (zend_class_entry * to,
     ea_debug_printf (EA_DEBUG, "[%d] retore_class_entry: %s\n", getpid (),
             from->name ? from->name : "(top)");
 #ifdef DEBUG
-    MMCG (xpad)++;
+    EAG (xpad)++;
 #endif
     if (to == NULL) {
         to = emalloc (sizeof (zend_class_entry));
@@ -816,8 +816,8 @@ static zend_class_entry *restore_class_entry (zend_class_entry * to,
         to->parent = NULL;
     }
 
-    old = MMCG (class_entry);
-    MMCG (class_entry) = to;
+    old = EAG (class_entry);
+    EAG (class_entry) = to;
 
 #ifdef ZEND_ENGINE_2
     to->refcount = 1;
@@ -911,10 +911,10 @@ static zend_class_entry *restore_class_entry (zend_class_entry * to,
     efree (cname_lc);
 
 #endif
-    MMCG (class_entry) = old;
+    EAG (class_entry) = old;
 
 #ifdef DEBUG
-    MMCG (xpad)--;
+    EAG (xpad)--;
 #endif
 
     return to;
@@ -934,7 +934,7 @@ void restore_function (mm_fc_entry * p TSRMLS_DC)
                 (CG (function_table), p->htabkey, p->htablen, &op_array,
                  sizeof (zend_op_array), NULL) == FAILURE) {
             CG (in_compilation) = 1;
-            CG (compiled_filename) = MMCG (mem);
+            CG (compiled_filename) = EAG (mem);
 #ifdef ZEND_ENGINE_2
             CG (zend_lineno) = op_array.line_start;
 #else
@@ -978,7 +978,7 @@ void restore_class (mm_fc_entry * p TSRMLS_DC)
 #endif
                 {
                     CG (in_compilation) = 1;
-                    CG (compiled_filename) = MMCG (mem);
+                    CG (compiled_filename) = EAG (mem);
 #ifdef ZEND_ENGINE_2
                     CG (zend_lineno) = ce->line_start;
 #else

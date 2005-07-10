@@ -1,4 +1,10 @@
-2005-07-08 Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
+2005-07-10 Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
+
+        * Renamed some macros from MMC (mmcache) to EA (eg MMCG is now EAG)
+        * Added eA file header to mm.c, mm.h and x86-spinlocks.h
+        * Readded a hack to the loader to prevent zend2 segfaults
+
+2005-07-09 Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
         * A compile fix for php4 (bug #1235017)
         * Removed atexit code that only produced segfaults and didn't work

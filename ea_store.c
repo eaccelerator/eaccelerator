@@ -46,10 +46,10 @@ inline
 #endif
 static void calc_string (char *str, int len TSRMLS_DC)
 {
-    if (len > MAX_DUP_STR_LEN || zend_hash_add (&MMCG (strings), str, len, 
+    if (len > MAX_DUP_STR_LEN || zend_hash_add (&EAG (strings), str, len, 
                 &str, sizeof (char *), NULL) == SUCCESS) {
-        EACCELERATOR_ALIGN (MMCG (mem));
-        MMCG (mem) += len;
+        EACCELERATOR_ALIGN (EAG (mem));
+        EAG (mem) += len;
     }
 }
 
@@ -70,16 +70,16 @@ typedef void (*calc_bucket_t) (void *TSRMLS_DC);
 
 static void calc_zval_ptr (zval ** from TSRMLS_DC)
 {
-    EACCELERATOR_ALIGN (MMCG (mem));
-    MMCG (mem) += sizeof (zval);
+    EACCELERATOR_ALIGN (EAG (mem));
+    EAG (mem) += sizeof (zval);
     calc_zval (*from TSRMLS_CC);
 }
 
 #ifdef ZEND_ENGINE_2
 static void calc_property_info (zend_property_info * from TSRMLS_DC)
 {
-    EACCELERATOR_ALIGN (MMCG (mem));
-    MMCG (mem) += sizeof (zend_property_info);
+    EACCELERATOR_ALIGN (EAG (mem));
+    EAG (mem) += sizeof (zend_property_info);
     calc_string (from->name, from->name_length + 1 TSRMLS_CC);
 }
 
@@ -97,14 +97,14 @@ static void calc_hash_int (HashTable * source, Bucket * start,
     Bucket *p;
 
     if (source->nNumOfElements > 0) {
-        if (!MMCG (compress)) {
-            EACCELERATOR_ALIGN (MMCG (mem));
-            MMCG (mem) += source->nTableSize * sizeof (Bucket *);
+        if (!EAG (compress)) {
+            EACCELERATOR_ALIGN (EAG (mem));
+            EAG (mem) += source->nTableSize * sizeof (Bucket *);
         }
         p = start;
         while (p) {
-            EACCELERATOR_ALIGN (MMCG (mem));
-            MMCG (mem) += offsetof (Bucket, arKey) + p->nKeyLength;
+            EACCELERATOR_ALIGN (EAG (mem));
+            EAG (mem) += offsetof (Bucket, arKey) + p->nKeyLength;
             calc_bucket (p->pData TSRMLS_CC);
             p = p->pListNext;
         }
@@ -126,8 +126,8 @@ void calc_zval (zval * zv TSRMLS_DC)
     case IS_CONSTANT_ARRAY:
         if (zv->value.ht == NULL || zv->value.ht == &EG (symbol_table)) {
         } else {
-            EACCELERATOR_ALIGN (MMCG (mem));
-            MMCG (mem) += sizeof (HashTable);
+            EACCELERATOR_ALIGN (EAG (mem));
+            EAG (mem) += sizeof (HashTable);
             calc_zval_hash (zv->value.ht);
         }
         break;
@@ -135,7 +135,7 @@ void calc_zval (zval * zv TSRMLS_DC)
 #ifndef ZEND_ENGINE_2
         if (zv->value.obj.ce != NULL) {
             zend_class_entry *ce = zv->value.obj.ce;
-            if (!MMCG (compress)) {
+            if (!EAG (compress)) {
                 ea_debug_error ("[%d] EACCELERATOR can't cache objects\n",
                                 getpid ());
                 zend_bailout ();
@@ -153,8 +153,8 @@ void calc_zval (zval * zv TSRMLS_DC)
                          zv->value.obj.ce->name_length + 1 TSRMLS_CC);
         }
         if (zv->value.obj.properties != NULL) {
-            EACCELERATOR_ALIGN (MMCG (mem));
-            MMCG (mem) += sizeof (HashTable);
+            EACCELERATOR_ALIGN (EAG (mem));
+            EAG (mem) += sizeof (HashTable);
             calc_zval_hash (zv->value.obj.properties);
         }
 #endif
@@ -174,11 +174,11 @@ void calc_op_array (zend_op_array * from TSRMLS_DC)
     zend_op *end;
 
     if (from->type == ZEND_INTERNAL_FUNCTION) {
-        EACCELERATOR_ALIGN (MMCG (mem));
-        MMCG (mem) += sizeof (zend_internal_function);
+        EACCELERATOR_ALIGN (EAG (mem));
+        EAG (mem) += sizeof (zend_internal_function);
     } else if (from->type == ZEND_USER_FUNCTION) {
-        EACCELERATOR_ALIGN (MMCG (mem));
-        MMCG (mem) += sizeof (eaccelerator_op_array);
+        EACCELERATOR_ALIGN (EAG (mem));
+        EAG (mem) += sizeof (eaccelerator_op_array);
     } else {
         ea_debug_error ("[%d] EACCELERATOR can't cache function \"%s\"\n",
                         getpid (), from->function_name);
@@ -187,8 +187,8 @@ void calc_op_array (zend_op_array * from TSRMLS_DC)
 #ifdef ZEND_ENGINE_2
     if (from->num_args > 0) {
         zend_uint i;
-        EACCELERATOR_ALIGN (MMCG (mem));
-        MMCG (mem) += from->num_args * sizeof (zend_arg_info);
+        EACCELERATOR_ALIGN (EAG (mem));
+        EAG (mem) += from->num_args * sizeof (zend_arg_info);
         for (i = 0; i < from->num_args; i++) {
             if (from->arg_info[i].name) {
                 calc_string (from->arg_info[i].name,
@@ -228,12 +228,12 @@ void calc_op_array (zend_op_array * from TSRMLS_DC)
     }
 
     if (from->opcodes != NULL) {
-        EACCELERATOR_ALIGN (MMCG (mem));
-        MMCG (mem) += from->last * sizeof (zend_op);
+        EACCELERATOR_ALIGN (EAG (mem));
+        EAG (mem) += from->last * sizeof (zend_op);
 
         opline = from->opcodes;
         end = opline + from->last;
-        MMCG (compress) = 0;
+        EAG (compress) = 0;
         for (; opline < end; opline++) {
 /*
       if (opline->result.op_type == IS_CONST) calc_zval(&opline->result.u.constant  TSRMLS_CC);
@@ -243,22 +243,22 @@ void calc_op_array (zend_op_array * from TSRMLS_DC)
             if (opline->op2.op_type == IS_CONST)
                 calc_zval (&opline->op2.u.constant TSRMLS_CC);
         }
-        MMCG (compress) = 1;
+        EAG (compress) = 1;
     }
     if (from->brk_cont_array != NULL) {
-        EACCELERATOR_ALIGN (MMCG (mem));
-        MMCG (mem) += sizeof (zend_brk_cont_element) * from->last_brk_cont;
+        EACCELERATOR_ALIGN (EAG (mem));
+        EAG (mem) += sizeof (zend_brk_cont_element) * from->last_brk_cont;
     }
 #ifdef ZEND_ENGINE_2
     /* HOESH: try & catch support */
     if (from->try_catch_array != NULL) {
-        EACCELERATOR_ALIGN (MMCG (mem));
-        MMCG (mem) += sizeof (zend_try_catch_element) * from->last_try_catch;
+        EACCELERATOR_ALIGN (EAG (mem));
+        EAG (mem) += sizeof (zend_try_catch_element) * from->last_try_catch;
     }
 #endif
     if (from->static_variables != NULL) {
-        EACCELERATOR_ALIGN (MMCG (mem));
-        MMCG (mem) += sizeof (HashTable);
+        EACCELERATOR_ALIGN (EAG (mem));
+        EAG (mem) += sizeof (HashTable);
         calc_zval_hash (from->static_variables);
     }
     if (from->filename != NULL) {
@@ -279,8 +279,8 @@ void calc_class_entry (zend_class_entry * from TSRMLS_DC)
                         getpid (), from->name);
         zend_bailout ();
     }
-    EACCELERATOR_ALIGN (MMCG (mem));
-    MMCG (mem) += sizeof (eaccelerator_class_entry);
+    EACCELERATOR_ALIGN (EAG (mem));
+    EAG (mem) += sizeof (eaccelerator_class_entry);
 
     if (from->name != NULL) {
         calc_string (from->name, from->name_length + 1 TSRMLS_CC);
@@ -310,8 +310,8 @@ void calc_class_entry (zend_class_entry * from TSRMLS_DC)
     calc_zval_hash (&from->default_properties);
     calc_hash (&from->properties_info, (calc_bucket_t) calc_property_info);
     if (from->static_members != NULL) {
-        EACCELERATOR_ALIGN (MMCG (mem));
-        MMCG (mem) += sizeof (HashTable);
+        EACCELERATOR_ALIGN (EAG (mem));
+        EAG (mem) += sizeof (HashTable);
         calc_zval_hash (from->static_members);
     }
 #else
@@ -328,27 +328,27 @@ int calc_size (char *key, zend_op_array * op_array,
     Bucket *b;
     char *x;
     int len = strlen (key);
-    MMCG (compress) = 1;
-    MMCG (mem) = NULL;
+    EAG (compress) = 1;
+    EAG (mem) = NULL;
 
-    zend_hash_init (&MMCG (strings), 0, NULL, NULL, 0);
-    MMCG (mem) += offsetof (mm_cache_entry, realfilename) + len + 1;
-    zend_hash_add (&MMCG (strings), key, len + 1, &key, sizeof (char *), NULL);
+    zend_hash_init (&EAG (strings), 0, NULL, NULL, 0);
+    EAG (mem) += offsetof (mm_cache_entry, realfilename) + len + 1;
+    zend_hash_add (&EAG (strings), key, len + 1, &key, sizeof (char *), NULL);
     b = c;
     while (b != NULL) {
-        EACCELERATOR_ALIGN (MMCG (mem));
-        MMCG (mem) += offsetof (mm_fc_entry, htabkey) + b->nKeyLength;
+        EACCELERATOR_ALIGN (EAG (mem));
+        EAG (mem) += offsetof (mm_fc_entry, htabkey) + b->nKeyLength;
         x = b->arKey;
-        zend_hash_add (&MMCG (strings), b->arKey, b->nKeyLength, &x,
+        zend_hash_add (&EAG (strings), b->arKey, b->nKeyLength, &x,
                        sizeof (char *), NULL);
         b = b->pListNext;
     }
     b = f;
     while (b != NULL) {
-        EACCELERATOR_ALIGN (MMCG (mem));
-        MMCG (mem) += offsetof (mm_fc_entry, htabkey) + b->nKeyLength;
+        EACCELERATOR_ALIGN (EAG (mem));
+        EAG (mem) += offsetof (mm_fc_entry, htabkey) + b->nKeyLength;
         x = b->arKey;
-        zend_hash_add (&MMCG (strings), b->arKey, b->nKeyLength, &x,
+        zend_hash_add (&EAG (strings), b->arKey, b->nKeyLength, &x,
                        sizeof (char *), NULL);
         b = b->pListNext;
     }
@@ -365,9 +365,9 @@ int calc_size (char *key, zend_op_array * op_array,
         f = f->pListNext;
     }
     calc_op_array (op_array TSRMLS_CC);
-    EACCELERATOR_ALIGN (MMCG (mem));
-    zend_hash_destroy (&MMCG (strings));
-    return (size_t) MMCG (mem);
+    EACCELERATOR_ALIGN (EAG (mem));
+    zend_hash_destroy (&EAG (strings));
+    return (size_t) EAG (mem);
 }
 
 /** Functions to store a script **/
@@ -375,19 +375,19 @@ static inline char *store_string (char *str, int len TSRMLS_DC)
 {
     char *p;
     if (len > MAX_DUP_STR_LEN) {
-        EACCELERATOR_ALIGN (MMCG (mem));
-        p = (char *) MMCG (mem);
-        MMCG (mem) += len;
+        EACCELERATOR_ALIGN (EAG (mem));
+        p = (char *) EAG (mem);
+        EAG (mem) += len;
         memcpy (p, str, len);
-    } else if (zend_hash_find (&MMCG (strings), str, len, (void *) &p) ==
+    } else if (zend_hash_find (&EAG (strings), str, len, (void *) &p) ==
                SUCCESS) {
         p = *(char **) p;
     } else {
-        EACCELERATOR_ALIGN (MMCG (mem));
-        p = (char *) MMCG (mem);
-        MMCG (mem) += len;
+        EACCELERATOR_ALIGN (EAG (mem));
+        p = (char *) EAG (mem);
+        EAG (mem) += len;
         memcpy (p, str, len);
-        zend_hash_add (&MMCG (strings), str, len, (void *) &p, sizeof (char *),
+        zend_hash_add (&EAG (strings), str, len, (void *) &p, sizeof (char *),
                        NULL);
     }
     return p;
@@ -410,9 +410,9 @@ typedef void *(*store_bucket_t) (void *TSRMLS_DC);
 static zval *store_zval_ptr (zval * from TSRMLS_DC)
 {
     zval *to;
-    EACCELERATOR_ALIGN (MMCG (mem));
-    to = (zval *) MMCG (mem);
-    MMCG (mem) += sizeof (zval);
+    EACCELERATOR_ALIGN (EAG (mem));
+    to = (zval *) EAG (mem);
+    EAG (mem) += sizeof (zval);
     memcpy (to, from, sizeof (zval));
     store_zval (to TSRMLS_CC);
     return to;
@@ -427,10 +427,10 @@ static void store_hash_int (HashTable * target, HashTable * source,
     memcpy (target, source, sizeof (HashTable));
 
     if (source->nNumOfElements > 0) {
-        if (!MMCG (compress)) {
-            EACCELERATOR_ALIGN (MMCG (mem));
-            target->arBuckets = (Bucket **) MMCG (mem);
-            MMCG (mem) += target->nTableSize * sizeof (Bucket *);
+        if (!EAG (compress)) {
+            EACCELERATOR_ALIGN (EAG (mem));
+            target->arBuckets = (Bucket **) EAG (mem);
+            EAG (mem) += target->nTableSize * sizeof (Bucket *);
             memset (target->arBuckets, 0,
                     target->nTableSize * sizeof (Bucket *));
         }
@@ -444,11 +444,11 @@ static void store_hash_int (HashTable * target, HashTable * source,
         prev_p = NULL;
         np = NULL;
         while (p) {
-            EACCELERATOR_ALIGN (MMCG (mem));
-            np = (Bucket *) MMCG (mem);
-            MMCG (mem) += offsetof (Bucket, arKey) + p->nKeyLength;
+            EACCELERATOR_ALIGN (EAG (mem));
+            np = (Bucket *) EAG (mem);
+            EAG (mem) += offsetof (Bucket, arKey) + p->nKeyLength;
 
-            if (!MMCG (compress)) {
+            if (!EAG (compress)) {
                 int nIndex = p->h % source->nTableSize;
                 if (target->arBuckets[nIndex]) {
                     np->pNext = target->arBuckets[nIndex];
@@ -509,15 +509,15 @@ void store_zval (zval * zv TSRMLS_DC)
         if (zv->value.ht == NULL || zv->value.ht == &EG (symbol_table)) {
         } else {
             HashTable *p;
-            EACCELERATOR_ALIGN (MMCG (mem));
-            p = (HashTable *) MMCG (mem);
-            MMCG (mem) += sizeof (HashTable);
+            EACCELERATOR_ALIGN (EAG (mem));
+            p = (HashTable *) EAG (mem);
+            EAG (mem) += sizeof (HashTable);
             store_zval_hash (p, zv->value.ht);
             zv->value.ht = p;
         }
         break;
     case IS_OBJECT:
-        if (!MMCG (compress)) {
+        if (!EAG (compress)) {
             return;
         }
 #ifndef ZEND_ENGINE_2
@@ -530,9 +530,9 @@ void store_zval (zval * zv TSRMLS_DC)
         }
         if (zv->value.obj.properties != NULL) {
             HashTable *p;
-            EACCELERATOR_ALIGN (MMCG (mem));
-            p = (HashTable *) MMCG (mem);
-            MMCG (mem) += sizeof (HashTable);
+            EACCELERATOR_ALIGN (EAG (mem));
+            p = (HashTable *) EAG (mem);
+            EAG (mem) += sizeof (HashTable);
             store_zval_hash (p, zv->value.obj.properties);
             zv->value.obj.properties = p;
         }
@@ -560,13 +560,13 @@ eaccelerator_op_array *store_op_array (zend_op_array * from TSRMLS_DC)
                         );
 
     if (from->type == ZEND_INTERNAL_FUNCTION) {
-        EACCELERATOR_ALIGN (MMCG (mem));
-        to = (eaccelerator_op_array *) MMCG (mem);
-        MMCG (mem) += offsetof (eaccelerator_op_array, opcodes);
+        EACCELERATOR_ALIGN (EAG (mem));
+        to = (eaccelerator_op_array *) EAG (mem);
+        EAG (mem) += offsetof (eaccelerator_op_array, opcodes);
     } else if (from->type == ZEND_USER_FUNCTION) {
-        EACCELERATOR_ALIGN (MMCG (mem));
-        to = (eaccelerator_op_array *) MMCG (mem);
-        MMCG (mem) += sizeof (eaccelerator_op_array);
+        EACCELERATOR_ALIGN (EAG (mem));
+        to = (eaccelerator_op_array *) EAG (mem);
+        EAG (mem) += sizeof (eaccelerator_op_array);
     } else {
         return NULL;
     }
@@ -577,9 +577,9 @@ eaccelerator_op_array *store_op_array (zend_op_array * from TSRMLS_DC)
     to->required_num_args = from->required_num_args;
     if (from->num_args > 0) {
         zend_uint i;
-        EACCELERATOR_ALIGN (MMCG (mem));
-        to->arg_info = (zend_arg_info *) MMCG (mem);
-        MMCG (mem) += from->num_args * sizeof (zend_arg_info);
+        EACCELERATOR_ALIGN (EAG (mem));
+        to->arg_info = (zend_arg_info *) EAG (mem);
+        EAG (mem) += from->num_args * sizeof (zend_arg_info);
         for (i = 0; i < from->num_args; i++) {
             if (from->arg_info[i].name) {
                 to->arg_info[i].name =
@@ -676,14 +676,14 @@ eaccelerator_op_array *store_op_array (zend_op_array * from TSRMLS_DC)
     to->filename = from->filename;
 
     if (from->opcodes != NULL) {
-        EACCELERATOR_ALIGN (MMCG (mem));
-        to->opcodes = (zend_op *) MMCG (mem);
-        MMCG (mem) += from->last * sizeof (zend_op);
+        EACCELERATOR_ALIGN (EAG (mem));
+        to->opcodes = (zend_op *) EAG (mem);
+        EAG (mem) += from->last * sizeof (zend_op);
         memcpy (to->opcodes, from->opcodes, from->last * sizeof (zend_op));
 
         opline = to->opcodes;
         end = opline + to->last;
-        MMCG (compress) = 0;
+        EAG (compress) = 0;
         for (; opline < end; opline++) {
 /*
       if (opline->result.op_type == IS_CONST) store_zval(&opline->result.u.constant  TSRMLS_CC);
@@ -708,12 +708,12 @@ eaccelerator_op_array *store_op_array (zend_op_array * from TSRMLS_DC)
             }
 #endif
         }
-        MMCG (compress) = 1;
+        EAG (compress) = 1;
     }
     if (from->brk_cont_array != NULL) {
-        EACCELERATOR_ALIGN (MMCG (mem));
-        to->brk_cont_array = (zend_brk_cont_element *) MMCG (mem);
-        MMCG (mem) += sizeof (zend_brk_cont_element) * from->last_brk_cont;
+        EACCELERATOR_ALIGN (EAG (mem));
+        to->brk_cont_array = (zend_brk_cont_element *) EAG (mem);
+        EAG (mem) += sizeof (zend_brk_cont_element) * from->last_brk_cont;
         memcpy (to->brk_cont_array, from->brk_cont_array,
                 sizeof (zend_brk_cont_element) * from->last_brk_cont);
     } else {
@@ -722,9 +722,9 @@ eaccelerator_op_array *store_op_array (zend_op_array * from TSRMLS_DC)
 #ifdef ZEND_ENGINE_2
     /* HOESH: try & catch support */
     if (from->try_catch_array != NULL) {
-        EACCELERATOR_ALIGN (MMCG (mem));
-        to->try_catch_array = (zend_try_catch_element *) MMCG (mem);
-        MMCG (mem) += sizeof (zend_try_catch_element) * from->last_try_catch;
+        EACCELERATOR_ALIGN (EAG (mem));
+        to->try_catch_array = (zend_try_catch_element *) EAG (mem);
+        EAG (mem) += sizeof (zend_try_catch_element) * from->last_try_catch;
         memcpy (to->try_catch_array, from->try_catch_array,
                 sizeof (zend_try_catch_element) * from->last_try_catch);
     } else {
@@ -732,9 +732,9 @@ eaccelerator_op_array *store_op_array (zend_op_array * from TSRMLS_DC)
     }
 #endif
     if (from->static_variables != NULL) {
-        EACCELERATOR_ALIGN (MMCG (mem));
-        to->static_variables = (HashTable *) MMCG (mem);
-        MMCG (mem) += sizeof (HashTable);
+        EACCELERATOR_ALIGN (EAG (mem));
+        to->static_variables = (HashTable *) EAG (mem);
+        EAG (mem) += sizeof (HashTable);
         store_zval_hash (to->static_variables, from->static_variables);
     }
     if (from->filename != NULL) {
@@ -759,9 +759,9 @@ static zend_property_info *store_property_info (zend_property_info *
                                                 from TSRMLS_DC)
 {
     zend_property_info *to;
-    EACCELERATOR_ALIGN (MMCG (mem));
-    to = (zend_property_info *) MMCG (mem);
-    MMCG (mem) += sizeof (zend_property_info);
+    EACCELERATOR_ALIGN (EAG (mem));
+    to = (zend_property_info *) EAG (mem);
+    EAG (mem) += sizeof (zend_property_info);
     memcpy (to, from, sizeof (zend_property_info));
     to->name = store_string (from->name, from->name_length + 1 TSRMLS_CC);
     return to;
@@ -771,9 +771,9 @@ static zend_property_info *store_property_info (zend_property_info *
 eaccelerator_class_entry *store_class_entry (zend_class_entry *from TSRMLS_DC)
 {
     eaccelerator_class_entry *to;
-    EACCELERATOR_ALIGN (MMCG (mem));
-    to = (eaccelerator_class_entry *) MMCG (mem);
-    MMCG (mem) += sizeof (eaccelerator_class_entry);
+    EACCELERATOR_ALIGN (EAG (mem));
+    to = (eaccelerator_class_entry *) EAG (mem);
+    EAG (mem) += sizeof (eaccelerator_class_entry);
     to->type = from->type;
     to->name = NULL;
     to->name_length = from->name_length;
@@ -802,7 +802,7 @@ eaccelerator_class_entry *store_class_entry (zend_class_entry *from TSRMLS_DC)
                      getpid (), from->name ? from->name : "(top)",
                      from->parent ? from->parent->name : "NULL");
 #ifdef DEBUG
-    MMCG (xpad)++;
+    EAG (xpad)++;
 #endif
 
     if (from->name != NULL) {
@@ -849,9 +849,9 @@ eaccelerator_class_entry *store_class_entry (zend_class_entry *from TSRMLS_DC)
     store_hash (&to->properties_info, &from->properties_info,
                 (store_bucket_t) store_property_info);
     if (from->static_members != NULL) {
-        EACCELERATOR_ALIGN (MMCG (mem));
-        to->static_members = (HashTable *) MMCG (mem);
-        MMCG (mem) += sizeof (HashTable);
+        EACCELERATOR_ALIGN (EAG (mem));
+        to->static_members = (HashTable *) EAG (mem);
+        EAG (mem) += sizeof (HashTable);
         store_zval_hash (to->static_members, from->static_members);
     }
 #else
@@ -861,7 +861,7 @@ eaccelerator_class_entry *store_class_entry (zend_class_entry *from TSRMLS_DC)
                 (store_bucket_t) store_op_array);
 
 #ifdef DEBUG
-    MMCG (xpad)--;
+    EAG (xpad)--;
 #endif
 
     return to;

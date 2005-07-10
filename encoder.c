@@ -841,7 +841,7 @@ scope_stored:
       } else {
         unsigned int ops = op_dsc->ops;
         encode(opline->opcode);
-#if MMC_ENCODER_VERSION < 2
+#if EA_ENCODER_VERSION < 2
         encode32(opline->lineno);
 #endif
         switch (ops & EXT_MASK) {
@@ -866,7 +866,7 @@ scope_stored:
             encode((unsigned char)opline->extended_value);
             break;
           case EXT_FE:
-#if MMC_ENCODER_VERSION >= 3
+#if EA_ENCODER_VERSION >= 3
             encode((unsigned char)opline->extended_value);
 #endif
             break;
@@ -991,7 +991,7 @@ scope_stored:
     encode32(0);
   }
   encode_zval_hash(from->static_variables);
-#if MMC_ENCODER_VERSION < 2
+#if EA_ENCODER_VERSION < 2
   encode_zstr(from->filename);
 #endif
 #ifdef ZEND_ENGINE_2
@@ -1016,7 +1016,7 @@ static void encode_class_entry(zend_class_entry* from) {
   }
 
 #ifdef ZEND_ENGINE_2
-#if MMC_ENCODER_VERSION < 2
+#if EA_ENCODER_VERSION < 2
   encode32(from->line_start);
   encode32(from->line_end);
   encode_zstr(from->filename);
@@ -1036,7 +1036,7 @@ static void encode_class_entry(zend_class_entry* from) {
 static int eaccelerator_encode(char* key, zend_op_array* op_array,
                           Bucket* f, Bucket *c) {
   encode_zstr("EACCELERATOR");
-  encode32(MMC_ENCODER_VERSION);
+  encode32(EA_ENCODER_VERSION);
 #ifdef ZEND_ENGINE_2
   encode(2);
 #else
@@ -1046,26 +1046,26 @@ static int eaccelerator_encode(char* key, zend_op_array* op_array,
     zend_class_entry *ce;
 #ifdef ZEND_ENGINE_2
     ce = *(zend_class_entry**)c->pData;
-    encode(MMC_ENCODER_CLASS);
+    encode(EA_ENCODER_CLASS);
     encode_lstr(c->arKey, c->nKeyLength);
     encode_class_entry(ce);
 #else
-    encode(MMC_ENCODER_CLASS);
+    encode(EA_ENCODER_CLASS);
     encode_lstr(c->arKey, c->nKeyLength);
     ce = (zend_class_entry*)c->pData;
     encode_class_entry(ce);
 #endif
     c = c->pListNext;
   }
-  encode(MMC_ENCODER_END);
+  encode(EA_ENCODER_END);
 
   while (f != NULL) {
-    encode(MMC_ENCODER_FUNCTION);
+    encode(EA_ENCODER_FUNCTION);
     encode_lstr(f->arKey, f->nKeyLength);
     encode_op_array((zend_op_array*)f->pData);
     f = f->pListNext;
   }
-  encode(MMC_ENCODER_END);
+  encode(EA_ENCODER_END);
   encode_op_array(op_array);
   return 1;
 }
@@ -1140,10 +1140,10 @@ PHP_FUNCTION(eaccelerator_encode)
 	/* Storing global pre-compiled functions and classes */
 	f = CG(function_table)->pListTail;
 	c = CG(class_table)->pListTail;
-	MMCG(compiler) = 1;
-	MMCG(encoder) = 1;
-	old_enabled = MMCG(enabled);
-	MMCG(enabled) = 0;
+	EAG(compiler) = 1;
+	EAG(encoder) = 1;
+	old_enabled = EAG(enabled);
+	EAG(enabled) = 0;
 	zend_try
 	{
 		char *opened_path;
@@ -1249,9 +1249,9 @@ PHP_FUNCTION(eaccelerator_encode)
 	}
 	zend_end_try();
 
-	MMCG(encoder) = 0;
-	MMCG(compiler) = 0;
-	MMCG(enabled) = old_enabled;
+	EAG(encoder) = 0;
+	EAG(compiler) = 0;
+	EAG(enabled) = old_enabled;
 
 	f = f ? f->pListNext : CG(function_table)->pListHead;
 	c = c ? c->pListNext : CG(class_table)->pListHead;

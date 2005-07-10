@@ -3,7 +3,7 @@
    | eAccelerator project                                                 |
    +----------------------------------------------------------------------+
    | Copyright (c) 2004 - 2005 eAccelerator                               |
-   | http://eaccelerator.net                                  		  |
+   | http://eaccelerator.net                                  		      |
    +----------------------------------------------------------------------+
    | This program is free software; you can redistribute it and/or        |
    | modify it under the terms of the GNU General Public License          |
@@ -402,10 +402,12 @@ PHP_FUNCTION (eaccelerator_encode);
 #endif /* HAVE_EACCELERATOR_LOADER_STANDALONE */
 
 #ifdef ZTS
-#  define MMCG(v) TSRMG(eaccelerator_globals_id, zend_eaccelerator_globals*, v)
+#  define EAG(v) TSRMG(eaccelerator_globals_id, zend_eaccelerator_globals*, v)
 #else
-#  define MMCG(v) (eaccelerator_globals.v)
+#  define EAG(v) (eaccelerator_globals.v)
 #endif
+
+#define MMCG(v) EAG(v)
 
 /*
  * conditional filter
@@ -481,11 +483,11 @@ ZEND_EXTERN_MODULE_GLOBALS (eaccelerator)
 #define EACCELERATOR_EXTENSION_NAME "eAccelerator"
 #define EACCELERATOR_LOADER_EXTENSION_NAME "eLoader"
 
-#define MMC_ENCODER_VERSION   0x00000003
-#define MMC_ENCODER_END       0x00
-#define MMC_ENCODER_NAMESPACE 0x01
-#define MMC_ENCODER_CLASS     0x02
-#define MMC_ENCODER_FUNCTION  0x03
+#define EA_ENCODER_VERSION   0x00000003
+#define EA_ENCODER_END       0x00
+#define EA_ENCODER_NAMESPACE 0x01
+#define EA_ENCODER_CLASS     0x02
+#define EA_ENCODER_FUNCTION  0x03
 
 #define EACCELERATOR_VERSION_GUID   "PHPE8EDA1B6-806A-4851-B1C8-A6B4712F44FB"
 #define EACCELERATOR_LOGO_GUID      "PHPE6F78DE9-13E4-4dee-8518-5FA2DACEA803"
