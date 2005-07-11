@@ -389,10 +389,12 @@ static void call_op_array_ctor_handler(zend_extension *extension, zend_op_array 
 
 static void decode_op(zend_op_array *to, zend_op *opline, unsigned int ops, 
         char **p, unsigned int* l TSRMLS_DC) {
-#if defined(ZEND_ENGINE_2) && defined(HAVE_EACCELERATOR_STANDALONE_LOADER)
+#ifdef ZEND_ENGINE_2
+#ifdef HAVE_EACCELERATOR_STANDALONE_LOADER
     opline->handler = zend_opcode_handlers[opline->opcode];
 #else
     opline->handler = get_opcode_handler(opline->opcode TSRMLS_CC);
+#endif
 #endif
     opline->lineno = decode32(p, l);
     ((loader_data*)EAG(mem))->lineno = opline->lineno;

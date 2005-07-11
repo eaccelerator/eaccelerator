@@ -777,9 +777,6 @@ zend_class_entry *restore_class_entry(zend_class_entry * to,
 		to->parent = NULL;
 	}
 
-	if (from->create_object != NULL)
-		to->create_object = from->create_object;
-
 	old = EAG(class_entry);
 	EAG(class_entry) = to;
 
