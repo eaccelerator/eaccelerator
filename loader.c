@@ -387,6 +387,181 @@ static void call_op_array_ctor_handler(zend_extension *extension, zend_op_array 
   }
 }
 
+static void decode_op(zend_op_array *to, zend_op *opline, unsigned int ops, 
+        char **p, unsigned int* l TSRMLS_DC) {
+#if defined(ZEND_ENGINE_2) && defined(HAVE_EACCELERATOR_STANDALONE_LOADER)
+    opline->handler = zend_opcode_handlers[opline->opcode];
+#else
+    opline->handler = get_opcode_handler(opline->opcode TSRMLS_CC);
+#endif
+    opline->lineno = decode32(p, l);
+    ((loader_data*)EAG(mem))->lineno = opline->lineno;
+    opline->extended_value = 0;
+    opline->result.op_type = IS_UNUSED;
+    opline->op1.op_type    = IS_UNUSED;
+    opline->op2.op_type    = IS_UNUSED;
+
+    switch (ops & EXT_MASK) {
+        case EXT_UNUSED:
+            break;
+        case EXT_STD:
+        case EXT_FCALL:
+        case EXT_ARG:
+        case EXT_IFACE:
+            opline->extended_value = decode32(p, l);
+            break;
+        case EXT_SEND:
+        case EXT_SEND_NOREF:
+        case EXT_INIT_FCALL:
+        case EXT_FETCH:
+        case EXT_CAST:
+        case EXT_DECLARE:
+        case EXT_FCLASS:
+        case EXT_BIT:
+        case EXT_ISSET:
+        case EXT_ASSIGN:
+            opline->extended_value = decode(p, l);
+            break;
+        case EXT_FE:
+            opline->extended_value = decode(p, l);
+            break;
+        case EXT_OPLINE:
+            opline->extended_value = decode_opline(to->last, p, l);
+            break;
+        case EXT_CLASS:
+            opline->extended_value = decode_var(to->T, p, l);
+            break;
+        default:
+            zend_bailout();
+            break;
+    }
+
+    switch (ops & RES_MASK) {
+        case RES_UNUSED:
+            break;
+        case RES_TMP:
+            opline->result.op_type = IS_TMP_VAR;
+            opline->result.u.var = decode_var(to->T, p, l);
+            break;
+        case RES_CLASS:
+            opline->result.u.var = decode_var(to->T, p, l);
+            opline->result.op_type = IS_CONST;
+            break;
+        case RES_VAR:
+            opline->result.op_type = IS_VAR;
+            opline->result.u.var = decode_var(to->T, p, l);
+            opline->result.u.EA.type = 0;
+            if (decode(p, l)) {
+                opline->result.u.EA.type |= EXT_TYPE_UNUSED;
+            }
+            break;
+        case RES_STD:
+            decode_znode(&opline->result, to->T, p, l TSRMLS_CC);
+            if (opline->result.op_type == IS_VAR) {
+                opline->result.u.EA.type = 0;
+                if (decode(p, l)) {
+                    opline->result.u.EA.type |= EXT_TYPE_UNUSED;
+                }
+            }
+            break;
+        default:
+            zend_bailout();
+            break;
+    }
+    switch (ops & OP1_MASK) {
+        case OP1_UNUSED:
+            break;
+        case OP1_OPLINE:
+            opline->op1.u.opline_num = decode_opline(to->last, p, l);
+            break;
+        case OP1_BRK:
+        case OP1_CONT:
+            opline->op1.u.opline_num = decode_opline(to->last_brk_cont, p, l);
+            break;
+        case OP1_CLASS:
+            opline->op1.u.var = decode_var(to->T, p, l);
+            break;
+        case OP1_UCLASS:
+            opline->op1.op_type = decode(p, l);
+            if (opline->op1.op_type != IS_UNUSED) {
+                opline->op1.u.var = decode_var(to->T, p, l);
+            }
+            break;
+        case OP1_TMP:
+            opline->op1.op_type = IS_TMP_VAR;
+            opline->op1.u.var = decode_var(to->T, p, l);
+            break;
+        case OP1_VAR:
+            opline->op1.op_type = IS_VAR;
+            opline->op1.u.var = decode_var(to->T, p, l);
+            break;
+        case OP1_ARG:
+            opline->op1.op_type = IS_CONST;
+            opline->op1.u.constant.type = IS_LONG;
+            opline->op1.u.constant.value.lval = decode32(p, l);
+            break;
+#ifdef ZEND_ENGINE_2
+        case OP1_JMPADDR:
+            opline->op1.u.jmp_addr = to->opcodes + decode_opline(to->last, p, l);
+            break;
+#endif
+        case OP1_STD:
+            decode_znode(&opline->op1, to->T, p, l TSRMLS_CC);
+            break;
+        default:
+            zend_bailout();
+            break;
+    }
+    switch (ops & OP2_MASK) {
+        case OP2_UNUSED:
+            break;
+        case OP2_OPLINE:
+            opline->op2.u.opline_num = decode_opline(to->last, p, l);
+            break;
+        case OP2_ARG:
+            opline->op2.u.opline_num = decode32(p, l);
+            break;
+        case OP2_ISSET:
+        case OP2_INCLUDE:
+            opline->op2.op_type = IS_CONST;
+            opline->op2.u.constant.type = IS_LONG;
+            opline->op2.u.constant.value.lval = decode(p, l);
+            break;
+        case OP2_FETCH:
+#ifdef ZEND_ENGINE_2
+            opline->op2.u.EA.type = decode(p, l);
+            if (opline->op2.u.EA.type == ZEND_FETCH_STATIC_MEMBER) {
+                opline->op2.u.var = decode_var(to->T, p, l);
+            }
+#else
+            opline->op2.u.fetch_type = decode(p, l);
+#endif
+            break;
+        case OP2_CLASS:
+            opline->op2.u.var = decode_var(to->T, p, l);
+            break;
+        case OP2_TMP:
+            opline->op2.op_type = IS_TMP_VAR;
+            opline->op2.u.var = decode_var(to->T, p, l);
+            break;
+        case OP2_VAR:
+            opline->op2.op_type = IS_VAR;
+            opline->op2.u.var = decode_var(to->T, p, l);
+            break;
+#ifdef ZEND_ENGINE_2
+        case OP2_JMPADDR:
+            opline->op2.u.jmp_addr = to->opcodes + decode_opline(to->last, p, l);
+            break;
+#endif
+        case OP2_STD:
+            decode_znode(&opline->op2, to->T, p, l TSRMLS_CC);
+            break;
+        default:
+            zend_bailout();
+            break;
+    }
+}
+
 static zend_op_array* decode_op_array(zend_op_array *to, char** p, unsigned int* l TSRMLS_DC) {
   char c;
   zend_op *opline;
@@ -435,78 +610,13 @@ static zend_op_array* decode_op_array(zend_op_array *to, char** p, unsigned int*
 	to->scope            = EAG(class_entry);
 	to->fn_flags         = decode32(p, l);
 	scope_name = decode_lstr((unsigned int*)&scope_name_len, p, l);
-	if (to->scope == NULL && scope_name != NULL)
-	{
-		if (zend_hash_find(CG(class_table),
-			(void *)scope_name, scope_name_len,
-			(void **)&to->scope) == SUCCESS)
-		{
+	if (to->scope == NULL && scope_name != NULL) {
+		if (zend_hash_find(CG(class_table), (void *)scope_name, 
+                    scope_name_len, (void **)&to->scope) == SUCCESS) {
 			to->scope = *(zend_class_entry**)to->scope;
-		}
-		else
-		{
-/*???
-			ea_debug_log("[%d] EACCELERATOR can't restore parent class "
-				"\"%s\" of function \"%s\"\n", getpid(),
-				(char*)scope_name, to->function_name);
-*/
-				to->scope = NULL;
-		}
-	}
-	if (to->scope != NULL)
-	{
-		unsigned int len = strlen(to->function_name);
-		char *lcname = zend_str_tolower_dup(to->function_name, len);
-		/*
-		 * HOESH: As explained in restore_op_array()!
-		 */
-		if  (
-				to->scope->name_length == len &&
-				memcmp(to->scope->name, lcname, len) == 0 &&
-				(
-					to->scope->constructor == NULL || // case 0)
-					to->scope->constructor->type == ZEND_INTERNAL_FUNCTION || // case A)
-					to->scope->constructor->op_array.scope->name_length != len || // case B)
-					memcmp(to->scope->constructor->op_array.scope->name, lcname, len) != 0
-				)
-			)
-		{
-			to->scope->constructor = (zend_function*)to;
-		}
-		else if (*lcname == '_' && *(lcname+1) == '_')
-		{
-			if (len == sizeof(ZEND_CONSTRUCTOR_FUNC_NAME)-1 &&
-				memcmp(lcname, ZEND_CONSTRUCTOR_FUNC_NAME, sizeof(ZEND_CONSTRUCTOR_FUNC_NAME)) == 0)
-			{
-				to->scope->constructor = (zend_function*)to;
-			}
-			else if (len == sizeof(ZEND_DESTRUCTOR_FUNC_NAME)-1 &&
-				memcmp(lcname, ZEND_DESTRUCTOR_FUNC_NAME, sizeof(ZEND_DESTRUCTOR_FUNC_NAME)) == 0)
-			{
-				to->scope->destructor = (zend_function*)to;
-			}
-			else if (len == sizeof(ZEND_CLONE_FUNC_NAME)-1 &&
-				memcmp(lcname, ZEND_CLONE_FUNC_NAME, sizeof(ZEND_CLONE_FUNC_NAME)) == 0)
-			{
-				to->scope->clone = (zend_function*)to;
-			}
-			else if (len == sizeof(ZEND_GET_FUNC_NAME)-1 &&
-				memcmp(lcname, ZEND_GET_FUNC_NAME, sizeof(ZEND_GET_FUNC_NAME)) == 0)
-			{
-				to->scope->__get = (zend_function*)to;
-			}
-			else if (len == sizeof(ZEND_SET_FUNC_NAME)-1 &&
-				memcmp(lcname, ZEND_SET_FUNC_NAME, sizeof(ZEND_SET_FUNC_NAME)) == 0)
-			{
-				to->scope->__set = (zend_function*)to;
-			}
-			else if (len == sizeof(ZEND_CALL_FUNC_NAME)-1 &&
-				memcmp(lcname, ZEND_CALL_FUNC_NAME, sizeof(ZEND_CALL_FUNC_NAME)) == 0)
-			{
-				to->scope->__call = (zend_function*)to;
-			}
-		}
-		efree(lcname);
+		} else {
+            to->scope = NULL;
+        }
 	}
 #endif
   if (to->type == ZEND_INTERNAL_FUNCTION) {
@@ -564,198 +674,7 @@ static zend_op_array* decode_op_array(zend_op_array *to, char** p, unsigned int*
       if (op_dsc == NULL) {
         zend_bailout();
       } else {
-        unsigned int ops = op_dsc->ops;
-#ifdef ZEND_ENGINE_2
-#ifdef HAVE_EACCELERATOR_STANDALONE_LOADER
-        opline->handler = zend_opcode_handlers[opline->opcode];
-#else
-        opline->handler = get_opcode_handler(opline->opcode TSRMLS_CC);
-#endif
-#endif
-#if EA_ENCODER_VERSION < 2
-        opline->lineno = decode32(p, l);
-#else
-        if (((loader_data*)EAG(mem))->version < 2) {
-          opline->lineno = decode32(p, l);
-        }
-        opline->lineno = ((loader_data*)EAG(mem))->lineno;
-#endif
-        opline->extended_value = 0;
-        opline->result.op_type = IS_UNUSED;
-        opline->op1.op_type    = IS_UNUSED;
-        opline->op2.op_type    = IS_UNUSED;
-
-        switch (ops & EXT_MASK) {
-          case EXT_UNUSED:
-            break;
-          case EXT_STD:
-          case EXT_FCALL:
-          case EXT_ARG:
-          case EXT_IFACE:
-            opline->extended_value = decode32(p, l);
-            break;
-          case EXT_SEND:
-          case EXT_SEND_NOREF:
-          case EXT_INIT_FCALL:
-          case EXT_FETCH:
-          case EXT_CAST:
-          case EXT_DECLARE:
-          case EXT_FCLASS:
-          case EXT_BIT:
-          case EXT_ISSET:
-          case EXT_ASSIGN:
-            opline->extended_value = decode(p, l);
-            break;
-          case EXT_FE: /* EXT_FE is added at EA_ENCODER_VERSION = 3 to support php 4.3.10 */
-#if EA_ENCODER_VERSION >= 3
-            if (((loader_data*)EAG(mem))->version >= 3) {
-              opline->extended_value = decode(p, l);
-            }
-#endif
-            break;
-          case EXT_OPLINE:
-            opline->extended_value = decode_opline(to->last, p, l);
-            break;
-          case EXT_CLASS:
-            opline->extended_value = decode_var(to->T, p, l);
-            break;
-          default:
-            zend_bailout();
-            break;
-        }
-
-#if EA_ENCODER_VERSION >= 3 && defined(ZEND_FE_FETCH_WITH_KEY) && !defined(ZEND_ENGINE_2)
-        /* correct ZEND_FE_FETCH's extended value with old version (1,2) */
-        if (opline->opcode == ZEND_FE_FETCH) {
-          if (((loader_data*)EAG(mem))->version < 3) {
-            opline->extended_value |= ZEND_FE_FETCH_WITH_KEY;
-          }
-        }
-#endif
-        switch (ops & RES_MASK) {
-          case RES_UNUSED:
-            break;
-          case RES_TMP:
-            opline->result.op_type = IS_TMP_VAR;
-            opline->result.u.var = decode_var(to->T, p, l);
-            break;
-          case RES_CLASS:
-            opline->result.u.var = decode_var(to->T, p, l);
-            opline->result.op_type = IS_CONST;
-            break;
-          case RES_VAR:
-            opline->result.op_type = IS_VAR;
-            opline->result.u.var = decode_var(to->T, p, l);
-            opline->result.u.EA.type = 0;
-            if (decode(p, l)) {
-              opline->result.u.EA.type |= EXT_TYPE_UNUSED;
-            }
-            break;
-          case RES_STD:
-            decode_znode(&opline->result, to->T, p, l TSRMLS_CC);
-            if (opline->result.op_type == IS_VAR) {
-              opline->result.u.EA.type = 0;
-              if (decode(p, l)) {
-                opline->result.u.EA.type |= EXT_TYPE_UNUSED;
-              }
-            }
-            break;
-          default:
-            zend_bailout();
-            break;
-        }
-        switch (ops & OP1_MASK) {
-          case OP1_UNUSED:
-            break;
-          case OP1_OPLINE:
-            opline->op1.u.opline_num = decode_opline(to->last, p, l);
-            break;
-          case OP1_BRK:
-          case OP1_CONT:
-            opline->op1.u.opline_num = decode_opline(to->last_brk_cont, p, l);
-            break;
-          case OP1_CLASS:
-            opline->op1.u.var = decode_var(to->T, p, l);
-            break;
-          case OP1_UCLASS:
-            opline->op1.op_type = decode(p, l);
-            if (opline->op1.op_type != IS_UNUSED) {
-              opline->op1.u.var = decode_var(to->T, p, l);
-            }
-            break;
-          case OP1_TMP:
-            opline->op1.op_type = IS_TMP_VAR;
-            opline->op1.u.var = decode_var(to->T, p, l);
-            break;
-          case OP1_VAR:
-            opline->op1.op_type = IS_VAR;
-            opline->op1.u.var = decode_var(to->T, p, l);
-            break;
-          case OP1_ARG:
-            opline->op1.op_type = IS_CONST;
-            opline->op1.u.constant.type = IS_LONG;
-            opline->op1.u.constant.value.lval = decode32(p, l);
-            break;
-#ifdef ZEND_ENGINE_2
-          case OP1_JMPADDR:
-            opline->op1.u.jmp_addr = to->opcodes + decode_opline(to->last, p, l);
-            break;
-#endif
-          case OP1_STD:
-            decode_znode(&opline->op1, to->T, p, l TSRMLS_CC);
-            break;
-          default:
-            zend_bailout();
-            break;
-        }
-        switch (ops & OP2_MASK) {
-          case OP2_UNUSED:
-            break;
-          case OP2_OPLINE:
-            opline->op2.u.opline_num = decode_opline(to->last, p, l);
-            break;
-          case OP2_ARG:
-            opline->op2.u.opline_num = decode32(p, l);
-            break;
-          case OP2_ISSET:
-          case OP2_INCLUDE:
-            opline->op2.op_type = IS_CONST;
-            opline->op2.u.constant.type = IS_LONG;
-            opline->op2.u.constant.value.lval = decode(p, l);
-            break;
-          case OP2_FETCH:
-#ifdef ZEND_ENGINE_2
-            opline->op2.u.EA.type = decode(p, l);
-            if (opline->op2.u.EA.type == ZEND_FETCH_STATIC_MEMBER) {
-              opline->op2.u.var = decode_var(to->T, p, l);
-            }
-#else
-            opline->op2.u.fetch_type = decode(p, l);
-#endif
-            break;
-          case OP2_CLASS:
-            opline->op2.u.var = decode_var(to->T, p, l);
-            break;
-          case OP2_TMP:
-            opline->op2.op_type = IS_TMP_VAR;
-            opline->op2.u.var = decode_var(to->T, p, l);
-            break;
-          case OP2_VAR:
-            opline->op2.op_type = IS_VAR;
-            opline->op2.u.var = decode_var(to->T, p, l);
-            break;
-#ifdef ZEND_ENGINE_2
-          case OP2_JMPADDR:
-            opline->op2.u.jmp_addr = to->opcodes + decode_opline(to->last, p, l);
-            break;
-#endif
-          case OP2_STD:
-            decode_znode(&opline->op2, to->T, p, l TSRMLS_CC);
-            break;
-          default:
-            zend_bailout();
-            break;
-        }
+        decode_op(to, opline, op_dsc->ops, p, l TSRMLS_CC);
       }
     }
   } else {
@@ -812,14 +731,15 @@ static zend_class_entry* decode_class_entry(zend_class_entry* to, char** p, unsi
   unsigned int      len;
 
   c = decode(p, l);
-  if (c == ZEND_USER_CLASS) {
-    if (to == NULL) {
-      to = emalloc(sizeof(zend_class_entry));
-    }
-    memset(to, 0, sizeof(zend_class_entry));
-  } else {
+  if (c != ZEND_USER_CLASS) {
     zend_bailout();
   }
+
+  if (to == NULL) {
+      to = emalloc(sizeof(zend_class_entry));
+  }
+  memset(to, 0, sizeof(zend_class_entry));
+
   to->type = c;
   to->name = decode_lstr(&to->name_length, p ,l);
 #ifdef ZEND_ENGINE_2
@@ -835,40 +755,8 @@ static zend_class_entry* decode_class_entry(zend_class_entry* to, char** p, unsi
 
   to->parent      = NULL;
   s = decode_lstr(&len, p, l);
-  if (s != NULL) {
-#ifdef ZEND_ENGINE_2
-	char* r;
-	r = zend_str_tolower_dup(s, len);
-    if (zend_hash_find(CG(class_table), r, len+1, (void **)&to->parent) != SUCCESS)
-#else
-	if (zend_hash_find(CG(class_table), s, len+1, (void **)&to->parent) != SUCCESS)
-#endif
-	{
-      to->parent = NULL;
-    } else {
-#ifdef ZEND_ENGINE_2
-	  /*
-	   * HOESH: See restore_class_entry() on details.
-	   */
-	  to->parent = *(zend_class_entry**)to->parent;
-	  to->constructor  = to->parent->constructor;
-	  to->destructor  = to->parent->destructor;
-	  to->clone  = to->parent->clone;
-	  to->__get  = to->parent->__get;
-      to->__set  = to->parent->__set;
-      to->__call = to->parent->__call;
-	  to->create_object = to->parent->create_object;
-#else
-	  to->handle_property_get  = to->parent->handle_property_get;
-      to->handle_property_set  = to->parent->handle_property_set;
-      to->handle_function_call = to->parent->handle_function_call;
-#endif
-    }
-#ifdef ZEND_ENGINE_2
-	efree(r);
-#endif
-    efree(s);
-  }
+  if (s != NULL)
+      restore_class_parent(s, len, to TSRMLS_CC);
 
   old = EAG(class_entry);
   EAG(class_entry) = to;
@@ -943,46 +831,7 @@ static zend_class_entry* decode_class_entry(zend_class_entry* to, char** p, unsi
   to->constants_updated = 0;
 
 #ifdef ZEND_ENGINE_2
-  {
-    zend_function *f;
-    Bucket *p;
-    int fname_len, cname_len;
-    char *fname_lc, *cname_lc;
-    union _zend_function *old_ctor;
-
-    old_ctor = to->constructor;
-    cname_len = to->name_length;
-    cname_lc  = zend_str_tolower_dup(to->name, cname_len);
-
-    p = to->function_table.pListHead;
-    while (p != NULL) {
-      f         = p->pData;
-      fname_len = strlen(f->common.function_name);
-      fname_lc  = zend_str_tolower_dup(f->common.function_name, fname_len);
-
-      if (fname_len == cname_len && !memcmp(fname_lc, cname_lc, fname_len) 
-		 && to->constructor == old_ctor && f->common.scope != to->parent)  
-		to->constructor = (zend_function*)f;	  	  
-	  else if (fname_lc[0] == '_' && fname_lc[1] == '_' && f->common.scope != to->parent)
-      {
-        if (fname_len == sizeof(ZEND_CONSTRUCTOR_FUNC_NAME)-1 && memcmp(fname_lc, ZEND_CONSTRUCTOR_FUNC_NAME, sizeof(ZEND_CONSTRUCTOR_FUNC_NAME)) == 0) 
-          to->constructor = (zend_function*)f;
-        else if (fname_len == sizeof(ZEND_DESTRUCTOR_FUNC_NAME)-1 && memcmp(fname_lc, ZEND_DESTRUCTOR_FUNC_NAME, sizeof(ZEND_DESTRUCTOR_FUNC_NAME)) == 0)
-          to->destructor = (zend_function*)f;
-        else if (fname_len == sizeof(ZEND_CLONE_FUNC_NAME)-1 && memcmp(fname_lc, ZEND_CLONE_FUNC_NAME, sizeof(ZEND_CLONE_FUNC_NAME)) == 0)
-          to->clone = (zend_function*)f;
-        else if (fname_len == sizeof(ZEND_GET_FUNC_NAME)-1 && memcmp(fname_lc, ZEND_GET_FUNC_NAME, sizeof(ZEND_GET_FUNC_NAME)) == 0)
-          to->__get = (zend_function*)f;
-        else if (fname_len == sizeof(ZEND_SET_FUNC_NAME)-1 && memcmp(fname_lc, ZEND_SET_FUNC_NAME, sizeof(ZEND_SET_FUNC_NAME)) == 0)
-          to->__set = (zend_function*)f;
-        else if (fname_len == sizeof(ZEND_CALL_FUNC_NAME)-1 && memcmp(fname_lc, ZEND_CALL_FUNC_NAME, sizeof(ZEND_CALL_FUNC_NAME)) == 0)
-          to->__call = (zend_function*)f;
-      }
-      efree(fname_lc);
-      p = p->pListNext;
-    }
-    efree(cname_lc);
-  }
+  restore_class_methods(to TSRMLS_CC);
 #endif
 
   EAG(class_entry) = old;

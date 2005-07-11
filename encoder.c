@@ -747,6 +747,151 @@ static void encode_hash_ex(HashTable* from, Bucket* p, encode_bucket_t encode_bu
 }
 #endif
 
+static void encode_op(zend_op_array* from, zend_op* opline, unsigned int ops) {
+    encode(opline->opcode);
+    encode32(opline->lineno);
+    switch (ops & EXT_MASK) {
+        case EXT_UNUSED:
+            break;
+        case EXT_STD:
+        case EXT_FCALL:
+        case EXT_ARG:
+        case EXT_IFACE:
+            encode32(opline->extended_value);
+            break;
+        case EXT_SEND:
+        case EXT_SEND_NOREF:
+        case EXT_INIT_FCALL:
+        case EXT_FETCH:
+        case EXT_CAST:
+        case EXT_DECLARE:
+        case EXT_FCLASS:
+        case EXT_BIT:
+        case EXT_ISSET:
+        case EXT_ASSIGN:
+            encode((unsigned char)opline->extended_value);
+            break;
+        case EXT_FE:
+            encode((unsigned char)opline->extended_value);
+            break;
+        case EXT_OPLINE:
+            encode_opline(opline->extended_value, from->last);
+            break;
+        case EXT_CLASS:
+            encode_var(opline->extended_value, from->T);
+            break;
+        default:
+            zend_bailout();
+            break;
+    }
+    switch (ops & RES_MASK) {
+        case RES_UNUSED:
+            break;
+        case RES_TMP:
+        case RES_CLASS:
+            encode_var(opline->result.u.var, from->T);
+            break;
+        case RES_VAR:
+            encode_var(opline->result.u.var, from->T);
+            if ((opline->result.u.EA.type & EXT_TYPE_UNUSED) != 0) {
+                encode(1);
+            } else {
+                encode(0);
+            }
+            break;
+        case RES_STD:
+            encode_znode(&opline->result, from->T);
+            if (opline->result.op_type == IS_VAR) {
+                if ((opline->result.u.EA.type & EXT_TYPE_UNUSED) != 0) {
+                    encode(1);
+                } else {
+                    encode(0);
+                }
+            }
+            break;
+        default:
+            zend_bailout();
+            break;
+    }
+    switch (ops & OP1_MASK) {
+        case OP1_UNUSED:
+            break;
+        case OP1_OPLINE:
+            encode_opline(opline->op1.u.opline_num,from->last);
+            break;
+        case OP1_BRK:
+        case OP1_CONT:
+            encode_opline(opline->op1.u.opline_num, from->last_brk_cont);
+            break;
+        case OP1_CLASS:
+        case OP1_TMP:
+        case OP1_VAR:
+            encode_var(opline->op1.u.var, from->T);
+            break;
+        case OP1_UCLASS:
+            encode((unsigned char)opline->op1.op_type);
+            if (opline->op1.op_type != IS_UNUSED) {
+                encode_var(opline->op1.u.var, from->T);
+            }
+            break;
+        case OP1_ARG:
+            encode32(opline->op1.u.constant.value.lval);
+            break;
+#ifdef ZEND_ENGINE_2
+        case OP1_JMPADDR:
+            encode_opline(opline->op1.u.jmp_addr - from->opcodes, from->last);
+            break;
+#endif
+        case OP1_STD:
+            encode_znode(&opline->op1, from->T);
+            break;
+        default:
+            zend_bailout();
+            break;
+    }
+    switch (ops & OP2_MASK) {
+        case OP2_UNUSED:
+            break;
+        case OP2_OPLINE:
+            encode_opline(opline->op2.u.opline_num, from->last);
+            break;
+        case OP2_ARG:
+            encode32(opline->op2.u.opline_num);
+            break;
+        case OP2_ISSET:
+        case OP2_INCLUDE:
+            encode((unsigned char)opline->op2.u.constant.value.lval);
+            break;
+        case OP2_FETCH:
+#ifdef ZEND_ENGINE_2
+            encode((unsigned char)opline->op2.u.EA.type);
+            if (opline->op2.u.EA.type == ZEND_FETCH_STATIC_MEMBER) {
+                encode_var(opline->op2.u.var, from->T);
+            }
+#else
+            encode((unsigned char)opline->op2.u.fetch_type);
+#endif
+            break;
+        case OP2_CLASS:
+        case OP2_TMP:
+        case OP2_VAR:
+            encode_var(opline->op2.u.var, from->T);
+            break;
+#ifdef ZEND_ENGINE_2
+        case OP2_JMPADDR:
+            encode_opline(opline->op2.u.jmp_addr - from->opcodes, from->last);
+            break;
+#endif
+        case OP2_STD:
+            encode_znode(&opline->op2, from->T);
+            break;
+        default:
+            zend_bailout();
+            break;
+    }
+
+}
+
 static void encode_op_array(zend_op_array* from) {
   zend_op *opline;
   zend_op *end;
@@ -839,152 +984,7 @@ scope_stored:
       if (op_dsc == NULL) {
         zend_bailout();
       } else {
-        unsigned int ops = op_dsc->ops;
-        encode(opline->opcode);
-#if EA_ENCODER_VERSION < 2
-        encode32(opline->lineno);
-#endif
-        switch (ops & EXT_MASK) {
-          case EXT_UNUSED:
-             break;
-          case EXT_STD:
-          case EXT_FCALL:
-          case EXT_ARG:
-          case EXT_IFACE:
-            encode32(opline->extended_value);
-            break;
-          case EXT_SEND:
-          case EXT_SEND_NOREF:
-          case EXT_INIT_FCALL:
-          case EXT_FETCH:
-          case EXT_CAST:
-          case EXT_DECLARE:
-          case EXT_FCLASS:
-          case EXT_BIT:
-          case EXT_ISSET:
-          case EXT_ASSIGN:
-            encode((unsigned char)opline->extended_value);
-            break;
-          case EXT_FE:
-#if EA_ENCODER_VERSION >= 3
-            encode((unsigned char)opline->extended_value);
-#endif
-            break;
-          case EXT_OPLINE:
-            encode_opline(opline->extended_value, from->last);
-            break;
-          case EXT_CLASS:
-            encode_var(opline->extended_value, from->T);
-            break;
-          default:
-            zend_bailout();
-            break;
-        }
-        switch (ops & RES_MASK) {
-          case RES_UNUSED:
-            break;
-          case RES_TMP:
-          case RES_CLASS:
-            encode_var(opline->result.u.var, from->T);
-            break;
-          case RES_VAR:
-            encode_var(opline->result.u.var, from->T);
-            if ((opline->result.u.EA.type & EXT_TYPE_UNUSED) != 0) {
-              encode(1);
-            } else {
-              encode(0);
-            }
-            break;
-          case RES_STD:
-            encode_znode(&opline->result, from->T);
-            if (opline->result.op_type == IS_VAR) {
-              if ((opline->result.u.EA.type & EXT_TYPE_UNUSED) != 0) {
-                encode(1);
-              } else {
-                encode(0);
-              }
-            }
-            break;
-          default:
-            zend_bailout();
-            break;
-        }
-        switch (ops & OP1_MASK) {
-          case OP1_UNUSED:
-            break;
-          case OP1_OPLINE:
-            encode_opline(opline->op1.u.opline_num,from->last);
-            break;
-          case OP1_BRK:
-          case OP1_CONT:
-            encode_opline(opline->op1.u.opline_num, from->last_brk_cont);
-            break;
-          case OP1_CLASS:
-          case OP1_TMP:
-          case OP1_VAR:
-            encode_var(opline->op1.u.var, from->T);
-            break;
-          case OP1_UCLASS:
-            encode((unsigned char)opline->op1.op_type);
-            if (opline->op1.op_type != IS_UNUSED) {
-              encode_var(opline->op1.u.var, from->T);
-            }
-            break;
-          case OP1_ARG:
-            encode32(opline->op1.u.constant.value.lval);
-            break;
-#ifdef ZEND_ENGINE_2
-          case OP1_JMPADDR:
-            encode_opline(opline->op1.u.jmp_addr - from->opcodes, from->last);
-            break;
-#endif
-          case OP1_STD:
-            encode_znode(&opline->op1, from->T);
-            break;
-          default:
-            zend_bailout();
-            break;
-        }
-        switch (ops & OP2_MASK) {
-          case OP2_UNUSED:
-            break;
-          case OP2_OPLINE:
-            encode_opline(opline->op2.u.opline_num, from->last);
-            break;
-          case OP2_ARG:
-            encode32(opline->op2.u.opline_num);
-            break;
-          case OP2_ISSET:
-          case OP2_INCLUDE:
-            encode((unsigned char)opline->op2.u.constant.value.lval);
-            break;
-          case OP2_FETCH:
-#ifdef ZEND_ENGINE_2
-            encode((unsigned char)opline->op2.u.EA.type);
-            if (opline->op2.u.EA.type == ZEND_FETCH_STATIC_MEMBER) {
-              encode_var(opline->op2.u.var, from->T);
-            }
-#else
-            encode((unsigned char)opline->op2.u.fetch_type);
-#endif
-            break;
-          case OP2_CLASS:
-          case OP2_TMP:
-          case OP2_VAR:
-            encode_var(opline->op2.u.var, from->T);
-            break;
-#ifdef ZEND_ENGINE_2
-          case OP2_JMPADDR:
-            encode_opline(opline->op2.u.jmp_addr - from->opcodes, from->last);
-            break;
-#endif
-          case OP2_STD:
-            encode_znode(&opline->op2, from->T);
-            break;
-          default:
-            zend_bailout();
-            break;
-        }
+        encode_op(from, opline, op_dsc->ops);
       }
     }
   } else {

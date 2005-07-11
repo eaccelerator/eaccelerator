@@ -37,6 +37,11 @@ void fixup_class_entry (eaccelerator_class_entry * from TSRMLS_DC);
 void restore_class(mm_fc_entry *p TSRMLS_DC);
 void restore_function(mm_fc_entry *p TSRMLS_DC);
 zend_op_array* restore_op_array(zend_op_array *to, eaccelerator_op_array *from TSRMLS_DC);
+zend_class_entry *restore_class_entry(zend_class_entry * to, eaccelerator_class_entry *from TSRMLS_DC);
+void restore_class_parent(char *parent, int len, zend_class_entry *to TSRMLS_DC);
+#ifdef ZEND_ENGINE_2
+void restore_class_methods(zend_class_entry *to TSRMLS_DC);
+#endif
 
 dtor_func_t get_zend_destroy_property_info(TSRMLS_D);
 
