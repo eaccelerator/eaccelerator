@@ -48,6 +48,9 @@
 #endif
 
 extern zend_extension *ZendOptimizer;
+#if HARDENING_PATCH_HASH_PROTECT
+extern unsigned int zend_hash_canary;
+#endif
 
 #ifdef ZEND_ENGINE_2
 /* pointer to the properties_info hashtable destructor */
@@ -294,6 +297,9 @@ static HashTable *restore_hash(HashTable * target, HashTable * source,
 	target->persistent = 0;
 	target->pListHead = NULL;
 	target->pListTail = NULL;
+#if HARDENING_PATCH_HASH_PROTECT
+    target->canary = zend_hash_canary;
+#endif
 
 	p = source->pListHead;
 	prev_p = NULL;

@@ -1,3 +1,7 @@
+2005-08-03 Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
+        * Included patch from the hardened php guys to make eA work
+          with hardened php.
+
 2005-07-11 Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
         * ea_store.c and ea_restore.c functions clean up
         * extraced restore_class_parent and restore_class_methods from
