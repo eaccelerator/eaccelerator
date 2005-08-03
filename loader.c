@@ -37,6 +37,7 @@
 #include "zend.h"
 #include "zend_API.h"
 #include "php.h"
+#include "ea_restore.h"
 #include <math.h>
 
 typedef struct loader_data {

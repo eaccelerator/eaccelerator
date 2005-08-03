@@ -776,7 +776,7 @@ zend_class_entry *restore_class_entry(zend_class_entry * to,
 	}
 
 	if (from->parent != NULL) {
-		restore_class_parent(from->parent, strlen(from->parent), to);
+		restore_class_parent(from->parent, strlen(from->parent), to TSRMLS_CC);
 	} else {
 		ea_debug_pad(EA_DEBUG TSRMLS_CC);
 		ea_debug_printf(EA_DEBUG, "[%d] parent = NULL\n", getpid());

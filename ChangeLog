@@ -1,4 +1,5 @@
 2005-08-03 Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
+        * Included some compile fixes. (Thanks Matt)
         * Included patch from the hardened php guys to make eA work
           with hardened php.
 
