@@ -1699,7 +1699,9 @@ static void optimize_bb(BB* bb, zend_op_array* op_array, char* global, int pass 
     if (op->opcode == ZEND_FETCH_CONSTANT &&
         op->result.op_type == IS_TMP_VAR) {
       zend_constant *c = NULL;
-      if (opt_get_constant(op->op1.u.constant.value.str.val, op->op1.u.constant.value.str.len, &c TSRMLS_CC) && c != NULL && ((c->flags & CONST_PERSISTENT) != 0)) {
+      if (op->op1.u.constant.value.str.val != NULL &&
+          opt_get_constant(op->op1.u.constant.value.str.val, op->op1.u.constant.value.str.len, &c TSRMLS_CC) 
+          && c != NULL && ((c->flags & CONST_PERSISTENT) != 0)) {
         STR_FREE(op->op1.u.constant.value.str.val);
         memcpy(&op->op1.u.constant, &c->value, sizeof(zval));
         zval_copy_ctor(&op->op1.u.constant);
