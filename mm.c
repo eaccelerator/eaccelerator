@@ -176,6 +176,12 @@ static int strxcat(char* dst, const char* src, int size) {
 #  error "spinlocks are not implemented for your system"
 #endif
 
+/*********************************/
+/* Semaphores                    */
+/********************************/
+
+/* ######################################################################### */
+
 #define MM_SEM_TYPE "spinlock"
 #define MM_SEM_CAN_ATTACH
 
@@ -204,6 +210,8 @@ static int mm_do_unlock(mm_mutex* lock) {
 
 static void mm_destroy_lock(mm_mutex* lock) {
 }
+
+/* ######################################################################### */
 
 #elif defined(MM_SEM_PTHREAD)
 
@@ -247,6 +255,8 @@ static void mm_destroy_lock(mm_mutex* lock) {
   pthread_mutex_destroy(&lock->mutex);
 }
 
+/* ######################################################################### */
+
 #elif defined(MM_SEM_POSIX)
 
 /* not tested */
@@ -289,6 +299,8 @@ static void mm_destroy_lock(mm_mutex* lock) {
   sem_close(lock->sem);
 }
 
+/* ######################################################################### */
+
 #elif defined(MM_SEM_IPC)
 
 #define MM_SEM_TYPE "sysvipc"
@@ -310,7 +322,7 @@ static int mm_init_lock(const char* key, mm_mutex* lock) {
   int rc;
   union semun arg;
 
-  if ((lock->semid = semget(IPC_PRIVATE, 1, IPC_CREAT | IPC_EXCL | S_IRUSR | S_IWUSR)) < 0) {
+  if ((lock->semid = semget(IPC_PRIVATE, 1, IPC_CREAT | 0666)) < 0) {
     return 0;
   }
   arg.val = 1;
@@ -415,6 +427,8 @@ static void mm_destroy_lock(mm_mutex* lock) {
   close(lock->fd);
 }
 
+/* ######################################################################### */
+
 #elif defined(MM_SEM_FLOCK)
 
 /* this method is not thread safe */
@@ -485,6 +499,8 @@ static void mm_destroy_lock(mm_mutex* lock) {
   close(mm_flock_fd);
   unlink(lock->filename);
 }
+
+/* ######################################################################### */
 
 #elif defined(MM_SEM_BEOS)
 
@@ -565,6 +581,8 @@ static int mm_do_unlock(mm_mutex* lock) {
   return 1;
 }
 
+/* ######################################################################### */
+
 #elif defined(MM_SEM_NONE)
 
 #define MM_SEM_TYPE "none"
@@ -599,14 +617,26 @@ static int mm_do_unlock(mm_mutex* lock) {
 #endif
 
 int mm_lock(MM* mm, int kind) {
-  return mm_do_lock(mm->lock, kind);
+  if (mm_do_lock(mm->lock, kind)) {
+    return 1;
+  } else {
+    ea_debug_error("eAccelerator: Could not lock!\n");
+    return 0;
+  }
 }
 
 int mm_unlock(MM* mm) {
-  return mm_do_unlock(mm->lock);
+  if (mm_do_unlock(mm->lock)) {
+    return 1;
+  } else {
+    ea_debug_error("eAccelerator: Could not release lock!\n");
+    return 0;
+  }
 }
 
 /* Shared Memory Implementations */
+
+/* ######################################################################### */
 
 #if defined(MM_SHM_IPC)
 
@@ -721,6 +751,8 @@ static void mm_destroy_shm(MM* mm) {
   shmdt(mm);
 }
 
+/* ######################################################################### */
+
 #elif defined(MM_SHM_MMAP_ANON)
 
 #define MM_SHM_TYPE "mmap_anon"
@@ -745,6 +777,8 @@ static void mm_destroy_shm(MM* mm) {
   munmap(mm,mm->size);
 }
 
+/* ######################################################################### */
+
 #elif defined(MM_SHM_MMAP_ZERO)
 
 #define MM_SHM_TYPE "mmap_zero"
@@ -767,6 +801,8 @@ static MM* mm_create_shm(const char* key, size_t size) {
 static void mm_destroy_shm(MM* mm) {
   munmap(mm,mm->size);
 }
+
+/* ######################################################################### */
 
 #elif defined(MM_SHM_MMAP_POSIX)
 
@@ -806,6 +842,8 @@ static void mm_destroy_shm(MM* mm) {
   munmap(mm,mm->size);
 }
 
+/* ######################################################################### */
+
 #elif defined(MM_SHM_MMAP_FILE)
 
 #define MM_SHM_TYPE "mmap_file"
@@ -838,15 +876,21 @@ static void mm_destroy_shm(MM* mm) {
   munmap(mm,mm->size);
 }
 
+/* ######################################################################### */
+
 #elif defined(MM_SHM_BEOS)
 
 #define MM_SHM_TYPE "beos"
 #error "Shared memeory type (MM_SHM_BEOS) is not implemented"
 
+/* ######################################################################### */
+
 #elif defined(MM_SHM_OS2)
 
 #define MM_SHM_TYPE "os2"
 #error "Shared memeory type (MM_SHM_OS2) is not implemented"
+
+/* ######################################################################### */
 
 #elif defined(MM_SHM_WIN32)
 
@@ -933,6 +977,8 @@ static void mm_destroy_shm(MM* mm) {
   UnmapViewOfFile(mm);
 }
 
+/* ######################################################################### */
+
 #elif defined(MM_SHM_MALLOC)
 
 #define MM_SHM_TYPE "malloc"
@@ -950,6 +996,8 @@ static void* mm_create_shm(const char* key, size_t size) {
 static void mm_destroy_shm(MM* mm) {
   free(mm);
 }
+
+/* ######################################################################### */
 
 #else
 #define MM_SHM_TYPE "none"
@@ -990,7 +1038,9 @@ void mm_free_nolock(MM* mm, void* x) {
 
 size_t mm_maxsize(MM* mm) {
   size_t ret;
-  mm_lock(mm, MM_LOCK_RD);
+  if (!mm_lock(mm, MM_LOCK_RD)) {
+    return 0;
+  }
   ret = mm->available - MM_SIZE(0);
   mm_unlock(mm);
   return ret;
@@ -1127,7 +1177,9 @@ void mm_free_nolock(MM* mm, void* x) {
 size_t mm_maxsize(MM* mm) {
   size_t ret = MM_SIZE(0);
   mm_free_bucket* p;
-  mm_lock(mm, MM_LOCK_RD);
+  if (!mm_lock(mm, MM_LOCK_RD)) {
+    return 0;
+  }
   p = mm->free_list;
   while (p != NULL) {
     if (p->size > ret) {
@@ -1142,7 +1194,9 @@ size_t mm_maxsize(MM* mm) {
 
 void* mm_malloc_lock(MM* mm, size_t size) {
   void *ret;
-  mm_lock(mm, MM_LOCK_RW);
+  if (!mm_lock(mm, MM_LOCK_RW)) {
+    return NULL;
+  }
   ret = mm_malloc_nolock(mm,size);
   mm_unlock(mm);
   return ret;
@@ -1214,9 +1268,9 @@ size_t mm_size(MM* mm) {
 size_t mm_sizeof(MM* mm, void* x) {
   mm_mem_head *p;
   size_t ret;
-  if (mm == NULL) return 0;
-  if (x == NULL) return 0;
-  mm_lock(mm, MM_LOCK_RD);
+  if (mm == NULL || x == NULL || !mm_lock(mm, MM_LOCK_RD)) {
+    return 0;
+  }
   p = PTR_TO_HEAD(x);
   ret = p->size;
   mm_unlock(mm);
@@ -1225,8 +1279,7 @@ size_t mm_sizeof(MM* mm, void* x) {
 
 size_t mm_available(MM* mm) {
   size_t available;
-  if (mm != NULL) {
-    mm_lock(mm, MM_LOCK_RD);
+  if (mm != NULL && mm_lock(mm, MM_LOCK_RD)) {
     available = mm->available;
     mm_unlock(mm);
     return available;

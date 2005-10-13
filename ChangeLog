@@ -1,6 +1,9 @@
 2005-10-13 Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
         * Fixed the php5 optimizer bug.
+        * Changed semaphore permissions to 0666 so sysvipc locks work. Working 
+          locks seem a bit more important than making the semaphore public. (#1295970)
+        * Added error messages when a lock can't be aquired or released.
 
 2005-08-03 Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
