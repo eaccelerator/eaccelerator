@@ -620,7 +620,9 @@ int mm_lock(MM* mm, int kind) {
   if (mm_do_lock(mm->lock, kind)) {
     return 1;
   } else {
+#if !defined(MM_TEST_SEM) && !defined(MM_TEST_SHM)
     ea_debug_error("eAccelerator: Could not lock!\n");
+#endif
     return 0;
   }
 }
@@ -629,7 +631,9 @@ int mm_unlock(MM* mm) {
   if (mm_do_unlock(mm->lock)) {
     return 1;
   } else {
+#if !defined(MM_TEST_SEM) && !defined(MM_TEST_SHM)
     ea_debug_error("eAccelerator: Could not release lock!\n");
+#endif
     return 0;
   }
 }
