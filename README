@@ -94,7 +94,7 @@ apache 1.3, mod_php 4.1, autoconf, automake, libtool, m4
 Compatibility
 -------------
 This version of the eAccelerator has been successfully tested on PHP
-4.1.0-4.3.3 under RedHat Linux 7.0, 7.3, 8.0 and Windows with Apache 1.3 
+4.1.0-4.3.3 under Fedora 1, 2, 3, 4 and Debian 3.1 and Windows with Apache 1.3 
 and Apache 2.0.
 
 
@@ -349,5 +349,5 @@ then eaccelerator's admin name and password must be the same.
 
 Contact us
 ----------
-To contact us with questions, patches or bugs, please send e-mail to
-Frank Alcantara <frankalcantara at users.sourceforge.net>
+You can contact us with questions, patches or bugs, by sending an email to
+Bart Vanbrabant <zoeloelip at users.sourceforge.net>
