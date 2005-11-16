@@ -1,4 +1,9 @@
+2005-11-16 Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
+
+        * Patch for including files in same directory (#1259695) from Alexy
+
 2005-11-15 Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
+
         * Spinlock test now tests for i386 and x86_64. Because spinlocks where
           never used on 64-bit and sysv ipc locking didn't work, there were a 
           lot of problems.

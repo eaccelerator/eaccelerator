@@ -1101,6 +1101,22 @@ static int eaccelerator_stat(zend_file_handle *file_handle,
       }
       ptr = end;
     }
+
+	if (zend_is_executing(TSRMLS_C)) {
+		strncpy(tryname, zend_get_executed_filename(TSRMLS_C), MAXPATHLEN);
+		tryname[MAXPATHLEN - 1] = 0;
+		int tryname_length = strlen(tryname);
+
+		while (tryname_length >= 0 && !IS_SLASH(tryname[tryname_length]))
+			tryname_length--;
+		if (tryname_length > 0 && tryname[0] != '[' // [no active file]
+			&& tryname_length + filename_len + 1 < MAXPATHLEN)
+		{
+			strncpy(tryname + tryname_length + 1, file_handle->filename, filename_len + 1);
+			if (stat(tryname, buf) == 0 && S_ISREG(buf->st_mode))
+				return 0;
+		}
+	}
   }
   return -1;
 #else
