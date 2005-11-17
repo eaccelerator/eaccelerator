@@ -1696,10 +1696,12 @@ static void optimize_bb(BB* bb, zend_op_array* op_array, char* global, int pass 
         op->op2.op_type = IS_UNUSED;
       }
     }
+#if 0 
+    /* doesn't work with newer php versions */
     if (op->opcode == ZEND_FETCH_CONSTANT &&
         op->result.op_type == IS_TMP_VAR) {
       zend_constant *c = NULL;
-      if (op->op1.u.constant.value.str.val != NULL &&
+      if (op->op1.u.constant.value.str.val != NULL && 
           opt_get_constant(op->op1.u.constant.value.str.val, op->op1.u.constant.value.str.len, &c TSRMLS_CC) 
           && c != NULL && ((c->flags & CONST_PERSISTENT) != 0)) {
         STR_FREE(op->op1.u.constant.value.str.val);
@@ -1710,7 +1712,9 @@ static void optimize_bb(BB* bb, zend_op_array* op_array, char* global, int pass 
         op->op1.op_type = IS_CONST;
         op->op2.op_type = IS_UNUSED;
       }
-    } else if ((op->opcode == ZEND_ADD ||
+    } else 
+#endif
+    if ((op->opcode == ZEND_ADD ||
                 op->opcode == ZEND_SUB ||
                 op->opcode == ZEND_MUL ||
                 op->opcode == ZEND_DIV ||
