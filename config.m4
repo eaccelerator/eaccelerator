@@ -78,13 +78,6 @@ AC_ARG_WITH(eaccelerator-disassembler,
   eaccelerator_disassemmbler=no
 ])
 
-AC_ARG_WITH(eaccelerator-executor,
-[  --with-eaccelerator-executor            Include optimized executor (not implemented yet)],[
-  eaccelerator_executor=$withval
-],[
-  eaccelerator_executor=no
-])
-
 AC_ARG_WITH(eaccelerator-use-inode,
 [  --without-eaccelerator-use-inode            Don't use inodes to determine hash keys (never used on win32)],[
   eaccelerator_inode=$withval
@@ -130,9 +123,6 @@ if test "$PHP_EACCELERATOR" != "no"; then
   fi
   if test "$eaccelerator_disassembler" = "yes"; then
     AC_DEFINE(WITH_EACCELERATOR_DISASSEMBLER, 1, [Define if you like to explore Zend bytecode])
-  fi
-  if test "$eaccelerator_executor" = "yes"; then
-    AC_DEFINE(WITH_EACCELERATOR_EXECUTOR, 1, [Define if you like use optimized executor (not implemented yet)])
   fi
   if test "$eaccelerator_inode" = "yes"; then
     AC_DEFINE(WITH_EACCELERATOR_USE_INODE, 1, [Undef if you don't wan't to use inodes to determine hash keys])

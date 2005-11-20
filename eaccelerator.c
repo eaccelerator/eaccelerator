@@ -110,10 +110,6 @@ extern dtor_func_t properties_info_dtor;
 /* saved original functions */
 static zend_op_array *(*mm_saved_zend_compile_file)(zend_file_handle *file_handle, int type TSRMLS_DC);
 
-#if defined(DEBUG) || defined(WITH_EACCELERATOR_EXECUTOR)
-static void (*mm_saved_zend_execute)(zend_op_array *op_array TSRMLS_DC);
-#endif
-
 /* external declarations */
 PHPAPI void php_stripslashes(char *str, int *len TSRMLS_DC);
 
@@ -252,6 +248,33 @@ static void hash_add_mm(mm_cache_entry *x) {
   EACCELERATOR_UNLOCK_RW();
 }
 
+/* check the cache dir */
+static int check_cache_dir(char *cache_dir) {
+  struct stat buf;
+  int uid = 0;
+  int gid = 0;
+
+  if (stat(cache_dir, &buf) == -1) {
+    ea_debug_error("Cache dir does not exist (could not stat %s)\n", cache_dir);
+    return 0;
+  }
+  if (!(buf.st_mode & S_IFDIR)) {
+    ea_debug_error("%s is not a directory!\n", cache_dir);
+    return 0;
+  }
+#if 0
+  uid = getuid();
+  gid = getgid();
+  if (!((buf.st_uid == uid && (buf.st_mode & (S_IRUSR | S_IWUSR))) /* not root, owner and rw */
+        || (buf.st_gid == gid && (buf.st_mode & (S_IRGRP | S_IWGRP))) /* not root, group and rw */
+        || (buf.st_mode & (S_IROTH & S_IWOTH)))) { /* other and rw */
+    ea_debug_error("%s hasn't got the right permissions!\n", cache_dir);
+    return 0;
+  }
+#endif
+  return 1;
+}
+
 /* Initialise the shared memory */
 static int init_mm(TSRMLS_D) {
   pid_t  owner = getpid();
@@ -303,6 +326,11 @@ static int init_mm(TSRMLS_D) {
   eaccelerator_mm_instance->user_hash_cnt = 0;
   eaccelerator_mm_instance->last_prune = time(0);
   EACCELERATOR_PROTECT();
+
+  if (!check_cache_dir(EAG(cache_dir))) {
+    return FAILURE;
+  }
+  
   return SUCCESS;
 }
 
@@ -1541,11 +1569,7 @@ static void profile_execute(zend_op_array *op_array TSRMLS_DC)
   ea_debug_start_time(&tv_start);
   EAG(self_time)[EAG(profile_level)] = 0;
   EAG(profile_level)++;
-#ifdef WITH_EACCELERATOR_EXECUTOR
-  eaccelerator_execute(op_array TSRMLS_CC);
-#else
   mm_saved_zend_execute(op_array TSRMLS_CC);
-#endif
   usec = ea_debug_elapsed_time(&tv_start);
   EAG(profile_level)--;
   if (EAG(profile_level) > 0)
@@ -1999,6 +2023,7 @@ PHP_MINIT_FUNCTION(eaccelerator) {
 
     if (init_mm(TSRMLS_C) == FAILURE) {
       zend_error(E_CORE_WARNING,"[%s] Can not create shared memory area", EACCELERATOR_EXTENSION_NAME);
+      return FAILURE;
     }
 
     mm_saved_zend_compile_file = zend_compile_file;
@@ -2009,10 +2034,6 @@ PHP_MINIT_FUNCTION(eaccelerator) {
     zend_execute = profile_execute;
 #else
     zend_compile_file = eaccelerator_compile_file;
-#ifdef WITH_EACCELERATOR_EXECUTOR
-    mm_saved_zend_execute = zend_execute;
-    zend_execute = eaccelerator_execute;
-#endif
 #endif
   }
 #if defined(WITH_EACCELERATOR_SESSIONS) && defined(HAVE_PHP_SESSIONS_SUPPORT)
@@ -2038,9 +2059,6 @@ PHP_MSHUTDOWN_FUNCTION(eaccelerator) {
     return SUCCESS;
   }
   zend_compile_file = mm_saved_zend_compile_file;
-#if defined(DEBUG) || defined(WITH_EACCELERATOR_EXECUTOR)
-  zend_execute = mm_saved_zend_execute;
-#endif
 #ifdef WITH_EACCELERATOR_CONTENT_CACHING
   eaccelerator_content_cache_shutdown();
 #endif
