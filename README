@@ -32,7 +32,8 @@ be installed after eAccelerator in php.ini. If you don't use  scripts  encoded
 with Zend Encoder then we do not recommend you  install  Zend  Optimizer  with
 eAccelerator.
 
-eAccelerator does not work in CGI mode.
+eAccelerator does not work in CGI mode but it does work in Fast-CGI mode with
+webservers like lighttpd.
 
 
 Here are some other products that provide the same functionality:
@@ -40,7 +41,6 @@ Here are some other products that provide the same functionality:
  - Zend Performance Suite (http://www.zend.com/)
  - PHP Accelerator (http://www.php-accelerator.co.uk/)
  - Alternative PHP Cache (http://pecl.php.net/package/APC)
- - AfterBurner Cache (http://bwcache.bware.it/)
 
 
 Where is eAccelerator already used?
@@ -93,9 +93,9 @@ apache 1.3, mod_php 4.1, autoconf, automake, libtool, m4
 
 Compatibility
 -------------
-This version of the eAccelerator has been successfully tested on PHP
-4.1.0-4.3.3 under Fedora 1, 2, 3, 4 and Debian 3.1 and Windows with Apache 1.3 
-and Apache 2.0.
+eAccelerator has been reported working with php4 and php5 but php 5.1 support
+hasn't been integrated yet. It is being used on Linux, FreeBSD, MacOS X, 
+Solaris and Windows with apache 1.3 and 2, lighttpd and IIS.
 
 
 Quick install

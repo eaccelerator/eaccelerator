@@ -6,6 +6,7 @@
           or cache directory failes.
         * set shared memory size in eaccelerator.ini to 0 so the default OS
           size is used.
+        * README updates
 
 2005-11-17 Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
