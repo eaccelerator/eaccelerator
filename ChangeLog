@@ -1,3 +1,7 @@
+2005-11-22 Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
+
+        * Some compile fixes from Chmouel Boudjnah
+
 2005-11-20 Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
         * check_cache_dir is only done when shm_only = 0
