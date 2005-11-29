@@ -2022,13 +2022,13 @@ PHP_MINIT_FUNCTION(eaccelerator) {
       /* disable eA */
       eaccelerator_mm_instance->enabled = 0;
     }
-
+#if 0
     if (!eaccelerator_scripts_shm_only && check_cache_dir(EAG(cache_dir)) == FAILURE) {
       zend_error(E_CORE_WARNING,"[%s] Can not init the cache directory", EACCELERATOR_EXTENSION_NAME);
       /* disable eA */
       eaccelerator_mm_instance->enabled = 0;
     }
-
+#endif
     mm_saved_zend_compile_file = zend_compile_file;
 
 #ifdef DEBUG

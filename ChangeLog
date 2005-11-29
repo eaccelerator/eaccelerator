@@ -1,5 +1,10 @@
 2005-11-22 Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
+        * Disabled the cache dir check, to much people complaining
+        * fixed eLoader
+
+2005-11-22 Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
+
         * Some compile fixes from Chmouel Boudjnah
 
 2005-11-20 Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>

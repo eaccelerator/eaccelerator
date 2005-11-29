@@ -166,11 +166,13 @@
 
 #define MAX_DUP_STR_LEN 256
 
+/******************************************************************************/
+
+#endif /* HAVE_EACCELERATOR_STANDALONE_LOADER */
+
 #ifndef offsetof
 #  define offsetof(str,fld) ((size_t)&(((str*)NULL)->fld))
 #endif
-
-/******************************************************************************/
 
 typedef struct _eaccelerator_op_array {
 	zend_uchar type;
@@ -254,6 +256,8 @@ typedef struct _mm_fc_entry {
 	int htablen;
 	char htabkey[1];			/* must be last element */
 } mm_fc_entry;
+
+#ifndef HAVE_EACCELERATOR_STANDALONE_LOADER
 
 /*
  * A mm_cache_entry is a bucket for one PHP script file.
@@ -381,16 +385,12 @@ void *eaccelerator_malloc2 (size_t size TSRMLS_DC);
 unsigned int eaccelerator_crc32 (const char *p, size_t n);
 int eaccelerator_md5 (char *s, const char *prefix, const char *key TSRMLS_DC);
 
-void restore_zval (zval * TSRMLS_DC);
 void calc_zval (zval * z TSRMLS_DC);
 void store_zval (zval * z TSRMLS_DC);
 void fixup_zval (zval * z TSRMLS_DC);
+void restore_zval (zval * TSRMLS_DC);
 
 unsigned int hash_mm(const char *data, int len); 
-
-#  ifdef WITH_EACCELERATOR_EXECUTOR
-ZEND_DLEXPORT void eaccelerator_execute (zend_op_array * op_array TSRMLS_DC);
-#  endif
 
 #  ifdef WITH_EACCELERATOR_OPTIMIZER
 void eaccelerator_optimize (zend_op_array * op_array);
@@ -399,15 +399,13 @@ void eaccelerator_optimize (zend_op_array * op_array);
 #ifdef WITH_EACCELERATOR_ENCODER
 PHP_FUNCTION (eaccelerator_encode);
 #endif
-#endif /* HAVE_EACCELERATOR_LOADER_STANDALONE */
+#endif /* HAVE_EACCELERATOR_STANDALONE_LOADER */
 
 #ifdef ZTS
 #  define EAG(v) TSRMG(eaccelerator_globals_id, zend_eaccelerator_globals*, v)
 #else
 #  define EAG(v) (eaccelerator_globals.v)
 #endif
-
-#define MMCG(v) EAG(v)
 
 /*
  * conditional filter

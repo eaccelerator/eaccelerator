@@ -1,5 +1,5 @@
 LTLIBRARY_NAME        = libeloader.la
-LTLIBRARY_SOURCES     = loader.c opcodes.c
+LTLIBRARY_SOURCES     = loader.c opcodes.c ea_restore.c debug.c
 LTLIBRARY_SHARED_NAME = eloader.la
 
 EXTRA_CFLAGS = -O3
