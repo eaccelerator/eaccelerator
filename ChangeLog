@@ -1,6 +1,8 @@
 2006-01-10 Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
         * Fix for bug #1366008
+        * Fix for bug #1238736, when a log file is set eA will lock it
+          before writing to it.
 
 2005-11-22 Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 

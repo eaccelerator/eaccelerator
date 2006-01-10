@@ -35,8 +35,11 @@
 #include "debug.h"
 #include <ctype.h>
 #include <stdio.h>
+#include <unistd.h>
+#include <fcntl.h>
 
-FILE *F_fp = NULL;
+static FILE *F_fp = NULL;
+static int file_no = 0;
 long eaccelerator_debug = 0;
 
 /**
@@ -48,16 +51,14 @@ void ea_debug_init (TSRMLS_D)
     /* register ini entries */
     REGISTER_MAIN_LONG_CONSTANT ("EA_LOG", EA_LOG, CONST_PERSISTENT | CONST_CS);
     REGISTER_MAIN_LONG_CONSTANT ("EA_DEBUG", EA_DEBUG, CONST_PERSISTENT | CONST_CS);
-    REGISTER_MAIN_LONG_CONSTANT ("EA_PROFILE_OPCODES", EA_PROFILE_OPCODES,
-                            CONST_PERSISTENT | CONST_CS);
-    REGISTER_MAIN_LONG_CONSTANT ("EA_TEST_PERFORMANCE", EA_TEST_PERFORMANCE,
-                            CONST_PERSISTENT | CONST_CS);
-    REGISTER_MAIN_LONG_CONSTANT ("EA_LOG_HASHKEYS", EA_LOG_HASHKEYS,
-                            CONST_PERSISTENT | CONST_CS);
+    REGISTER_MAIN_LONG_CONSTANT ("EA_PROFILE_OPCODES", EA_PROFILE_OPCODES, CONST_PERSISTENT | CONST_CS);
+    REGISTER_MAIN_LONG_CONSTANT ("EA_TEST_PERFORMANCE", EA_TEST_PERFORMANCE, CONST_PERSISTENT | CONST_CS);
+    REGISTER_MAIN_LONG_CONSTANT ("EA_LOG_HASHKEYS", EA_LOG_HASHKEYS, CONST_PERSISTENT | CONST_CS);
 
     F_fp = fopen (EAG (eaccelerator_log_file), "a");
     if (!F_fp)
         F_fp = stderr;
+    file_no = fileno(F_fp);
 }
 
 /**
@@ -69,6 +70,37 @@ void ea_debug_shutdown ()
     if (F_fp != stderr)
         fclose (F_fp);
     F_fp = NULL;
+}
+
+/* lock the log file, don't lock stderr */
+static void ea_debug_lock() {
+    int rc;
+    struct flock l;
+    if (F_fp != stderr) {
+        l.l_whence   = SEEK_SET;
+        l.l_start    = 0;
+        l.l_len      = 0;
+        l.l_pid      = 0;
+        l.l_type     = F_WRLCK;
+        do {
+            rc = fcntl(file_no, F_SETLKW, &l);
+        } while (rc < 0 && errno == EINTR);
+    }
+}
+
+static void ea_debug_unlock() {
+    int rc;
+    struct flock l;
+    if (F_fp != stderr) {
+        l.l_whence   = SEEK_SET;
+        l.l_start    = 0;
+        l.l_len      = 0;
+        l.l_pid      = 0;
+        l.l_type     = F_UNLCK;
+        do {
+            rc = fcntl(file_no, F_SETLKW, &l);
+        } while (rc < 0 && errno == EINTR);
+    }
 }
 
 /**
@@ -86,12 +118,14 @@ void ea_debug_log (char *format, ...)
         vsnprintf (output_buf, sizeof (output_buf), format, args);
         va_end (args);
 
+        ea_debug_lock();
 #ifdef ZEND_WIN32
         OutputDebugString (output_buf);
 #else
         fputs (output_buf, F_fp);
         fflush (F_fp);
 #endif
+        ea_debug_unlock();
     }
 }
 
@@ -135,9 +169,11 @@ void ea_debug_printf (long debug_level, char *format, ...)
         va_start (args, format);
         vsnprintf (output_buf, sizeof (output_buf), format, args);
         va_end (args);
-
+        
+        ea_debug_lock();
         fputs (output_buf, F_fp);
         fflush (F_fp);
+        ea_debug_unlock();
     }
 }
 #else
@@ -153,8 +189,10 @@ void ea_debug_printf (long debug_level, char *format, ...)
 void ea_debug_put (long debug_level, char *message)
 {
     if (debug_level & eaccelerator_debug) {
+        ea_debug_lock();
         fputs (message, F_fp);
         fflush (F_fp);
+        ea_debug_unlock();
     }
 }
 #else
@@ -170,11 +208,13 @@ void ea_debug_put (long debug_level, char *message)
 void ea_debug_binary_print (long debug_level, char *p, int len)
 {
     if (eaccelerator_debug & debug_level) {
+        ea_debug_lock();
         while (len--) {
             fputc (*p++, F_fp);
         }
         fputc ('\n', F_fp);
         fflush (F_fp);
+        ea_debug_unlock();
     }
 }
 #else
@@ -195,7 +235,10 @@ void ea_debug_log_hashkeys (char *p, HashTable * ht)
 
         b = ht->pListHead;
 
-        fputs (p, F_fp);
+        ea_debug_lock();
+        fputs(p, F_fp);
+        fflush(F_fp);
+        ea_debug_unlock();
         while (b) {
             fprintf (F_fp, "[%d] ", i);
             ea_debug_binary_print (EA_LOG_HASHKEYS, b->arKey, b->nKeyLength);
@@ -203,7 +246,6 @@ void ea_debug_log_hashkeys (char *p, HashTable * ht)
             b = b->pListNext;
             i++;
         }
-        fflush (F_fp);
     }
 }
 #else
@@ -219,10 +261,12 @@ void ea_debug_log_hashkeys (char *p, HashTable * ht)
 void ea_debug_pad (long debug_level TSRMLS_DC)
 {
     if (eaccelerator_debug & debug_level) {
+        ea_debug_lock();
         int i = EAG (xpad);
         while (i-- > 0) {
             fputc ('\t', F_fp);
         }
+        ea_debug_unlock();
     }
 }
 #else
