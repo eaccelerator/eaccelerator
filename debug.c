@@ -66,7 +66,8 @@ void ea_debug_init (TSRMLS_D)
 void ea_debug_shutdown ()
 {
     fflush (F_fp);
-    fclose (F_fp);
+    if (F_fp != stderr)
+        fclose (F_fp);
     F_fp = NULL;
 }
 
