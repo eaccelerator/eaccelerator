@@ -109,6 +109,7 @@ extern dtor_func_t properties_info_dtor;
 
 /* saved original functions */
 static zend_op_array *(*mm_saved_zend_compile_file)(zend_file_handle *file_handle, int type TSRMLS_DC);
+static void (*mm_saved_zend_execute)(zend_op_array *op_array TSRMLS_DC);
 
 /* external declarations */
 PHPAPI void php_stripslashes(char *str, int *len TSRMLS_DC);
@@ -2462,7 +2463,7 @@ ZEND_DLEXPORT int eaccelerator_zend_startup(zend_extension *extension) {
         /* temporary removing eAccelerator extension */
         zend_extension* last_ext = (zend_extension*)zend_extensions.tail->data;
         if (eaccelerator_el != NULL) {
-          zend_error(E_CORE_ERROR,"[%s] %s %s can not be loaded twich",
+          zend_error(E_CORE_ERROR,"[%s] %s %s can not be loaded twice",
                    EACCELERATOR_EXTENSION_NAME,
                    EACCELERATOR_EXTENSION_NAME,
                    EACCELERATOR_VERSION);

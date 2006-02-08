@@ -5,6 +5,8 @@
           --with-eaccelerator-userid. This way the semaphore doesn't need to
           be public writable anymore.
         * Moved some inactive contributors to the inactive list.
+        * Aplied patch #142200
+        * Fixed typo (patch #1409125)
 
 2006-01-10 Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
@@ -25,6 +27,7 @@
 
         * check_cache_dir is only done when shm_only = 0
         * Only eA is disabled when init of shared mem or cache check fails
+        * Released 0.9.4-rc1
 
 2005-11-20 Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
