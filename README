@@ -6,7 +6,7 @@ What is eAccelerator?
 eAccelerator is a free open source PHP  accelerator,  optimizer,  encoder  and
 dynamic content cache for PHP. It increases  performance  of  PHP  scripts  by 
 caching them in compiled state, so that the overhead of  compiling  is  almost
-completely eliminated. Also it uses some optimizations to speed  up  execution
+completely eliminated. It also optimises  the  script  to speed  up  execution
 of PHP scripts. eAccelerator typically reduces server load and  increases  the
 speed of your PHP code by 1-10 times.
 
@@ -29,7 +29,7 @@ of the scripts can  be  restored  with  different  reverse  engineering  tools
 
 eAccelerator is compatible with Zend Optimizer's loader. Zend  Optimizer  must
 be installed after eAccelerator in php.ini. If you don't use  scripts  encoded
-with Zend Encoder then we do not recommend you  install  Zend  Optimizer  with
+with  Zend  Encoder  we  do  not  recommend  to  install  Zend  Optimizer with 
 eAccelerator.
 
 eAccelerator does not work in CGI mode but it does work in Fast-CGI mode with
@@ -39,61 +39,24 @@ webservers like lighttpd.
 Here are some other products that provide the same functionality:
 
  - Zend Performance Suite (http://www.zend.com/)
- - PHP Accelerator (http://www.php-accelerator.co.uk/)
  - Alternative PHP Cache (http://pecl.php.net/package/APC)
-
-
-Where is eAccelerator already used?
------------------------------------
-The following you will find a list of sites that use eAccelerator. If you want
-to be added, please send e-mail to frankalcantara at users.sourceforge.net
-
- - The Slovenian National RTV Station (http://www.rtvslo.si)
-  The Slovenian National RTV Station and its news/misc portal with forums. 
-  Over 3500 users and more than 37000 forum messages in a year. 
-  Two round-robin servers for the masses, and an administrator server. 
-  6 000 000 pageloads monthly.
-	
- - An other game oriented french website (http://www.mondespersistants.com)
-  An other game oriented french website with 6 000 000 pageloads monthly. 
-  http://guildes.mondespersistants.com is a full PHP5 oo development. 
-  Theses websites are running under freebsd/apache 1.3/php 5.0.3/eaccelerator 0.9.2
-	
- - Andrew Hutchings - Linux Guru  ( http://www.domaincity.co.uk/)
-  Andrew Hutchings - Linux Guru - Just a quick message to say we are now using 
-  eaccelerator as a replacement for mmcache on 2 of our 3 node round robin 
-  clusters, 2.5million hits per day. We will be doubling this in the next few week, 
-  as well as implementing new clusters.
-	
- - elearning server (http://www.ets-online.de)
-  Denny Reeh - System Developer - The e/t/s didactic media provides an elearning 
-  server (Distance Learning System) written in PHP. We are hosting the systems 
-  for our customers mainly by ourself. So we have 5 live-servers 
-  (freebsd, apache2, php4, eaccelerator) with 5.5 million hits per month. 
-  First without eAccelerator we should have installed more servers for good 
-  performance and secondly we improve the customer convenience by quartering 
-  the medium response time of a script.
- 
-- Browser game (http://www.mafia-inc.de)
-  The Mafia-Incorporated is a succesfull Browser game with around 2.500.000
-  pages impressions each day and over 5000 user.
-  (GNU Linux(debian) / Apache 2.0.53 / PHP 4.3.10-9 / eAccelerator 0.9.2a)
-  
 
 Download
 --------
 Latest eAccelerator versions can be downloaded at the sourceforge page:
 http://sourceforge.net/projects/eaccelerator/
+Development snapshots from cvs can be downloaded at 
+http://snapshots.eaccelerator.net
 
 
 Requirements
 ------------
-apache 1.3, mod_php 4.1, autoconf, automake, libtool, m4
+apache >= 1.3, mod_php >= 4.1, autoconf, automake, libtool, m4
 
 
 Compatibility
 -------------
-eAccelerator has been reported working with php4 and php5 but php 5.1 support
+eAccelerator has been reported working with php4 and php5, php 5.1 support
 hasn't been integrated yet. It is being used on Linux, FreeBSD, MacOS X, 
 Solaris and Windows with apache 1.3 and 2, lighttpd and IIS.
 
@@ -243,6 +206,11 @@ eaccelerator.compress
 eaccelerator.compress_level
     Compression level used for content caching.  Default value is "9" which  is
     the maximum value
+
+eaccelerator.name_space
+    A string that's prepended to all keys. This allows two applications that 
+    use the same key names to run on the same host by setting this in .htaccess
+    or in the main configuration file for the whole webserver.
     
 eaccelerator.keys
 eaccelerator.sessions

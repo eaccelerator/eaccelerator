@@ -1,13 +1,13 @@
 eLoader
 -------
 
-eLoader is PHP extension that can load scripts which encoded by eAccelerator
-without eAccelerator. It is a PHP extension and it should be compatible with 
-Zend Optimizer, Zend Performance Suite, ionCube loader, PHP Accelerator and 
-other PHP extensions.
+eLoader is a PHP extension that can load scripts which are encoded by 
+eAccelerator without having to load eAccelerator. It's a PHP extension and it 
+should be compatible with Zend Optimizer, Zend Performance Suite, ionCube 
+loader, PHP Accelerator and other PHP extensions.
 
-eLoader is not need with eAccelerator, because eAccelerator already has loader
-compiled in.
+eLoader is not needed when using eAccelerator, because eAccelerator already 
+has the loader compiled in.
 
 To build eLoader from sources on UNIX:
 
