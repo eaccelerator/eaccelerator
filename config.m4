@@ -92,11 +92,20 @@ AC_ARG_WITH(eaccelerator-debug,
   eaccelerator_debug=no
 ])
 
+AC_ARG_WITH(eaccelerator-userid,
+[  --with-eaccelerator-userid               eAccelerator runs under this userid, only needed when using sysvipc semaphores.],[
+  ea_userid=$withval
+],[
+  ea_userid=0
+])
+
 dnl PHP_BUILD_SHARED
 if test "$PHP_EACCELERATOR" != "no"; then
   PHP_EXTENSION(eaccelerator, $ext_shared)
   AC_DEFINE(HAVE_EACCELERATOR, 1, [Define if you like to use eAccelerator])
 
+  AC_DEFINE_UNQUOTED(EA_USERID, $ea_userid, [The userid eAccelerator will be running under.]) 
+    
   if test "$eaccelerator_crash_detection" = "yes"; then
     AC_DEFINE(WITH_EACCELERATOR_CRASH_DETECTION, 1, [Define if you like to release eAccelerator resources on PHP crash])
   fi
@@ -300,8 +309,12 @@ if test "$PHP_EACCELERATOR" != "no"; then
     AC_DEFINE(MM_SEM_SPINLOCK, 1, [Define if you like to use spinlock based semaphores])
     msg="spinlock"
   elif test "$mm_sem_ipc" = "yes"; then
-    AC_DEFINE(MM_SEM_IPC, 1, [Define if you like to use sysvipc based semaphores])
-    msg="sysvipc"
+    if test $ea_userid = 0; then
+        AC_MSG_ERROR("You need to pass the user id eaccelerator will be running under when using sysvipc semaphores")
+    else
+        AC_DEFINE(MM_SEM_IPC, 1, [Define if you like to use sysvipc based semaphores])
+        msg="sysvipc"
+    fi
   elif test "$mm_sem_fcntl" = "yes"; then
     AC_DEFINE(MM_SEM_FCNTL, 1, [Define if you like to use fcntl based semaphores])
     msg="fcntl"

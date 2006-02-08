@@ -248,33 +248,6 @@ static void hash_add_mm(mm_cache_entry *x) {
   EACCELERATOR_UNLOCK_RW();
 }
 
-/* check the cache dir */
-static int check_cache_dir(char *cache_dir) {
-  struct stat buf;
-//  int uid = 0;
-//  int gid = 0;
-  
-  if (stat(cache_dir, &buf) == -1) {
-    ea_debug_error("Cache dir does not exist (could not stat %s)\n", cache_dir);
-    return FAILURE;
-  }
-  if (!(buf.st_mode & S_IFDIR)) {
-    ea_debug_error("%s is not a directory!\n", cache_dir);
-    return FAILURE;
-  }
-#if 0
-  uid = getuid();
-  gid = getgid();
-  if (!((buf.st_uid == uid && (buf.st_mode & (S_IRUSR | S_IWUSR))) /* not root, owner and rw */
-        || (buf.st_gid == gid && (buf.st_mode & (S_IRGRP | S_IWGRP))) /* not root, group and rw */
-        || (buf.st_mode & (S_IROTH & S_IWOTH)))) { /* other and rw */
-    ea_debug_error("%s hasn't got the right permissions!\n", cache_dir);
-    return 0;
-  }
-#endif
-  return SUCCESS;
-}
-
 /* Initialise the shared memory */
 static int init_mm(TSRMLS_D) {
   pid_t  owner = getpid();
@@ -2022,13 +1995,6 @@ PHP_MINIT_FUNCTION(eaccelerator) {
       /* disable eA */
       eaccelerator_mm_instance->enabled = 0;
     }
-#if 0
-    if (!eaccelerator_scripts_shm_only && check_cache_dir(EAG(cache_dir)) == FAILURE) {
-      zend_error(E_CORE_WARNING,"[%s] Can not init the cache directory", EACCELERATOR_EXTENSION_NAME);
-      /* disable eA */
-      eaccelerator_mm_instance->enabled = 0;
-    }
-#endif
     mm_saved_zend_compile_file = zend_compile_file;
 
 #ifdef DEBUG

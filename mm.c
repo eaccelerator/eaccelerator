@@ -321,10 +321,23 @@ typedef struct mm_mutex {
 static int mm_init_lock(const char* key, mm_mutex* lock) {
   int rc;
   union semun arg;
+  struct semid_ds buf;
 
-  if ((lock->semid = semget(IPC_PRIVATE, 1, IPC_CREAT | 0666)) < 0) {
+  if ((lock->semid = semget(IPC_PRIVATE, 1, IPC_CREAT | IPC_EXCL | S_IRUSR | S_IWUSR)) < 0) {
     return 0;
   }
+
+  arg.buf = &buf;
+  do {
+    rc = semctl(lock->semid, 0, IPC_STAT, arg);
+  } while (rc < 0 && errno == EINTR);
+
+  buf.sem_perm.uid = EA_USERID;
+
+  do {
+    rc = semctl(lock->semid, 0, IPC_SET, arg);
+  } while (rc < 0 && errno == EINTR);
+  
   arg.val = 1;
   do {
     rc = semctl(lock->semid, 0, SETVAL, arg);
