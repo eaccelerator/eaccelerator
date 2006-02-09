@@ -1993,8 +1993,7 @@ PHP_MINIT_FUNCTION(eaccelerator) {
 
     if (init_mm(TSRMLS_C) == FAILURE) {
       zend_error(E_CORE_WARNING,"[%s] Can not create shared memory area", EACCELERATOR_EXTENSION_NAME);
-      /* disable eA */
-      eaccelerator_mm_instance->enabled = 0;
+      return FAILURE;
     }
     mm_saved_zend_compile_file = zend_compile_file;
 
