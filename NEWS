@@ -1,3 +1,17 @@
+Feb 15, 2006 - Bart Vanbrabant
+----------------------------------
+ * Released 0.9.4
+
+    This release only contains some bugfixes and code cleanups. This release
+    is still the old codebase. It doesn't contain any new code yet.
+    - Some fixed were done to the encoder. The format changed a bit so I bumped
+      up the encoder version. Because the encoder still isn't functional for
+      php version other than php 4 you should only use this encoder if you want
+      to have line numbers encoded.
+      In next versions we will try to fix the encoder for php 5 and 5.1
+    - eA should be php 5 compatible except some very unusual cases.
+    - This version DOESN'T support php 5.1
+
 Feb 8, 2006 - Bart Vanbrabant
 ----------------------------------
  * Released 0.9.4-rc2
