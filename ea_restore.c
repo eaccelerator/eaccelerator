@@ -39,6 +39,9 @@
 #include "zend.h"
 #include "zend_API.h"
 #include "zend_extensions.h"
+#ifdef ZEND_ENGINE_2_1
+#include "zend_vm.h"
+#endif
 
 #ifndef INCOMPLETE_CLASS
 #  define INCOMPLETE_CLASS "__PHP_Incomplete_Class"
@@ -69,12 +72,16 @@ dtor_func_t get_zend_destroy_property_info(TSRMLS_D)
 	property_dtor = dummy_class_entry.properties_info.pDestructor;
 
 	zend_hash_destroy(&dummy_class_entry.default_properties);
-	zend_hash_destroy(&dummy_class_entry.properties_info);
-	zend_hash_destroy(dummy_class_entry.static_members);
 	zend_hash_destroy(&dummy_class_entry.function_table);
-	FREE_HASHTABLE(dummy_class_entry.static_members);
 	zend_hash_destroy(&dummy_class_entry.constants_table);
-
+	zend_hash_destroy(&dummy_class_entry.properties_info);
+#  ifdef ZEND_ENGINE_2_1
+	zend_hash_destroy(&dummy_class_entry.default_static_members);
+#  endif
+#  if defined(ZEND_ENGINE_2) && !defined(ZEND_ENGINE_2_1)
+	zend_hash_destroy(dummy_class_entry.static_members);
+        FREE_HASHTABLE(dummy_class_entry.static_members);
+#  endif
 	return property_dtor;
 }
 #endif
@@ -92,6 +99,9 @@ typedef void (*fixup_bucket_t) (void *TSRMLS_DC);
 static void fixup_property_info(zend_property_info * from TSRMLS_DC)
 {
 	FIXUP(from->name);
+#ifdef ZEND_ENGINE_2_1
+	FIXUP(from->doc_comment);
+#endif
 }
 #endif
 
@@ -221,7 +231,12 @@ void fixup_op_array(eaccelerator_op_array * from TSRMLS_DC)
 				FIXUP(opline->op2.u.jmp_addr);
 				break;
 			}
+#  ifdef ZEND_ENGINE_2_1
+			ZEND_VM_SET_OPCODE_HANDLER(opline);
+#  else
 			opline->handler = get_opcode_handler(opline->opcode TSRMLS_CC);
+#  endif
+
 #endif
 		}
 		EAG(compress) = 1;
@@ -234,6 +249,15 @@ void fixup_op_array(eaccelerator_op_array * from TSRMLS_DC)
 		FIXUP(from->static_variables);
 		fixup_zval_hash(from->static_variables);
 	}
+#ifdef ZEND_ENGINE_2_1
+	if (from->vars != NULL) {
+		zend_uint i;
+		FIXUP(from->vars);
+		for (i = 0; i < from->last_var; i++) {
+			FIXUP(from->vars[i].name);
+		}
+	}
+#endif
 	FIXUP(from->filename);
 #ifdef ZEND_ENGINE_2
 	FIXUP(from->doc_comment);
@@ -251,10 +275,20 @@ void fixup_class_entry(eaccelerator_class_entry * from TSRMLS_DC)
 	fixup_zval_hash(&from->default_properties);
 	fixup_hash(&from->properties_info,
 			   (fixup_bucket_t) fixup_property_info TSRMLS_CC);
+#  ifdef ZEND_ENGINE_2_1
+	fixup_zval_hash(&from->default_static_members);
+	if (from->static_members != NULL) {
+		FIXUP(from->static_members);
+		if (from->static_members != &from->default_static_members) {
+			fixup_zval_hash(from->static_members);
+		}
+	}
+#  else
 	if (from->static_members != NULL) {
 		FIXUP(from->static_members);
 		fixup_zval_hash(from->static_members);
 	}
+#  endif
 #else
 	fixup_zval_hash(&from->default_properties);
 #endif
@@ -277,6 +311,8 @@ static zval *restore_zval_ptr(zval * from TSRMLS_DC)
 	ALLOC_ZVAL(p);
 	memcpy(p, from, sizeof(zval));
 	restore_zval(p TSRMLS_CC);
+	/* hrak: reset refcount to make sure there is one reference to this val, and prevent memleaks */
+	p->refcount = 1;
 	return p;
 }
 
@@ -351,7 +387,7 @@ void restore_zval(zval * zv TSRMLS_DC)
 	case IS_CONSTANT:
 	case IS_STRING:
 		if (zv->value.str.val == NULL || 
-                zv->value.str.val == empty_string || zv->value.str.len == 0) {
+                zv->value.str.val == "" || zv->value.str.len == 0) {
 			zv->value.str.val = empty_string;
 			return;
 		} else {
@@ -441,8 +477,8 @@ zend_op_array *restore_op_array(zend_op_array * to,
 #endif
 
 	ea_debug_pad(EA_DEBUG TSRMLS_CC);
-	ea_debug_printf(EA_DEBUG, "[%d] restore_op_array: %s\n", getpid(),
-					from->function_name ? from->function_name : "(top)");
+	ea_debug_printf(EA_DEBUG, "[%d] restore_op_array: %s type=%x\n", getpid(),
+					from->function_name ? from->function_name : "(top)", from->type);
 
 	if (from->type == ZEND_INTERNAL_FUNCTION) {
 		if (to == NULL) {
@@ -499,18 +535,17 @@ zend_op_array *restore_op_array(zend_op_array * to,
 	 */
 	if (from->scope_name != NULL) {
 		char *from_scope_lc = zend_str_tolower_dup(from->scope_name, from->scope_name_len);
-		if (zend_hash_find (CG(class_table), (void *) from_scope_lc, 
-                    from->scope_name_len + 1, (void **) &to->scope) != SUCCESS) {
+		if (zend_hash_find (CG(class_table), (void *) from_scope_lc, from->scope_name_len + 1, (void **) &to->scope) != SUCCESS) {
 			ea_debug_pad(EA_DEBUG TSRMLS_CC);
-			ea_debug_printf(EA_DEBUG, "[%d]                   can't find '%s' in hash. use EAG(class_entry).\n", getpid(), from_scope_lc);
+			ea_debug_printf(EA_DEBUG, "[%d]                   can't find '%s' in class_table. use EAG(class_entry).\n", getpid(), from->scope_name);
 			to->scope = EAG(class_entry);
 		} else {
 			ea_debug_pad(EA_DEBUG TSRMLS_CC);
-			ea_debug_printf(EA_DEBUG, "[%d]                   found '%s' in hash\n", getpid(), from_scope_lc);
+			ea_debug_printf(EA_DEBUG, "[%d]                   found '%s' in hash\n", getpid(), from->scope_name);
 			to->scope = *(zend_class_entry **) to->scope;
 		}
 		efree(from_scope_lc);
-	} else {					// zoeloelip: is this needed? scope is always stored
+	} else {					// zoeloelip: is this needed? scope is always stored -> hra: no its not :P only if from->scope!=null in ea_store
 		ea_debug_pad(EA_DEBUG TSRMLS_CC);
 		ea_debug_printf(EA_DEBUG, "[%d]                   from is NULL\n", getpid()); 
 		if (EAG(class_entry)) {
@@ -562,23 +597,45 @@ zend_op_array *restore_op_array(zend_op_array * to,
 			 */
 			ea_debug_pad(EA_DEBUG TSRMLS_CC);
 			ea_debug_printf(EA_DEBUG, "[%d]                                       can't find\n", getpid());
+		}		
+#ifdef ZEND_ENGINE_2
+		/* hrak: slight memleak here. dont forget to free the lowercase function name! */
+		if (fname_lc != NULL) {
+			efree(fname_lc);
 		}
+		/* zend_internal_function also contains return_reference in ZE2 */
+		to->return_reference = from->return_reference;
+		/* this gets set by zend_do_inheritance */
+		to->prototype = NULL;
+#endif
 		return to;
 	}
+#ifdef ZEND_ENGINE_2
+	/* hrak: slight memleak here. dont forget to free the lowercase function name! */
+	if (fname_lc != NULL) {
+		efree(fname_lc);
+	}
+#endif
 	to->opcodes = from->opcodes;
 	to->last = to->size = from->last;
 	to->T = from->T;
 	to->brk_cont_array = from->brk_cont_array;
 	to->last_brk_cont = from->last_brk_cont;
-	/*
+	
 	   to->current_brk_cont = -1;
 	   to->static_variables = from->static_variables;
-	   to->start_op         = to->opcodes;
+/*	   to->start_op         = to->opcodes; */
 	   to->backpatch_count  = 0;
-	 */
+	
 	to->return_reference = from->return_reference;
 	to->done_pass_two = 1;
 	to->filename = from->filename;
+/*	if (from->filename != NULL) {
+		size_t len = strlen(from->filename) + 1;
+		to->filename = emalloc(len);
+		memcpy(to->filename, from->filename, len);
+	}*/
+
 #ifdef ZEND_ENGINE_2
 	/* HOESH: try & catch support */
 	to->try_catch_array = from->try_catch_array;
@@ -612,6 +669,20 @@ zend_op_array *restore_op_array(zend_op_array * to,
 #endif
 	}
 
+#ifdef ZEND_ENGINE_2_1
+	to->vars             = from->vars;
+	to->last_var         = from->last_var;
+	to->size_var         = 0;
+/*	if (from->vars) {
+		zend_uint i;
+		to->vars = (zend_compiled_variable*)emalloc(from->last_var*sizeof(zend_compiled_variable));		
+		memcpy(to->vars, from->vars, sizeof(zend_compiled_variable) * from->last_var);
+		for (i = 0; i < from->last_var; i ++) {
+			to->vars[i].name = estrndup(from->vars[i].name, from->vars[i].name_len);
+		}
+	}*/
+#endif
+
 	/* disable deletion in destroy_op_array */
 	++EAG(refcount_helper);
 	to->refcount = &EAG(refcount_helper);
@@ -633,6 +704,12 @@ static zend_property_info *restore_property_info(zend_property_info *
 	memcpy(to, from, sizeof(zend_property_info));
 	to->name = emalloc(from->name_length + 1);
 	memcpy(to->name, from->name, from->name_length + 1);
+#ifdef ZEND_ENGINE_2_1
+	if (from->doc_comment != NULL) {
+		to->doc_comment = emalloc(from->doc_comment_len+1);
+		memcpy(to->doc_comment, from->doc_comment, from->doc_comment_len+1);
+	}
+#endif
 	return to;
 }
 #endif
@@ -641,9 +718,12 @@ static zend_property_info *restore_property_info(zend_property_info *
 void restore_class_parent(char *parent, int len,
 						  zend_class_entry * to TSRMLS_DC)
 {
+	ea_debug_printf(EA_DEBUG, "restore_class_parent: restoring parent class %s of class %s\n", (char *) parent, to->name);
 #ifdef ZEND_ENGINE_2
-	char *name_lc = zend_str_tolower_dup(parent, len);
-	if (zend_hash_find(CG(class_table), (void *) name_lc, len + 1, (void **) &to->parent) != SUCCESS)
+/*	char *name_lc = zend_str_tolower_dup(parent, len);
+	if (zend_hash_find(CG(class_table), (void *) name_lc, len + 1, (void **) &to->parent) != SUCCESS)*/
+	zend_class_entry** parent_ptr = NULL;
+	if (zend_lookup_class(parent, len, &parent_ptr TSRMLS_CC) != SUCCESS)
 #else
 	if (zend_hash_find(CG(class_table), (void *) parent, len + 1, (void **) &to->parent) != SUCCESS)
 #endif
@@ -654,22 +734,31 @@ void restore_class_parent(char *parent, int len,
 	} else {
 #ifdef ZEND_ENGINE_2
 		/* inherit parent methods */
-		to->parent = *(zend_class_entry **) to->parent;
+		to->parent = *parent_ptr;
+		to->parent->refcount++;
+		ea_debug_printf(EA_DEBUG, "restore_class_parent: found parent %s..\n", to->parent->name);
+		ea_debug_printf(EA_DEBUG, "restore_class_parent: parent type=%d child type=%d\n", to->parent->type, to->type);
 		to->constructor = to->parent->constructor;
 		to->destructor = to->parent->destructor;
 		to->clone = to->parent->clone;
-		to->__get = to->parent->__get;
+/*		to->__get = to->parent->__get;
 		to->__set = to->parent->__set;
+#  ifdef ZEND_ENGINE_2_1
+		to->__unset = to->parent->__unset;
+		to->__isset = to->parent->__isset;
+		to->serialize_func = to->parent->serialize_func;
+		to->unserialize_func = to->parent->unserialize_func;
+#  endif
 		to->__call = to->parent->__call;
 		to->create_object = to->parent->create_object;
 #else
 		to->handle_property_get = to->parent->handle_property_get;
 		to->handle_property_set = to->parent->handle_property_set;
-		to->handle_function_call = to->parent->handle_function_call;
+		to->handle_function_call = to->parent->handle_function_call;*/
 #endif
 	}
 #ifdef ZEND_ENGINE_2
-	efree(name_lc);
+	/*efree(name_lc);*/
 #endif
 }
 
@@ -688,6 +777,7 @@ void restore_class_methods(zend_class_entry * to TSRMLS_DC)
 		f = p->pData;
 		fname_len = strlen(f->common.function_name);
 		fname_lc = zend_str_tolower_dup(f->common.function_name, fname_len);
+		ea_debug_printf(EA_DEBUG, "restore_class_methods: restoring function:%s scope:%s parent=%x scope=%x\n", fname_lc, ZEND_FN_SCOPE_NAME(f), to->parent, f->common.scope);
 
 		if (fname_len == cname_len && !memcmp(fname_lc, cname_lc, fname_len) && 
                 to->constructor == old_ctor && f->common.scope != to->parent) {
@@ -708,6 +798,14 @@ void restore_class_methods(zend_class_entry * to TSRMLS_DC)
 			else if (fname_len == sizeof(ZEND_SET_FUNC_NAME) - 1 &&
 					 memcmp(fname_lc, ZEND_SET_FUNC_NAME, sizeof(ZEND_SET_FUNC_NAME)) == 0)
 				to->__set = f;
+#  ifdef ZEND_ENGINE_2_1
+			else if (fname_len == sizeof(ZEND_UNSET_FUNC_NAME) - 1 &&
+					memcmp(fname_lc, ZEND_UNSET_FUNC_NAME, sizeof(ZEND_UNSET_FUNC_NAME)) == 0)
+				to->__unset = f;
+			else if (fname_len == sizeof(ZEND_ISSET_FUNC_NAME) - 1 &&
+					memcmp(fname_lc, ZEND_ISSET_FUNC_NAME, sizeof(ZEND_ISSET_FUNC_NAME)) == 0)
+				to->__isset = f;
+#  endif
 			else if (fname_len == sizeof(ZEND_CALL_FUNC_NAME) - 1 &&
 					 memcmp(fname_lc, ZEND_CALL_FUNC_NAME, sizeof(ZEND_CALL_FUNC_NAME)) == 0)
 				to->__call = f;
@@ -724,21 +822,20 @@ zend_class_entry *restore_class_entry(zend_class_entry * to,
 {
 	zend_class_entry *old;
 	zend_function *f = NULL;
-	int fname_len = 0;
-	char *fname_lc = NULL;
+/*	int fname_len = 0;		hrak: seems rather unused
+	char *fname_lc = NULL; */
 #ifdef ZEND_ENGINE_2
-	int cname_len;
-	char *cname_lc;
+/*	int cname_len;			hrak: same here
+	char *cname_lc; */
 	Bucket *p;
 	union _zend_function *old_ctor;
 #endif
 
 	ea_debug_pad(EA_DEBUG TSRMLS_CC);
-	ea_debug_printf(EA_DEBUG, "[%d] retore_class_entry: %s\n", getpid(), from->name ? from->name : "(top)");
+	ea_debug_printf(EA_DEBUG, "[%d] restore_class_entry: %s\n", getpid(), from->name ? from->name : "(top)");
 #ifdef DEBUG
 	EAG(xpad)++;
 #endif
-
 	if (to == NULL) {
 		to = emalloc(sizeof(zend_class_entry));
 	}
@@ -752,19 +849,17 @@ zend_class_entry *restore_class_entry(zend_class_entry * to,
 	 */
 #ifdef ZEND_ENGINE_2
 	to->ce_flags = from->ce_flags;
-	/*
-	   to->static_members = NULL;
-	 */
 	to->num_interfaces = from->num_interfaces;
 	if (to->num_interfaces > 0) {
+		/* hrak: Allocate the slots which will later be populated by ZEND_ADD_INTERFACE */
 		to->interfaces = (zend_class_entry **) emalloc(sizeof(zend_class_entry *) * to->num_interfaces);
-		// should find out class entry. what the hell !!!
 		memset(to->interfaces, 0, sizeof(zend_class_entry *) * to->num_interfaces);
 	} else {
 		to->interfaces = NULL;
 	}
 
 	to->iterator_funcs = from->iterator_funcs;
+	to->create_object = from->create_object;
 	to->get_iterator = from->get_iterator;
 	to->interface_gets_implemented = from->interface_gets_implemented;
 #endif
@@ -773,14 +868,6 @@ zend_class_entry *restore_class_entry(zend_class_entry * to,
 		to->name_length = from->name_length;
 		to->name = emalloc(from->name_length + 1);
 		memcpy(to->name, from->name, from->name_length + 1);
-	}
-
-	if (from->parent != NULL) {
-		restore_class_parent(from->parent, strlen(from->parent), to TSRMLS_CC);
-	} else {
-		ea_debug_pad(EA_DEBUG TSRMLS_CC);
-		ea_debug_printf(EA_DEBUG, "[%d] parent = NULL\n", getpid());
-		to->parent = NULL;
 	}
 
 	old = EAG(class_entry);
@@ -792,11 +879,12 @@ zend_class_entry *restore_class_entry(zend_class_entry * to,
 	to->line_start = from->line_start;
 	to->line_end = from->line_end;
 	to->doc_comment_len = from->doc_comment_len;
-	if (from->filename != NULL) {
+/*	if (from->filename != NULL) {
 		size_t len = strlen(from->filename) + 1;
 		to->filename = emalloc(len);
 		memcpy(to->filename, from->filename, len);
-	}
+	}*/
+	to->filename = from->filename;
 	if (from->doc_comment != NULL) {
 		to->doc_comment = emalloc(from->doc_comment_len + 1);
 		memcpy(to->doc_comment, from->doc_comment, from->doc_comment_len + 1);
@@ -813,16 +901,27 @@ zend_class_entry *restore_class_entry(zend_class_entry * to,
             (restore_bucket_t) restore_property_info TSRMLS_CC);
 	to->properties_info.pDestructor = properties_info_dtor;
 
+#  ifdef ZEND_ENGINE_2_1
+	/* restore default_static_members */
+	restore_zval_hash(&to->default_static_members, &from->default_static_members);
+	to->default_static_members.pDestructor = ZVAL_PTR_DTOR;
+	
+	ea_debug_printf(EA_DEBUG, "restore_class_entry: static_members=%x, default_static_members=%x\n", from->static_members, &from->default_static_members);
+	if (from->static_members != &(from->default_static_members)) {
+		ALLOC_HASHTABLE(to->static_members);
+		restore_zval_hash(to->static_members, from->static_members);
+		to->static_members->pDestructor = ZVAL_PTR_DTOR;
+	} else {
+		to->static_members = &(to->default_static_members);
+	}
+	ea_debug_printf(EA_DEBUG, "restore_class_entry: to->static_members=%x, to->default_static_members=%x\n", to->static_members, &to->default_static_members);
+#  else
 	if (from->static_members != NULL) {
 		ALLOC_HASHTABLE(to->static_members);
 		restore_zval_hash(to->static_members, from->static_members);
 		to->static_members->pDestructor = ZVAL_PTR_DTOR;
-		/*
-		   } else {
-		   ALLOC_HASHTABLE(to->static_members);
-		   zend_hash_init_ex(to->static_members, 0, NULL, ZVAL_PTR_DTOR, 0, 0);
-		 */
 	}
+#  endif
 #else
 	to->refcount = emalloc(sizeof(*to->refcount));
 	*to->refcount = 1;
@@ -838,6 +937,14 @@ zend_class_entry *restore_class_entry(zend_class_entry * to,
 		}
 	}
 #endif
+	if (from->parent != NULL) {
+		restore_class_parent(from->parent, strlen(from->parent), to TSRMLS_CC);
+	} else {
+		ea_debug_pad(EA_DEBUG TSRMLS_CC);
+		ea_debug_printf(EA_DEBUG, "[%d] parent = NULL\n", getpid());
+		to->parent = NULL;
+	}
+
 	restore_hash(&to->function_table, &from->function_table,
 				 (restore_bucket_t) restore_op_array_ptr TSRMLS_CC);
 	to->function_table.pDestructor = ZEND_FUNCTION_DTOR;
@@ -845,6 +952,8 @@ zend_class_entry *restore_class_entry(zend_class_entry * to,
 #ifdef ZEND_ENGINE_2
 	restore_class_methods(to TSRMLS_CC);
 #endif
+	if (to->parent)
+		zend_do_inheritance(to, to->parent TSRMLS_CC);
 	EAG(class_entry) = old;
 
 #ifdef DEBUG

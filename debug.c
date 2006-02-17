@@ -290,4 +290,31 @@ long ea_debug_elapsed_time (struct timeval *tvstart)
     return sec * 1000000 + usec;
 }
 
+/*
+ * This dumps a HashTable to debug output. Taken from zend_hash.c and slightly adapted.
+ */
+void ea_debug_hash_display(HashTable * ht)
+{
+	Bucket *p;
+	uint i;
+
+	fprintf(F_fp, "ht->nTableSize: %d\n", ht->nTableSize);
+	fprintf(F_fp, "ht->nNumOfElements: %d\n", ht->nNumOfElements);
+
+	for (i = 0; i < ht->nTableSize; i++) {
+		p = ht->arBuckets[i];
+		while (p != NULL) {
+			fprintf(F_fp, "%s <==> 0x%lX\n", p->arKey, p->h);
+			p = p->pNext;
+		}
+	}
+
+	p = ht->pListTail;
+	while (p != NULL) {
+		fprintf(F_fp, "%s <==> 0x%lX\n", p->arKey, p->h);
+		p = p->pListLast;
+	}
+	fflush(F_fp);
+}
+
 #endif /* #ifdef HAVE_EACCELERATOR */

@@ -71,4 +71,6 @@ void ea_debug_log_hashkeys (char *p, HashTable * ht);
 void ea_debug_start_time (struct timeval *tvstart);
 long ea_debug_elapsed_time (struct timeval *tvstart);
 
+void ea_debug_hash_display(HashTable * ht);
+
 #endif /* INCLUDED_DEBUG_H */

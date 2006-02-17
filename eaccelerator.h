@@ -44,6 +44,10 @@
 #  endif
 #endif
 
+#if PHP_MAJOR_VERSION == 5 && PHP_MINOR_VERSION >= 1
+#   define ZEND_ENGINE_2_1
+#endif
+
 /* fixes compile errors on php5.1 */
 #ifdef STR_EMPTY_ALLOC
 #define empty_string STR_EMPTY_ALLOC()
@@ -199,6 +203,10 @@ typedef struct _eaccelerator_op_array {
 #endif
 	zend_op *opcodes;
 	zend_uint last;
+#ifdef ZEND_ENGINE_2_1
+	zend_compiled_variable *vars;
+    int last_var;
+#endif
 	zend_uint T;
 	zend_brk_cont_element *brk_cont_array;
 	zend_uint last_brk_cont;
@@ -220,24 +228,29 @@ typedef struct _eaccelerator_class_entry {
 	char type;
 	char *name;
 	char *name_lc;
-	uint name_length;
+	zend_uint name_length;
 	char *parent;
 	HashTable function_table;
 	HashTable default_properties;
 #ifdef ZEND_ENGINE_2
-	zend_uint ce_flags;
-	HashTable *static_members;
 	HashTable properties_info;
+#  ifdef ZEND_ENGINE_2_1
+	HashTable default_static_members;
+#  endif
+	HashTable *static_members;
 	HashTable constants_table;
+	zend_uint ce_flags;
 	zend_uint num_interfaces;
+
 	char **interfaces;
 	zend_class_iterator_funcs iterator_funcs;
 
-	 zend_object_value (*create_object) (zend_class_entry *
-										 class_type TSRMLS_DC);
-	zend_object_iterator *(*get_iterator) (zend_class_entry * ce,
-										   zval * object TSRMLS_DC);
-	int (*interface_gets_implemented) (zend_class_entry * iface, zend_class_entry * class_type TSRMLS_DC);	/* a class implements this interface */
+	/* handlers */
+	zend_object_value (*create_object) (zend_class_entry *class_type TSRMLS_DC);
+	zend_object_iterator *(*get_iterator) (zend_class_entry *ce, zval *object TSRMLS_DC);
+	int (*interface_gets_implemented) (zend_class_entry *iface, zend_class_entry *class_type TSRMLS_DC);	/* a class implements this interface */
+
+	/* hra: serializer callbacks may need to be added here in the future for php 5.1 */
 
 	char *filename;
 	zend_uint line_start;

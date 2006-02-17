@@ -1,6 +1,33 @@
+2006-02-16  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
+
+        * Merged PHP_5_1 branch with HEAD
+
+2006-02-17  Hans Rakers <hans at parse dot nl>
+
+        * PHP_5_1: Some final fixes before merging to HEAD:
+          - Fixed bug #1410723 (handling of class constants by the optimizer)
+          - Fixed backwards compatibility with PHP < 5.1
+          This revision works pretty well in my testing environment, PHP-5.1 support
+          seems to be coming along quite well. Please test with your applications/
+          in your environment and report back with your experiences or possible problems!
+
 2006-02-15 Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
         * Released version 0.9.4
+
+2006-02-15  Hans Rakers <hans at parse dot nl>
+
+        * PHP_5_1: Fixes for five failing tests found using the test suite created by Bart
+          Tests that failed where:
+          -ctor_dtor_inheritance (failed because __construct, __destruct and __clone were not properly set)
+          -destructor_and_exceptions (failed because inheritance of parent methods was broken, fixed by making sure ea_store doesn't store methods outside scope)
+          -inheritance_002 (failed because __construct, __destruct and __clone were not properly set)
+          -private_members (failed because __construct, __destruct and __clone were not properly set)
+          -type_hinting_003 (failed because array_type_hint introduced in zend_arg_info in PHP-5.1 was ignored)
+
+2006-02-14  Bart Vanbrabant <bart.vanbrabant at zoeloelip dot be>
+
+        * PHP_5_1: Changed cflags to -O2 from -O3
 
 2006-02-09 Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
@@ -20,6 +47,31 @@
         * Fixed some typos in README.eLoader
         * Updated NEWS and bumped up version to 0.9.4-rc2
         * Released 0.9.4-rc2
+
+2006-02-07  Hans Rakers <hans at parse dot nl>
+
+        * PHP_5_1: Fix for problems with __autoload
+        * PHP_5_1: Fixed compile problems with thread-safe PHP
+
+2006-02-06  Hans Rakers <hans at parse dot nl>
+
+        * PHP_5_1: Quite some major changes, including but probably not limited to:
+          -Fixed numerous memory leaks
+          -Fixed the handling of empty string variables (as in ""), causing "String is not zero-terminated" warnings when PHP is compiled with --enable-debug
+          -More fixes to the handling of static properties (access checking/inheritance)
+          -Inheritance on restore is now handled by zend_do_inheritance
+          -Fixed handling of ZEND_OP_DATA and ZEND_INIT_METHOD_CALL by the optimizer
+          -Cosmetic fixes (spelling etc.)
+
+2006-01-16  Hans Rakers <hans at parse dot nl>
+
+        * PHP_5_1: Fix for bug #1401474 (and most likely some more php-5.1 related trouble)
+          static_members handling was incorrect.
+
+2006-01-12  Hans Rakers <hans at parse dot nl>
+
+        * First batch of PHP-5.1 related changes committed to the newly created
+          PHP_5_1 branch. This is a work in progress, so YMMV.
 
 2006-01-10 Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 

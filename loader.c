@@ -40,6 +40,10 @@
 #include "ea_restore.h"
 #include <math.h>
 
+#ifdef HAVE_EACCELERATOR_STANDALONE_LOADER
+zend_extension* ZendOptimizer = NULL;
+#endif
+
 typedef struct loader_data {
   long  version;
   char* filename;

@@ -109,7 +109,10 @@ extern dtor_func_t properties_info_dtor;
 
 /* saved original functions */
 static zend_op_array *(*mm_saved_zend_compile_file)(zend_file_handle *file_handle, int type TSRMLS_DC);
+
+#ifdef DEBUG
 static void (*mm_saved_zend_execute)(zend_op_array *op_array TSRMLS_DC);
+#endif
 
 /* external declarations */
 PHPAPI void php_stripslashes(char *str, int *len TSRMLS_DC);
@@ -816,7 +819,7 @@ static mm_cache_entry *eaccelerator_store_int (char *key, int len,
   q = p->c_head;
   while (q != NULL) {
 #ifdef ZEND_ENGINE_2
-      q->fc = store_class_entry ((zend_class_entry *) q->fc TSRMLS_CC);
+      q->fc = store_class_entry ((zend_class_entry *) q->fc TSRMLS_CC);  // hra: exactly the same?!
 #else
       q->fc = store_class_entry ((zend_class_entry *) q->fc TSRMLS_CC);
 #endif
@@ -853,6 +856,7 @@ static int eaccelerator_store(char* key, struct stat *buf, int nreloads,
   if (size == 0) {
     return 0;
   }
+  ea_debug_printf (EA_DEBUG, "[%d] eaccelerator_store: calc_size returned %d, mm=%x", getpid(), size, eaccelerator_mm_instance->mm);
   EACCELERATOR_UNPROTECT();
   EAG(mem) = eaccelerator_malloc(size);
   if (EAG(mem) == NULL) {
@@ -1443,7 +1447,7 @@ ZEND_DLEXPORT zend_op_array* eaccelerator_compile_file(zend_file_handle *file_ha
         ea_debug_log("[%d] EACCELERATOR %s: \"%s\"\n", getpid(),
               (nreloads == 1) ? "cached" : "re-cached", file_handle->opened_path);
       } else {
-        ea_debug_log("[%d] EACCELERATOR cann't cache: \"%s\"\n", getpid(), file_handle->opened_path);
+        ea_debug_log("[%d] EACCELERATOR can't cache: \"%s\"\n", getpid(), file_handle->opened_path);
       }
     } else {
       function_table_tail = function_table_tail?function_table_tail->pListNext:
@@ -1535,18 +1539,20 @@ static void profile_execute(zend_op_array *op_array TSRMLS_DC)
 
   for (i=0;i<EAG(profile_level);i++)
     ea_debug_put(EA_PROFILE_OPCODES, "  ");
-  ea_debug_printf(EA_PROFILE_OPCODES, "enter: %s:%s\n", op_array->filename, op_array->function_name);
+  ea_debug_printf(EA_PROFILE_OPCODES, "enter profile_execute: %s:%s\n", op_array->filename, op_array->function_name);
   ea_debug_start_time(&tv_start);
   EAG(self_time)[EAG(profile_level)] = 0;
   EAG(profile_level)++;
+  ea_debug_printf(EA_PROFILE_OPCODES, "About to enter zend_execute...\n");
   mm_saved_zend_execute(op_array TSRMLS_CC);
+  ea_debug_printf(EA_PROFILE_OPCODES, "Finished zend_execute...\n");
   usec = ea_debug_elapsed_time(&tv_start);
   EAG(profile_level)--;
   if (EAG(profile_level) > 0)
     EAG(self_time)[EAG(profile_level)-1] += usec;
   for (i=0;i<EAG(profile_level);i++)
     ea_debug_put(EA_PROFILE_OPCODES, "  ");
-  ea_debug_printf(EA_PROFILE_OPCODES, "leave: %s:%s (%ld,%ld)\n", op_array->filename, op_array->function_name, usec, usec-EAG(self_time)[EAG(profile_level)]);
+  ea_debug_printf(EA_PROFILE_OPCODES, "leave profile_execute: %s:%s (%ld,%ld)\n", op_array->filename, op_array->function_name, usec, usec-EAG(self_time)[EAG(profile_level)]);
 }
 
 ZEND_DLEXPORT zend_op_array* profile_compile_file(zend_file_handle *file_handle, int type TSRMLS_DC) {
@@ -1563,7 +1569,7 @@ ZEND_DLEXPORT zend_op_array* profile_compile_file(zend_file_handle *file_handle,
     EAG(self_time)[EAG(profile_level)-1] += usec;
   for (i=0;i<EAG(profile_level);i++)
     ea_debug_put(EA_PROFILE_OPCODES, "  ");
-  ea_debug_printf(EA_DEBUG, "compile: %s (%ld)\n", file_handle->filename, usec);
+  ea_debug_printf(EA_DEBUG, "zend_op_array compile: %s (%ld)\n", file_handle->filename, usec);
   return t;
 }
 
