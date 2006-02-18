@@ -1,4 +1,8 @@
-2006-02-16  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
+2006-02-18  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
+
+        * Bumped up version to 0.9.5-dev
+
+2006-02-17  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
         * Merged PHP_5_1 branch with HEAD
 

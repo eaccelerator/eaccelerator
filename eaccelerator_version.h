@@ -1,3 +1,3 @@
 #ifndef EACCELERATOR_VERSION
-#define EACCELERATOR_VERSION "0.9.4"
+#define EACCELERATOR_VERSION "0.9.5-dev"
 #endif
