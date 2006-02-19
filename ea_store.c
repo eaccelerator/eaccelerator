@@ -824,7 +824,6 @@ static int store_static_member_access_check(Bucket * p, va_list args)
 	ea_debug_printf(EA_DEBUG, "[%d] store_static_member_access_check: result: keep\n",getpid());
 	return ZEND_HASH_APPLY_KEEP;
 }
-#endif
 
 /*
  * This function makes sure that functions/methods that are not in the scope of the current
@@ -844,6 +843,7 @@ static int store_function_inheritance_check(Bucket * p, va_list args)
 	}
 	return ZEND_HASH_APPLY_REMOVE;
 }
+#endif
 
 eaccelerator_class_entry *store_class_entry(zend_class_entry * from TSRMLS_DC)
 {
@@ -923,7 +923,12 @@ eaccelerator_class_entry *store_class_entry(zend_class_entry * from TSRMLS_DC)
 #else
 	store_zval_hash(&to->default_properties, &from->default_properties);
 #endif
+
+#ifdef ZEND_ENGINE_2
 	store_hash(&to->function_table, &from->function_table, (store_bucket_t) store_op_array, (check_bucket_t) store_function_inheritance_check, from);
+#else
+	store_hash(&to->function_table, &from->function_table, (store_bucket_t) store_op_array, NULL, NULL);
+#endif
 
 #ifdef DEBUG
 	EAG(xpad)--;
