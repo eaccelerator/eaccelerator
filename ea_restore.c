@@ -810,6 +810,12 @@ void restore_class_methods(zend_class_entry * to TSRMLS_DC)
 					 memcmp(fname_lc, ZEND_CALL_FUNC_NAME, sizeof(ZEND_CALL_FUNC_NAME)) == 0)
 				to->__call = f;
 		}
+		if (to->parent) {
+			/* clear the child's prototype and IMPLEMENTED_ABSTRACT flag,
+			   these are properly restored by zend_do_inheritance() (see do_inherit_method_check) */
+			f->common.prototype = NULL;
+			f->common.fn_flags = f->common.fn_flags & (~ZEND_ACC_IMPLEMENTED_ABSTRACT);
+		}
 		efree(fname_lc);
 		p = p->pListNext;
 	}

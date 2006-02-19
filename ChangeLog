@@ -1,6 +1,8 @@
 2006-02-19  Hans Rakers <hans at parse dot nl>
 
 	* Restored PHP4 compatibility
+	* Fixed inheritance/prototype issue with abstract methods and classes during
+	  restore. zend_do_inheritance handles these properly now.
 
 2006-02-18  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
