@@ -810,7 +810,7 @@ static int store_static_member_access_check(Bucket * p, va_list args)
 #  ifdef ZEND_ENGINE_2_1
 			if(zend_hash_quick_find(&parent->default_static_members, p->arKey, p->nKeyLength, p->h, (void**)&pprop) == SUCCESS) {
 #  else
-			if(zend_hash_quick_find(&parent->static_members, p->arKey, p->nKeyLength, p->h, (void**)&pprop) == SUCCESS) {
+			if(zend_hash_quick_find(parent->static_members, p->arKey, p->nKeyLength, p->h, (void**)&pprop) == SUCCESS) {
 #  endif
 				ea_debug_printf(EA_DEBUG, "[%d] store_static_member_access_check: SUCCESS looking up arKey\n",getpid());
 				ea_debug_printf(EA_DEBUG, "[%d] store_static_member_access_check: pprop=%x cprop=%x\n",getpid(), *pprop, *cprop);
@@ -912,7 +912,16 @@ eaccelerator_class_entry *store_class_entry(zend_class_entry * from TSRMLS_DC)
 		to->static_members = &to->default_static_members;
 	}
 	ea_debug_printf(EA_DEBUG, "[%d] store_class_entry: to->static_members(%x), to->default_static_members(%x)\n", getpid(), to->static_members, &to->default_static_members);
+#  elif defined(ZEND_ENGINE_2) && !defined(ZEND_ENGINE_2_1)
+	/* for php-5.0 */
+	if(from->static_members != NULL) {
+		EACCELERATOR_ALIGN(EAG(mem));
+		to->static_members = (HashTable *) EAG(mem);
+		EAG(mem) += sizeof(HashTable);
+		store_hash(to->static_members, from->static_members, (store_bucket_t) store_zval_ptr, (check_bucket_t) store_static_member_access_check, from);
+	}	
 #  else
+	/* for php < 5.0 */
 	if (from->static_members != NULL) {
 		EACCELERATOR_ALIGN(EAG(mem));
 		to->static_members = (HashTable *) EAG(mem);
