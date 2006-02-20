@@ -209,7 +209,7 @@ int eaccelerator_put (const char *key, int key_len, zval * val, time_t ttl,
 					  eaccelerator_cache_place where TSRMLS_DC)
 {
 	mm_user_cache_entry *p, *q;
-	unsigned int slot;
+	unsigned int slot, hv;
 	long size;
 	int use_shm = 1;
 	int ret = 0;
@@ -305,13 +305,14 @@ int eaccelerator_put (const char *key, int key_len, zval * val, time_t ttl,
 			 * storing to shared memory 
 			 */
 			slot = q->hv & MM_USER_HASH_MAX;
+            hv = q->hv;
 			EACCELERATOR_LOCK_RW ();
 			eaccelerator_mm_instance->user_hash_cnt++;
 			q->next = eaccelerator_mm_instance->user_hash[slot];
 			eaccelerator_mm_instance->user_hash[slot] = q;
 			p = q->next;
 			while (p != NULL) {
-				if ((p->hv == q->hv) && (strcmp (p->key, xkey) == 0)) {
+				if ((p->hv == hv) && (strcmp (p->key, xkey) == 0)) {
 					eaccelerator_mm_instance->user_hash_cnt--;
 					q->next = p->next;
 					eaccelerator_free_nolock (p);

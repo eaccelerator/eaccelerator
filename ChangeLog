@@ -2,6 +2,8 @@
 
         * Fixed bypassing open_basedir restriction when the file was already 
           cached. This fixes bug #1427719
+        * Included patch #1435196 to fix the problem of duplicate keys that 
+          don't get removed.
 
 2006-02-20  Hans Rakers <hans at parse dot nl>
 
