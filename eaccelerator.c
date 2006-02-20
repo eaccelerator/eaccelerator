@@ -1269,6 +1269,11 @@ ZEND_DLEXPORT zend_op_array* eaccelerator_compile_file(zend_file_handle *file_ha
     return t;
   }
 
+  /* only restore file when open_basedir allows it */
+  if (php_check_open_basedir(file_handle->filename TSRMLS_CC)) {
+    zend_error(E_ERROR, "Can't load %s, open_basedir restriction.", file_handle->filename);
+  }
+
   t = eaccelerator_restore(realname, &buf, &nreloads, compile_time TSRMLS_CC);
 
 // segv74: really cheap work around to auto_global problem.

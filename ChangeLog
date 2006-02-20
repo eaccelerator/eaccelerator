@@ -1,16 +1,21 @@
+2006-02-20  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
+
+        * Fixed bypassing open_basedir restriction when the file was already 
+          cached. This fixes bug #1427719
+
 2006-02-20  Hans Rakers <hans at parse dot nl>
 
-	* Fixed static_members handling for php-5.0. Broke this while
-	  working on PHP-5.1 support. Lost in ifdef statements ;)
-	* Fixed ZE1 (<=PHP4) problem regarding parent class lookup during restore.
-	  Parent classname wasn't lowercased before lookup in class_table. This
-	  also fixes bug #1432758 (can't restore parent class "stdClass" of class xyz)
+        * Fixed static_members handling for php-5.0. Broke this while
+          working on PHP-5.1 support. Lost in ifdef statements ;)
+        * Fixed ZE1 (<=PHP4) problem regarding parent class lookup during restore.
+          Parent classname wasn't lowercased before lookup in class_table. This
+          also fixes bug #1432758 (can't restore parent class "stdClass" of class xyz)
 
 2006-02-19  Hans Rakers <hans at parse dot nl>
 
-	* Restored PHP4 compatibility
-	* Fixed inheritance/prototype issue with abstract methods and classes during
-	  restore. zend_do_inheritance handles these properly now.
+        * Restored PHP4 compatibility
+        * Fixed inheritance/prototype issue with abstract methods and classes during
+          restore. zend_do_inheritance handles these properly now.
 
 2006-02-18  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
@@ -260,7 +265,7 @@
           memory leak in the loader. (Thanks larnot)
 
 2005-05-10 Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
-	
+    
         * Added some includes to satisfy VC.NET (thanks to dakalka, patch 1198522)
         * This patch adds the right destructor for the propertiesinfo hashtable, but it doesn't fix bug 1179270
         * Updated README.win32 with some extra information from Larnot
@@ -306,10 +311,10 @@
         * Added --without-eaccelerator-shared-memory and  --without-eaccelerator-webui configure switches
         
         Bugfixes included:
-        * Patch 1188510	eaccelerator_compile_file typos
-        * Patch 1189792	session life time patch
-        * Patch 1167069	HAS_ATTRIBUTE fix with FreeBSD 4.x
-        * Patch 1166707	loader patch for OOP functions in PHP5
+        * Patch 1188510 eaccelerator_compile_file typos
+        * Patch 1189792 session life time patch
+        * Patch 1167069 HAS_ATTRIBUTE fix with FreeBSD 4.x
+        * Patch 1166707 loader patch for OOP functions in PHP5
         * Patch 1173095 mm_alloc & mm_free clash with libirc
         * Fix for 1178588, 1153030 and patch 1189852. Fixes the endless loop when reseting a non array.
           The optimisation for that caused this is removed for zend engine 2 and 1 because 
