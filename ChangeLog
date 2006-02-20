@@ -2,6 +2,9 @@
 
 	* Fixed static_members handling for php-5.0. Broke this while
 	  working on PHP-5.1 support. Lost in ifdef statements ;)
+	* Fixed ZE1 (<=PHP4) problem regarding parent class lookup during restore.
+	  Parent classname wasn't lowercased before lookup in class_table. This
+	  also fixes bug #1432758 (can't restore parent class "stdClass" of class xyz)
 
 2006-02-19  Hans Rakers <hans at parse dot nl>
 

@@ -720,45 +720,32 @@ void restore_class_parent(char *parent, int len,
 {
 	ea_debug_printf(EA_DEBUG, "restore_class_parent: restoring parent class %s of class %s\n", (char *) parent, to->name);
 #ifdef ZEND_ENGINE_2
-/*	char *name_lc = zend_str_tolower_dup(parent, len);
-	if (zend_hash_find(CG(class_table), (void *) name_lc, len + 1, (void **) &to->parent) != SUCCESS)*/
 	zend_class_entry** parent_ptr = NULL;
 	if (zend_lookup_class(parent, len, &parent_ptr TSRMLS_CC) != SUCCESS)
 #else
-	if (zend_hash_find(CG(class_table), (void *) parent, len + 1, (void **) &to->parent) != SUCCESS)
+	ea_debug_hash_display(CG(class_table));
+	char *name_lc = estrndup(parent, len);
+	zend_str_tolower(name_lc, len);
+	if (zend_hash_find(CG(class_table), (void *) name_lc, len + 1, (void **) &to->parent) != SUCCESS)
 #endif
 	{
 		ea_debug_error("[%d] EACCELERATOR can't restore parent class \"%s\" of class \"%s\"\n", 
                 getpid(), (char *) parent, to->name);
 		to->parent = NULL;
 	} else {
+		/* parent found */
 #ifdef ZEND_ENGINE_2
-		/* inherit parent methods */
 		to->parent = *parent_ptr;
-		to->parent->refcount++;
-		ea_debug_printf(EA_DEBUG, "restore_class_parent: found parent %s..\n", to->parent->name);
-		ea_debug_printf(EA_DEBUG, "restore_class_parent: parent type=%d child type=%d\n", to->parent->type, to->type);
 		to->constructor = to->parent->constructor;
 		to->destructor = to->parent->destructor;
 		to->clone = to->parent->clone;
-/*		to->__get = to->parent->__get;
-		to->__set = to->parent->__set;
-#  ifdef ZEND_ENGINE_2_1
-		to->__unset = to->parent->__unset;
-		to->__isset = to->parent->__isset;
-		to->serialize_func = to->parent->serialize_func;
-		to->unserialize_func = to->parent->unserialize_func;
-#  endif
-		to->__call = to->parent->__call;
-		to->create_object = to->parent->create_object;
-#else
-		to->handle_property_get = to->parent->handle_property_get;
-		to->handle_property_set = to->parent->handle_property_set;
-		to->handle_function_call = to->parent->handle_function_call;*/
 #endif
+		to->parent->refcount++;
+		ea_debug_printf(EA_DEBUG, "restore_class_parent: found parent %s..\n", to->parent->name);
+		ea_debug_printf(EA_DEBUG, "restore_class_parent: parent type=%d child type=%d\n", to->parent->type, to->type);
 	}
-#ifdef ZEND_ENGINE_2
-	/*efree(name_lc);*/
+#ifndef ZEND_ENGINE_2
+	efree(name_lc);
 #endif
 }
 
