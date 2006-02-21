@@ -718,12 +718,10 @@ static zend_property_info *restore_property_info(zend_property_info *
 void restore_class_parent(char *parent, int len,
 						  zend_class_entry * to TSRMLS_DC)
 {
-	ea_debug_printf(EA_DEBUG, "restore_class_parent: restoring parent class %s of class %s\n", (char *) parent, to->name);
 #ifdef ZEND_ENGINE_2
 	zend_class_entry** parent_ptr = NULL;
 	if (zend_lookup_class(parent, len, &parent_ptr TSRMLS_CC) != SUCCESS)
 #else
-	ea_debug_hash_display(CG(class_table));
 	char *name_lc = estrndup(parent, len);
 	zend_str_tolower(name_lc, len);
 	if (zend_hash_find(CG(class_table), (void *) name_lc, len + 1, (void **) &to->parent) != SUCCESS)
@@ -764,7 +762,6 @@ void restore_class_methods(zend_class_entry * to TSRMLS_DC)
 		f = p->pData;
 		fname_len = strlen(f->common.function_name);
 		fname_lc = zend_str_tolower_dup(f->common.function_name, fname_len);
-		ea_debug_printf(EA_DEBUG, "restore_class_methods: restoring function:%s scope:%s parent=%x scope=%x\n", fname_lc, ZEND_FN_SCOPE_NAME(f), to->parent, f->common.scope);
 
 		if (fname_len == cname_len && !memcmp(fname_lc, cname_lc, fname_len) && 
                 to->constructor == old_ctor && f->common.scope != to->parent) {
@@ -899,7 +896,6 @@ zend_class_entry *restore_class_entry(zend_class_entry * to,
 	restore_zval_hash(&to->default_static_members, &from->default_static_members);
 	to->default_static_members.pDestructor = ZVAL_PTR_DTOR;
 	
-	ea_debug_printf(EA_DEBUG, "restore_class_entry: static_members=%x, default_static_members=%x\n", from->static_members, &from->default_static_members);
 	if (from->static_members != &(from->default_static_members)) {
 		ALLOC_HASHTABLE(to->static_members);
 		restore_zval_hash(to->static_members, from->static_members);
@@ -907,7 +903,6 @@ zend_class_entry *restore_class_entry(zend_class_entry * to,
 	} else {
 		to->static_members = &(to->default_static_members);
 	}
-	ea_debug_printf(EA_DEBUG, "restore_class_entry: to->static_members=%x, to->default_static_members=%x\n", to->static_members, &to->default_static_members);
 #  else
 	if (from->static_members != NULL) {
 		ALLOC_HASHTABLE(to->static_members);

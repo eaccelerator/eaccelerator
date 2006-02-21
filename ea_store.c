@@ -380,13 +380,13 @@ static inline char *store_string(char *str, int len TSRMLS_DC)
 }
 
 typedef void *(*store_bucket_t) (void *TSRMLS_DC);
-typedef void *(*check_bucket_t) (Bucket*, va_list);
+typedef void *(*check_bucket_t) (Bucket*, zend_class_entry*);
 
-#define store_hash_ex(to, from, start, store_bucket, check_bucket, ...) \
-  store_hash_int(to, from, start, store_bucket, check_bucket, __VA_ARGS__)
+#define store_hash_ex(to, from, start, store_bucket, check_bucket, from_ce) \
+  store_hash_int(to, from, start, store_bucket, check_bucket, from_ce)
 
-#define store_hash(to, from, store_bucket, check_bucket, ...) \
-  store_hash_ex(to, from, (from)->pListHead, store_bucket, check_bucket, __VA_ARGS__)
+#define store_hash(to, from, store_bucket, check_bucket, from_ce) \
+  store_hash_ex(to, from, (from)->pListHead, store_bucket, check_bucket, from_ce)
 
 #define store_zval_hash(to, from) \
   store_hash(to, from, (store_bucket_t)store_zval_ptr, NULL, NULL)
@@ -407,7 +407,8 @@ static zval *store_zval_ptr(zval * from TSRMLS_DC)
 
 static void store_hash_int(HashTable * target, HashTable * source,
 						   Bucket * start, store_bucket_t copy_bucket,
-						   		   check_bucket_t check_bucket, ...)
+						   		   check_bucket_t check_bucket,
+						   		   zend_class_entry * from_ce)
 {
 	Bucket *p, *np, *prev_p;
 	TSRMLS_FETCH();
@@ -433,17 +434,13 @@ static void store_hash_int(HashTable * target, HashTable * source,
 		while (p) {
 			/* If a check function has been defined, run it */
 			if (check_bucket) {
-				va_list args;
-				va_start(args, check_bucket);
-
 				/* If the check function returns ZEND_HASH_APPLY_REMOVE, don't store this record, skip over it */
-				if(check_bucket(p, args)) {
+				if(check_bucket(p, from_ce)) {
 					p = p->pListNext;
 					target->nNumOfElements--;
 					/* skip to next itteration */
 					continue;
 				}
-				va_end(args);
 			}
 
 			EACCELERATOR_ALIGN(EAG(mem));
@@ -766,25 +763,22 @@ static zend_property_info *store_property_info(zend_property_info * from TSRMLS_
  * Most of the logic behind all this can be found in zend_compile.c, functions zend_do_inheritance and
  * zend_do_inherit_property_access_check
 */
-static int store_property_access_check(Bucket * p, va_list args)
+static int store_property_access_check(Bucket * p, zend_class_entry * from_ce)
 {
-	zend_class_entry *from = va_arg(args, zend_class_entry*);
+	zend_class_entry *from = from_ce;
 	zend_class_entry *parent = from->parent;
-	
-	ea_debug_printf(EA_DEBUG, "[%d] store_property_access_check enter. from=%x parent=%x arKey=%s\n", getpid(), from, parent, p->arKey);
 	
 	if (parent) {
 		// hra: TODO - do some usefull stuff :)
 		// check for ACC_PRIVATE etc.
 		// for now, just return keep
 	}
-	ea_debug_printf(EA_DEBUG, "[%d] store_property_access_check result: keep\n", getpid());
 	return ZEND_HASH_APPLY_KEEP;
 }
 
-static int store_static_member_access_check(Bucket * p, va_list args)
+static int store_static_member_access_check(Bucket * p, zend_class_entry * from_ce)
 {
-	zend_class_entry *from = va_arg(args, zend_class_entry*);
+	zend_class_entry *from = from_ce;
 	zend_class_entry *parent = from->parent;
 	zend_property_info *pinfo, *cinfo = NULL;
 	zval **pprop = NULL;
@@ -795,7 +789,6 @@ static int store_static_member_access_check(Bucket * p, va_list args)
 	if (parent) {
 		/* unpack the \0classname\0membername\0 style property name to seperate vars */
 		zend_unmangle_property_name(p->arKey, &cname, &mname);
-		ea_debug_printf(EA_DEBUG, "[%d] store_static_member_access_check: cname=%s, mname=%s\n", getpid(), cname, mname);
 	
 		/* lookup the member's info in parent and child */
 		if((zend_hash_find(&parent->properties_info, mname, strlen(mname)+1, (void**)&pinfo) == SUCCESS) &&
@@ -803,7 +796,6 @@ static int store_static_member_access_check(Bucket * p, va_list args)
 			/* don't copy this static property if protected in parent and static public in child.
 			   inheritance will handle this properly on restore */
 			if(cinfo->flags & ZEND_ACC_STATIC && (pinfo->flags & ZEND_ACC_PROTECTED && cinfo->flags & ZEND_ACC_PUBLIC)) {
-				ea_debug_printf(EA_DEBUG, "[%d] store_static_member_access_check: child static public, parent protected, result: skip\n", getpid());
 				return ZEND_HASH_APPLY_REMOVE;
 			}
 			/* If the static member points to the same value in parent and child, remove for proper inheritance during restore */
@@ -812,16 +804,12 @@ static int store_static_member_access_check(Bucket * p, va_list args)
 #  else
 			if(zend_hash_quick_find(parent->static_members, p->arKey, p->nKeyLength, p->h, (void**)&pprop) == SUCCESS) {
 #  endif
-				ea_debug_printf(EA_DEBUG, "[%d] store_static_member_access_check: SUCCESS looking up arKey\n",getpid());
-				ea_debug_printf(EA_DEBUG, "[%d] store_static_member_access_check: pprop=%x cprop=%x\n",getpid(), *pprop, *cprop);
 				if(*pprop == *cprop) {
-					ea_debug_printf(EA_DEBUG, "[%d] store_static_member_access_check: pprop == cprop, result: skip\n",getpid());
 					return ZEND_HASH_APPLY_REMOVE;
 				}
 			}
 		}
 	}
-	ea_debug_printf(EA_DEBUG, "[%d] store_static_member_access_check: result: keep\n",getpid());
 	return ZEND_HASH_APPLY_KEEP;
 }
 
@@ -833,9 +821,9 @@ static int store_static_member_access_check(Bucket * p, va_list args)
  * If we dont do this, it will result in broken inheritance, problems with final methods
  * (e.g. "Cannot override final method") and the like.
  */
-static int store_function_inheritance_check(Bucket * p, va_list args)
+static int store_function_inheritance_check(Bucket * p, zend_class_entry * from_ce)
 {
-	zend_class_entry *from = va_arg(args, zend_class_entry*);
+	zend_class_entry *from = from_ce;
 	zend_function *zf = p->pData;
 	
 	if (zf->common.scope == from) {
@@ -852,7 +840,6 @@ eaccelerator_class_entry *store_class_entry(zend_class_entry * from TSRMLS_DC)
 	to = (eaccelerator_class_entry *) EAG(mem);
 	EAG(mem) += sizeof(eaccelerator_class_entry);
 	to->type = from->type;
-	ea_debug_printf(EA_DEBUG, "[%d] store_class_entry: class type=%d\n", getpid(), from->type);
 	to->name = NULL;
 	to->name_length = from->name_length;
 	to->parent = NULL;
@@ -897,7 +884,6 @@ eaccelerator_class_entry *store_class_entry(zend_class_entry * from TSRMLS_DC)
 	//store_hash(&to->properties_info, &from->properties_info, (store_bucket_t) store_property_info, NULL, NULL);
 	store_hash(&to->properties_info, &from->properties_info, (store_bucket_t) store_property_info, (check_bucket_t) store_property_access_check, from);
 #  ifdef ZEND_ENGINE_2_1
-	ea_debug_printf(EA_DEBUG, "[%d] store_class_entry: from->static_members(%x), from->default_static_members(%x)\n", getpid(), from->static_members, &from->default_static_members);
 	if((from->static_members != NULL) && (from->static_members != &from->default_static_members)) {
 		store_zval_hash(&to->default_static_members, &from->default_static_members);
 		EACCELERATOR_ALIGN(EAG(mem));
@@ -911,7 +897,6 @@ eaccelerator_class_entry *store_class_entry(zend_class_entry * from TSRMLS_DC)
 		store_hash(&to->default_static_members, &from->default_static_members, (store_bucket_t) store_zval_ptr, (check_bucket_t) store_static_member_access_check, from);
 		to->static_members = &to->default_static_members;
 	}
-	ea_debug_printf(EA_DEBUG, "[%d] store_class_entry: to->static_members(%x), to->default_static_members(%x)\n", getpid(), to->static_members, &to->default_static_members);
 #  elif defined(ZEND_ENGINE_2) && !defined(ZEND_ENGINE_2_1)
 	/* for php-5.0 */
 	if(from->static_members != NULL) {

@@ -1,3 +1,10 @@
+2006-02-21  Hans Rakers <hans at parse dot nl>
+
+	* Ditched the variadic macros. They were kinda useless now anyway since
+	  they were only passing one arg. This should make the Win32 folks happy
+	  since VC6 doesn't seem to support variadic macros (its a C99 thing)
+	* Removed some excessive debug output.
+
 2006-02-20  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
         * Fixed bypassing open_basedir restriction when the file was already 
