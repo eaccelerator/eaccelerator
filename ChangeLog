@@ -1,3 +1,10 @@
+2006-02-22  Hans Rakers <hans at parse dot nl>
+
+	* Workaround for "multiple definitions of symbol" thread-safe build
+	  problem on OSX. This fixes bug #1407520
+	* Renamed mm_mutex to ea_mutex to avoid confusion with eA's memory
+	  manager. This was probably a leftover of mmCache times.
+
 2006-02-21  Hans Rakers <hans at parse dot nl>
 
 	* Ditched the variadic macros. They were kinda useless now anyway since

@@ -268,7 +268,7 @@ static int init_mm(TSRMLS_D) {
 /*  snprintf(mm_path, MAXPATHLEN, "%s.%s%d", EACCELERATOR_MM_FILE, sapi_module.name, geteuid());*/
   if ((eaccelerator_mm_instance = (eaccelerator_mm*)mm_attach(eaccelerator_shm_size*1024*1024, mm_path)) != NULL) {
 #ifdef ZTS
-    mm_mutex = tsrm_mutex_alloc();
+    ea_mutex = tsrm_mutex_alloc();
 #endif
     return SUCCESS;
   }
@@ -282,7 +282,7 @@ static int init_mm(TSRMLS_D) {
   ea_debug_printf(EA_DEBUG, "init_mm [%d,%d]\n", getpid(), getppid());
 #endif
 #ifdef ZTS
-  mm_mutex = tsrm_mutex_alloc();
+  ea_mutex = tsrm_mutex_alloc();
 #endif
   total = mm_available(mm);
   eaccelerator_mm_instance = mm_malloc_lock(mm, sizeof(*eaccelerator_mm_instance));
@@ -321,7 +321,7 @@ static void shutdown_mm(TSRMLS_D) {
       ea_debug_printf(EA_DEBUG, "shutdown_mm [%d,%d]\n", getpid(), getppid());
 #endif
 #ifdef ZTS
-      tsrm_mutex_free(mm_mutex);
+      tsrm_mutex_free(ea_mutex);
 #endif
       if (mm) {
         mm_destroy(mm);

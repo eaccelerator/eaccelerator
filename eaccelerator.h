@@ -126,8 +126,8 @@
 #endif
 
 #ifdef ZTS
-#  define ZTS_LOCK()    tsrm_mutex_lock(mm_mutex)
-#  define ZTS_UNLOCK()  tsrm_mutex_unlock(mm_mutex)
+#  define ZTS_LOCK()    tsrm_mutex_lock(ea_mutex)
+#  define ZTS_UNLOCK()  tsrm_mutex_unlock(ea_mutex)
 #else
 #  define ZTS_LOCK()
 #  define ZTS_UNLOCK()
@@ -379,7 +379,12 @@ typedef union align_union {
 /******************************************************************************/
 
 #ifdef ZTS
-MUTEX_T mm_mutex;
+#  ifdef __APPLE__
+/* Workaround to prevent 'multiple definitions of symbol' during build on OSX */
+static MUTEX_T ea_mutex;
+#  else
+MUTEX_T ea_mutex;
+#  endif
 #endif
 
 /* needed to compile eA as a static php module */
