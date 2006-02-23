@@ -1,3 +1,10 @@
+2006-02-23  Hans Rakers <hans at parse dot nl>
+
+	* Don't increase parent refcount in restore_class_parent. This is wrong
+	  and leads to trouble in the Zend shutdown phase (zend_destroy_class).
+	  This most likely also fixes the REMOVE_POINTER_FROM_LIST segfault of
+	  bug #1432758
+
 2006-02-22  Hans Rakers <hans at parse dot nl>
 
 	* Workaround for "multiple definitions of symbol" thread-safe build

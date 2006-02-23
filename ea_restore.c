@@ -738,7 +738,6 @@ void restore_class_parent(char *parent, int len,
 		to->destructor = to->parent->destructor;
 		to->clone = to->parent->clone;
 #endif
-		to->parent->refcount++;
 		ea_debug_printf(EA_DEBUG, "restore_class_parent: found parent %s..\n", to->parent->name);
 		ea_debug_printf(EA_DEBUG, "restore_class_parent: parent type=%d child type=%d\n", to->parent->type, to->type);
 	}
