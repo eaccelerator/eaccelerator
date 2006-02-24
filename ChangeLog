@@ -1,33 +1,37 @@
+2006-02-24  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
+
+        * Release of eaccelerator 0.9.5-beta1
+
 2006-02-24  Hans Rakers <hans at parse dot nl>
 
-	* Altered the way debug output is in/excluded by adding a macro that makes
-	  sure calls to functions like ea_debug_printf don't get compiled in a
-	  non-debug build. The macro approach was chosen to prevent swamping the
-	  code with any more ifdef statements. This approach (as opposed to the
-	  previous empty-function-if-no-debug-build) also makes sure debug function
-	  arguments such as the tons of getpid()'s (which don't come cheap) don't
-	  get compiled in and executed in a non-debug build.
+        * Altered the way debug output is in/excluded by adding a macro that makes
+          sure calls to functions like ea_debug_printf don't get compiled in a
+          non-debug build. The macro approach was chosen to prevent swamping the
+          code with any more ifdef statements. This approach (as opposed to the
+          previous empty-function-if-no-debug-build) also makes sure debug function
+          arguments such as the tons of getpid()'s (which don't come cheap) don't
+          get compiled in and executed in a non-debug build.
 
 2006-02-23  Hans Rakers <hans at parse dot nl>
 
-	* Don't increase parent refcount in restore_class_parent. This is wrong
-	  and leads to trouble in the Zend shutdown phase (zend_destroy_class).
-	  This most likely also fixes the REMOVE_POINTER_FROM_LIST segfault of
-	  bug #1432758
+        * Don't increase parent refcount in restore_class_parent. This is wrong
+          and leads to trouble in the Zend shutdown phase (zend_destroy_class).
+          This most likely also fixes the REMOVE_POINTER_FROM_LIST segfault of
+          bug #1432758
 
 2006-02-22  Hans Rakers <hans at parse dot nl>
 
-	* Workaround for "multiple definitions of symbol" thread-safe build
-	  problem on OSX. This fixes bug #1407520
-	* Renamed mm_mutex to ea_mutex to avoid confusion with eA's memory
-	  manager. This was probably a leftover of mmCache times.
+        * Workaround for "multiple definitions of symbol" thread-safe build
+          problem on OSX. This fixes bug #1407520
+        * Renamed mm_mutex to ea_mutex to avoid confusion with eA's memory
+          manager. This was probably a leftover of mmCache times.
 
 2006-02-21  Hans Rakers <hans at parse dot nl>
 
-	* Ditched the variadic macros. They were kinda useless now anyway since
-	  they were only passing one arg. This should make the Win32 folks happy
-	  since VC6 doesn't seem to support variadic macros (its a C99 thing)
-	* Removed some excessive debug output.
+        * Ditched the variadic macros. They were kinda useless now anyway since
+          they were only passing one arg. This should make the Win32 folks happy
+          since VC6 doesn't seem to support variadic macros (its a C99 thing)
+        * Removed some excessive debug output.
 
 2006-02-20  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 

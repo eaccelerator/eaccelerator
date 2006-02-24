@@ -1,5 +1,22 @@
+Feb 24, 2006 - Bart Vanbrabant
+----------------------------------
+
+ * Released 0.9.5-beta1
+
+    The first beta in the history of eAccelerator! This release mainly contains
+    support for php 5.1 and some small bugfixes that got fixed along the way.
+    This version fully passes the PHP 5.1 test suite so it's time to have a 
+    broader public testing the code.
+    Most work has been done by Hans Rakers based on patches from Xuefer and 
+    Bart. Lyle also contributed some fixes.
+    We feel this release is already more stable and better compatible with 
+    PHP 5 and 5.1 then the 0.9.4 release. We hope to make a stable release 
+    soon. The encoder hasn't received any love so it's still only compatible 
+    with PHP 4!. Please report all bug back to us.
+
 Feb 15, 2006 - Bart Vanbrabant
 ----------------------------------
+
  * Released 0.9.4
 
     This release only contains some bugfixes and code cleanups. This release
@@ -14,6 +31,7 @@ Feb 15, 2006 - Bart Vanbrabant
 
 Feb 8, 2006 - Bart Vanbrabant
 ----------------------------------
+
  * Released 0.9.4-rc2
 
     Some small problems were fixed since rc1.
