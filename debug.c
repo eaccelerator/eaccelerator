@@ -159,7 +159,6 @@ void ea_debug_error (char *format, ...)
 /**
  * Print a debug message
  */
-#ifdef DEBUG
 void ea_debug_printf (long debug_level, char *format, ...)
 {
     if (eaccelerator_debug & debug_level) {
@@ -176,16 +175,10 @@ void ea_debug_printf (long debug_level, char *format, ...)
         ea_debug_unlock();
     }
 }
-#else
-void ea_debug_printf (long debug_level, char *format, ...)
-{
-}
-#endif
 
 /**
  * Put a debug message
  */
-#ifdef DEBUG
 void ea_debug_put (long debug_level, char *message)
 {
     if (debug_level & eaccelerator_debug) {
@@ -195,16 +188,10 @@ void ea_debug_put (long debug_level, char *message)
         ea_debug_unlock();
     }
 }
-#else
-void ea_debug_put (long debug_level, char *message)
-{
-}
-#endif
 
 /**
  * Print a binary message
  */
-#ifdef DEBUG
 void ea_debug_binary_print (long debug_level, char *p, int len)
 {
     if (eaccelerator_debug & debug_level) {
@@ -217,16 +204,10 @@ void ea_debug_binary_print (long debug_level, char *p, int len)
         ea_debug_unlock();
     }
 }
-#else
-void ea_debug_binary_print (long debug_level, char *p, int len)
-{
-}
-#endif
 
 /**
  * Log a hashkey
  */
-#ifdef DEBUG
 void ea_debug_log_hashkeys (char *p, HashTable * ht)
 {
     if (eaccelerator_debug & EA_LOG_HASHKEYS) {
@@ -248,18 +229,13 @@ void ea_debug_log_hashkeys (char *p, HashTable * ht)
         }
     }
 }
-#else
-void ea_debug_log_hashkeys (char *p, HashTable * ht)
-{
-}
-#endif
 
 /**
  * Pad the message with the current pad level.
  */
-#ifdef DEBUG
 void ea_debug_pad (long debug_level TSRMLS_DC)
 {
+#ifdef DEBUG /* This ifdef is still req'd because xpad is N/A in a non-debug compile */
     if (eaccelerator_debug & debug_level) {
         ea_debug_lock();
         int i = EAG (xpad);
@@ -268,12 +244,8 @@ void ea_debug_pad (long debug_level TSRMLS_DC)
         }
         ea_debug_unlock();
     }
-}
-#else
-void ea_debug_pad (long debug_level TSRMLS_DC)
-{
-}
 #endif
+}
 
 void ea_debug_start_time (struct timeval *tvstart)
 {

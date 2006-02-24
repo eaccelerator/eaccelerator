@@ -140,12 +140,12 @@ void calc_zval(zval * zv TSRMLS_DC)
 		if (zv->value.obj.ce != NULL) {
 			zend_class_entry *ce = zv->value.obj.ce;
 			if (!EAG(compress)) {
-				ea_debug_error("[%d] EACCELERATOR can't cache objects\n", getpid());
+				DBG(ea_debug_error, ("[%d] EACCELERATOR can't cache objects\n", getpid()));
 				zend_bailout();
 			}
 			while (ce != NULL) {
 				if (ce->type != ZEND_USER_CLASS && strcmp(ce->name, "stdClass") != 0) {
-					ea_debug_error("[%d] EACCELERATOR can't cache objects\n", getpid());
+					DBG(ea_debug_error, ("[%d] EACCELERATOR can't cache objects\n", getpid()));
 					zend_bailout();
 				}
 				ce = ce->parent;
@@ -160,7 +160,7 @@ void calc_zval(zval * zv TSRMLS_DC)
 #endif
 		return;
 	case IS_RESOURCE:
-		ea_debug_error("[%d] EACCELERATOR can't cache resources\n", getpid());
+		DBG(ea_debug_error, ("[%d] EACCELERATOR can't cache resources\n", getpid()));
 		zend_bailout();
 	default:
 		break;
@@ -180,7 +180,7 @@ void calc_op_array(zend_op_array * from TSRMLS_DC)
 		EACCELERATOR_ALIGN(EAG(mem));
 		EAG(mem) += sizeof(eaccelerator_op_array);
 	} else {
-		ea_debug_error("[%d] EACCELERATOR can't cache function \"%s\"\n", getpid(), from->function_name);
+		DBG(ea_debug_error, ("[%d] EACCELERATOR can't cache function \"%s\"\n", getpid(), from->function_name));
 		zend_bailout();
 	}
 #ifdef ZEND_ENGINE_2
@@ -273,7 +273,7 @@ void calc_op_array(zend_op_array * from TSRMLS_DC)
 void calc_class_entry(zend_class_entry * from TSRMLS_DC)
 {
 	if (from->type != ZEND_USER_CLASS) {
-		ea_debug_error("[%d] EACCELERATOR can't cache internal class \"%s\"\n", getpid(), from->name);
+		DBG(ea_debug_error, ("[%d] EACCELERATOR can't cache internal class \"%s\"\n", getpid(), from->name));
 		zend_bailout();
 	}
 	EACCELERATOR_ALIGN(EAG(mem));
@@ -536,8 +536,8 @@ eaccelerator_op_array *store_op_array(zend_op_array * from TSRMLS_DC)
 	zend_op *opline;
 	zend_op *end;
 
-	ea_debug_pad(EA_DEBUG TSRMLS_CC);
-	ea_debug_printf(EA_DEBUG, "[%d] store_op_array: %s [scope=%s type=%x]\n", 
+	DBG(ea_debug_pad, (EA_DEBUG TSRMLS_CC));
+	DBG(ea_debug_printf, (EA_DEBUG, "[%d] store_op_array: %s [scope=%s type=%x]\n", 
             getpid(), from->function_name ? from->function_name : "(top)",
 #ifdef ZEND_ENGINE_2
 			from->scope ? from->scope->name : "NULL"
@@ -545,7 +545,7 @@ eaccelerator_op_array *store_op_array(zend_op_array * from TSRMLS_DC)
 			"NULL"
 #endif
 			, from->type
-		);
+		));
 
 	if (from->type == ZEND_INTERNAL_FUNCTION) {
 		EACCELERATOR_ALIGN(EAG(mem));
@@ -604,19 +604,19 @@ eaccelerator_op_array *store_op_array(zend_op_array * from TSRMLS_DC)
 				to->scope_name = store_string(q->arKey, q->nKeyLength TSRMLS_CC);
 				to->scope_name_len = q->nKeyLength - 1;
 
-				ea_debug_pad(EA_DEBUG TSRMLS_CC);
-				ea_debug_printf(EA_DEBUG, 
+				DBG(ea_debug_pad, (EA_DEBUG TSRMLS_CC));
+				DBG(ea_debug_printf, (EA_DEBUG, 
                         "[%d]                 find scope '%s' in CG(class_table) save hashkey '%s' [%08x] as to->scope_name\n",
-						getpid(), from->scope->name ? from->scope->name : "NULL", q->arKey, to->scope_name);
+						getpid(), from->scope->name ? from->scope->name : "NULL", q->arKey, to->scope_name));
 				break;
 			}
 			q = q->pListNext;
 		}
 	    if (to->scope_name == NULL) {
-		    ea_debug_pad(EA_DEBUG TSRMLS_CC);
-		    ea_debug_printf(EA_DEBUG,
+		    DBG(ea_debug_pad, (EA_DEBUG TSRMLS_CC));
+		    DBG(ea_debug_printf, (EA_DEBUG,
 						"[%d]                 could not find scope '%s' in CG(class_table), saving it to NULL\n",
-						getpid(), from->scope->name ? from->scope->name : "NULL");
+						getpid(), from->scope->name ? from->scope->name : "NULL"));
 	    }
     }
 #endif
@@ -852,10 +852,10 @@ eaccelerator_class_entry *store_class_entry(zend_class_entry * from TSRMLS_DC)
 	to->interfaces = NULL;
 #endif
 
-	ea_debug_pad(EA_DEBUG TSRMLS_CC);
-	ea_debug_printf(EA_DEBUG, "[%d] store_class_entry: %s parent was '%s'\n",
+	DBG(ea_debug_pad, (EA_DEBUG TSRMLS_CC));
+	DBG(ea_debug_printf, (EA_DEBUG, "[%d] store_class_entry: %s parent was '%s'\n",
 					getpid(), from->name ? from->name : "(top)",
-					from->parent ? from->parent->name : "NULL");
+					from->parent ? from->parent->name : "NULL"));
 #ifdef DEBUG
 	EAG(xpad)++;
 #endif

@@ -38,6 +38,24 @@
 #include "win32/time.h"
 #endif
 
+/*
+ * This macro is used to make sure debug code is not included in a non-debug build,
+ * without swamping the code with ifdef statements. This approach (as opposed to the
+ * previous empty-function-if-no-debug-build) also makes sure debug function arguments
+ * such as the tons of getpid()'s don't get compiled in and executed in a non-debug build.
+ *
+ * It takes the debug function as first arg and the arguments as the second, like this:
+ *
+ * DBG(ea_debug_printf, ("Hello %s", world));
+ *
+ * The reason why the function arguments are passed by one macro variable is to prevent
+ * the use of variadic macros, keeping the win32 VC 6.0 folks happy
+ */
+#ifdef DEBUG
+#define DBG(func, list) func list
+#else
+#define DBG(func, list)
+#endif
 
 /* print information about the file that's loaded or cached */
 #define EA_LOG	 		(1<<0L)

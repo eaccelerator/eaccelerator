@@ -1,3 +1,13 @@
+2006-02-24  Hans Rakers <hans at parse dot nl>
+
+	* Altered the way debug output is in/excluded by adding a macro that makes
+	  sure calls to functions like ea_debug_printf don't get compiled in a
+	  non-debug build. The macro approach was chosen to prevent swamping the
+	  code with any more ifdef statements. This approach (as opposed to the
+	  previous empty-function-if-no-debug-build) also makes sure debug function
+	  arguments such as the tons of getpid()'s (which don't come cheap) don't
+	  get compiled in and executed in a non-debug build.
+
 2006-02-23  Hans Rakers <hans at parse dot nl>
 
 	* Don't increase parent refcount in restore_class_parent. This is wrong

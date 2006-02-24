@@ -476,9 +476,9 @@ zend_op_array *restore_op_array(zend_op_array * to,
 	char *fname_lc = NULL;
 #endif
 
-	ea_debug_pad(EA_DEBUG TSRMLS_CC);
-	ea_debug_printf(EA_DEBUG, "[%d] restore_op_array: %s type=%x\n", getpid(),
-					from->function_name ? from->function_name : "(top)", from->type);
+	DBG(ea_debug_pad, (EA_DEBUG TSRMLS_CC));
+	DBG(ea_debug_printf, (EA_DEBUG, "[%d] restore_op_array: %s type=%x\n", getpid(),
+					from->function_name ? from->function_name : "(top)", from->type));
 
 	if (from->type == ZEND_INTERNAL_FUNCTION) {
 		if (to == NULL) {
@@ -536,27 +536,27 @@ zend_op_array *restore_op_array(zend_op_array * to,
 	if (from->scope_name != NULL) {
 		char *from_scope_lc = zend_str_tolower_dup(from->scope_name, from->scope_name_len);
 		if (zend_hash_find (CG(class_table), (void *) from_scope_lc, from->scope_name_len + 1, (void **) &to->scope) != SUCCESS) {
-			ea_debug_pad(EA_DEBUG TSRMLS_CC);
-			ea_debug_printf(EA_DEBUG, "[%d]                   can't find '%s' in class_table. use EAG(class_entry).\n", getpid(), from->scope_name);
+			DBG(ea_debug_pad, (EA_DEBUG TSRMLS_CC));
+			DBG(ea_debug_printf, (EA_DEBUG, "[%d]                   can't find '%s' in class_table. use EAG(class_entry).\n", getpid(), from->scope_name));
 			to->scope = EAG(class_entry);
 		} else {
-			ea_debug_pad(EA_DEBUG TSRMLS_CC);
-			ea_debug_printf(EA_DEBUG, "[%d]                   found '%s' in hash\n", getpid(), from->scope_name);
+			DBG(ea_debug_pad, (EA_DEBUG TSRMLS_CC));
+			DBG(ea_debug_printf, (EA_DEBUG, "[%d]                   found '%s' in hash\n", getpid(), from->scope_name));
 			to->scope = *(zend_class_entry **) to->scope;
 		}
 		efree(from_scope_lc);
 	} else {					// zoeloelip: is this needed? scope is always stored -> hra: no its not :P only if from->scope!=null in ea_store
-		ea_debug_pad(EA_DEBUG TSRMLS_CC);
-		ea_debug_printf(EA_DEBUG, "[%d]                   from is NULL\n", getpid()); 
+		DBG(ea_debug_pad, (EA_DEBUG TSRMLS_CC));
+		DBG(ea_debug_printf, (EA_DEBUG, "[%d]                   from is NULL\n", getpid()));
 		if (EAG(class_entry)) {
 			zend_class_entry *p;
 			for (p = EAG(class_entry)->parent; p; p = p->parent) {
-				ea_debug_pad(EA_DEBUG TSRMLS_CC);
-				ea_debug_printf(EA_DEBUG, "[%d]                   checking parent '%s' have '%s'\n", getpid(), p->name, fname_lc);
+				DBG(ea_debug_pad, (EA_DEBUG TSRMLS_CC));
+				DBG(ea_debug_printf, (EA_DEBUG, "[%d]                   checking parent '%s' have '%s'\n", getpid(), p->name, fname_lc));
 				if (zend_hash_find(&p->function_table, fname_lc, fname_len + 1, (void **) &function) == SUCCESS) {
-					ea_debug_pad(EA_DEBUG TSRMLS_CC);
-					ea_debug_printf(EA_DEBUG, "[%d]                                   '%s' has '%s' of scope '%s'\n", 
-                            getpid(), p->name, fname_lc, function->common.scope->name);
+					DBG(ea_debug_pad, (EA_DEBUG TSRMLS_CC));
+					DBG(ea_debug_printf, (EA_DEBUG, "[%d]                                   '%s' has '%s' of scope '%s'\n", 
+                            getpid(), p->name, fname_lc, function->common.scope->name));
 					to->scope = function->common.scope;
 					break;
 				}
@@ -566,19 +566,19 @@ zend_op_array *restore_op_array(zend_op_array * to,
 		}
 	}
 
-	ea_debug_pad(EA_DEBUG TSRMLS_CC);
-	ea_debug_printf(EA_DEBUG, "[%d]                   %s's scope is '%s'\n", getpid(), 
-            from->function_name ? from->function_name : "(top)", to->scope ? to->scope->name : "NULL");
+	DBG(ea_debug_pad, (EA_DEBUG TSRMLS_CC));
+	DBG(ea_debug_printf, (EA_DEBUG, "[%d]                   %s's scope is '%s'\n", getpid(), 
+            from->function_name ? from->function_name : "(top)", to->scope ? to->scope->name : "NULL"));
 #endif
 	if (from->type == ZEND_INTERNAL_FUNCTION) {
 		zend_class_entry *class_entry = EAG(class_entry);
-		ea_debug_pad(EA_DEBUG TSRMLS_CC);
-		ea_debug_printf(EA_DEBUG, "[%d]                   [internal function from=%08x,to=%08x] class_entry='%s' [%08x]\n", 
-                getpid(), from, to, class_entry->name, class_entry);
+		DBG(ea_debug_pad, (EA_DEBUG TSRMLS_CC));
+		DBG(ea_debug_printf, (EA_DEBUG, "[%d]                   [internal function from=%08x,to=%08x] class_entry='%s' [%08x]\n", 
+                getpid(), from, to, class_entry->name, class_entry));
 		if (class_entry) {
-			ea_debug_pad(EA_DEBUG TSRMLS_CC);
-			ea_debug_printf(EA_DEBUG, "[%d]                                       class_entry->parent='%s' [%08x]\n", 
-                    getpid(), class_entry->parent->name, class_entry->parent);
+			DBG(ea_debug_pad, (EA_DEBUG TSRMLS_CC));
+			DBG(ea_debug_printf, (EA_DEBUG, "[%d]                                       class_entry->parent='%s' [%08x]\n", 
+                    getpid(), class_entry->parent->name, class_entry->parent));
 		}
 		if (class_entry != NULL && class_entry->parent != NULL && 
                 zend_hash_find(&class_entry->parent->function_table,
@@ -588,15 +588,15 @@ zend_op_array *restore_op_array(zend_op_array * to,
                 to->function_name, strlen(to->function_name) + 1,
 #endif
 				(void **) &function) == SUCCESS && function->type == ZEND_INTERNAL_FUNCTION) {
-			ea_debug_pad(EA_DEBUG TSRMLS_CC);
-			ea_debug_printf(EA_DEBUG, "[%d]                                       found in function table\n", getpid());
+			DBG(ea_debug_pad, (EA_DEBUG TSRMLS_CC));
+			DBG(ea_debug_printf, (EA_DEBUG, "[%d]                                       found in function table\n", getpid()));
 			((zend_internal_function *) (to))->handler = ((zend_internal_function *) function)->handler;
 		} else {
 			/* FIXME. I don't know how to fix handler.
 			 * TODO: must solve this somehow, to avoid returning damaged structure...
 			 */
-			ea_debug_pad(EA_DEBUG TSRMLS_CC);
-			ea_debug_printf(EA_DEBUG, "[%d]                                       can't find\n", getpid());
+			DBG(ea_debug_pad, (EA_DEBUG TSRMLS_CC));
+			DBG(ea_debug_printf, (EA_DEBUG, "[%d]                                       can't find\n", getpid()));
 		}		
 #ifdef ZEND_ENGINE_2
 		/* hrak: slight memleak here. dont forget to free the lowercase function name! */
@@ -718,6 +718,7 @@ static zend_property_info *restore_property_info(zend_property_info *
 void restore_class_parent(char *parent, int len,
 						  zend_class_entry * to TSRMLS_DC)
 {
+	DBG(ea_debug_printf, (EA_DEBUG, "restore_class_parent: restoring parent class %s of class %s\n", (char *) parent, to->name));
 #ifdef ZEND_ENGINE_2
 	zend_class_entry** parent_ptr = NULL;
 	if (zend_lookup_class(parent, len, &parent_ptr TSRMLS_CC) != SUCCESS)
@@ -727,8 +728,8 @@ void restore_class_parent(char *parent, int len,
 	if (zend_hash_find(CG(class_table), (void *) name_lc, len + 1, (void **) &to->parent) != SUCCESS)
 #endif
 	{
-		ea_debug_error("[%d] EACCELERATOR can't restore parent class \"%s\" of class \"%s\"\n", 
-                getpid(), (char *) parent, to->name);
+		DBG(ea_debug_error, ("[%d] EACCELERATOR can't restore parent class \"%s\" of class \"%s\"\n", 
+                getpid(), (char *) parent, to->name));
 		to->parent = NULL;
 	} else {
 		/* parent found */
@@ -738,8 +739,8 @@ void restore_class_parent(char *parent, int len,
 		to->destructor = to->parent->destructor;
 		to->clone = to->parent->clone;
 #endif
-		ea_debug_printf(EA_DEBUG, "restore_class_parent: found parent %s..\n", to->parent->name);
-		ea_debug_printf(EA_DEBUG, "restore_class_parent: parent type=%d child type=%d\n", to->parent->type, to->type);
+		DBG(ea_debug_printf, (EA_DEBUG, "restore_class_parent: found parent %s..\n", to->parent->name));
+		DBG(ea_debug_printf, (EA_DEBUG, "restore_class_parent: parent type=%d child type=%d\n", to->parent->type, to->type));
 	}
 #ifndef ZEND_ENGINE_2
 	efree(name_lc);
@@ -820,8 +821,8 @@ zend_class_entry *restore_class_entry(zend_class_entry * to,
 	union _zend_function *old_ctor;
 #endif
 
-	ea_debug_pad(EA_DEBUG TSRMLS_CC);
-	ea_debug_printf(EA_DEBUG, "[%d] restore_class_entry: %s\n", getpid(), from->name ? from->name : "(top)");
+	DBG(ea_debug_pad, (EA_DEBUG TSRMLS_CC));
+	DBG(ea_debug_printf, (EA_DEBUG, "[%d] restore_class_entry: %s\n", getpid(), from->name ? from->name : "(top)"));
 #ifdef DEBUG
 	EAG(xpad)++;
 #endif
@@ -927,8 +928,8 @@ zend_class_entry *restore_class_entry(zend_class_entry * to,
 	if (from->parent != NULL) {
 		restore_class_parent(from->parent, strlen(from->parent), to TSRMLS_CC);
 	} else {
-		ea_debug_pad(EA_DEBUG TSRMLS_CC);
-		ea_debug_printf(EA_DEBUG, "[%d] parent = NULL\n", getpid());
+		DBG(ea_debug_pad, (EA_DEBUG TSRMLS_CC));
+		DBG(ea_debug_printf, (EA_DEBUG, "[%d] parent = NULL\n", getpid()));
 		to->parent = NULL;
 	}
 
