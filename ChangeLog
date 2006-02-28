@@ -1,3 +1,10 @@
+2006-02-28  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
+
+        * Changed the module entry url to eaccelerator.net and year
+        * Removed the crash function
+        * Disable the keys, session and content cache by default. These could 
+          result in a local DoS by cache poisioning
+
 2006-02-24  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
         * Release of eaccelerator 0.9.5-beta1

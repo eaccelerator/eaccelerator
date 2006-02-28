@@ -2,7 +2,7 @@
    +----------------------------------------------------------------------+
    | eAccelerator project                                                 |
    +----------------------------------------------------------------------+
-   | Copyright (c) 2004 - 2005 eAccelerator                               |
+   | Copyright (c) 2004 - 2006 eAccelerator                               |
    | http://eaccelerator.net                                  		  	  |
    +----------------------------------------------------------------------+
    | This program is free software; you can redistribute it and/or        |
@@ -1654,14 +1654,6 @@ PHP_MINFO_FUNCTION(eaccelerator) {
   DISPLAY_INI_ENTRIES();
 }
 
-/* let eaccelerator crash */
-#ifdef WITH_EACCELERATOR_CRASH
-PHP_FUNCTION(eaccelerator_crash) {
-  char *x = NULL;
-  strcpy(x,"Hello");
-}
-#endif
-
 /******************************************************************************/
 /*
  * Begin of dynamic loadable module interfaces.
@@ -2260,9 +2252,6 @@ function_entry eaccelerator_functions[] = {
   PHP_FE(eaccelerator_cache_output, NULL)
   PHP_FE(eaccelerator_cache_result, NULL)
 #endif
-#ifdef WITH_EACCELERATOR_CRASH
-  PHP_FE(eaccelerator_crash, NULL)
-#endif
 #ifdef ZEND_ENGINE_2
   {NULL, NULL, NULL, 0U, 0U}
 #else
@@ -2562,8 +2551,8 @@ ZEND_DLEXPORT zend_extension zend_extension_entry = {
   EACCELERATOR_EXTENSION_NAME,
   EACCELERATOR_VERSION,
   "eAccelerator",
-  "http://eaccelerator.sourceforge.net",
-  "Copyright (c) 2004-2005 eAccelerator",
+  "http://eaccelerator.net",
+  "Copyright (c) 2004-2006 eAccelerator",
   eaccelerator_zend_startup,
   NULL,
   NULL,   /* void (*activate)() */
@@ -2591,8 +2580,8 @@ static zend_extension eaccelerator_extension_entry = {
   EACCELERATOR_EXTENSION_NAME,
   EACCELERATOR_VERSION,
   "eAccelerator",
-  "http://eaccelerator.sourceforge.net",
-  "Copyright (c) 2004-2004 eAccelerator",
+  "http://eaccelerator.net",
+  "Copyright (c) 2004-2006 eAccelerator",
   eaccelerator_zend_startup,
   NULL,
   NULL,   /* void (*activate)() */

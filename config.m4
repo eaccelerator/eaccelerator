@@ -13,80 +13,80 @@ AC_DEFUN([EA_REMOVE_IPC_TEST], [
 AC_ARG_WITH(eaccelerator,[],[enable_eaccelerator=$withval])
 
 PHP_ARG_ENABLE(eaccelerator, whether to enable eaccelerator support,
-[  --enable-eaccelerator        Enable eaccelerator support])
+[  --enable-eaccelerator                    Enable eaccelerator support])
 
 AC_ARG_WITH(eaccelerator-crash-detection,
-[  --without-eaccelerator-crash-detection  Do not include eaccelerator crash detection],[
+[  --without-eaccelerator-crash-detection   Do not include eaccelerator crash detection],[
   eaccelerator_crash_detection=$withval
 ],[
   eaccelerator_crash_detection=yes
 ])
 
 AC_ARG_WITH(eaccelerator-optimizer,
-[  --without-eaccelerator-optimizer        Do not include eaccelerator optimizer],[
+[  --without-eaccelerator-optimizer         Do not include eaccelerator optimizer],[
   eaccelerator_optimizer=$withval
 ],[
   eaccelerator_optimizer=yes
 ])
 
 AC_ARG_WITH(eaccelerator-encoder,
-[  --without-eaccelerator-encoder          Do not include eaccelerator encoder],[
+[  --without-eaccelerator-encoder           Do not include eaccelerator encoder],[
   eaccelerator_encoder=$withval
 ],[
   eaccelerator_encoder=yes
 ])
 
 AC_ARG_WITH(eaccelerator-loader,
-[  --without-eaccelerator-loader           Do not include eaccelerator loader],[
+[  --without-eaccelerator-loader            Do not include eaccelerator loader],[
   eaccelerator_loader=$withval
 ],[
   eaccelerator_loader=yes
 ])
 
 AC_ARG_WITH(eaccelerator-shared-memory,
-[  --without-eaccelerator-shared-memory	   Do not include eaccelerator shared memory functions],[
+[  --with-eaccelerator-shared-memory        Include eaccelerator shared memory functions],[
   eaccelerator_shm=$withval
 ],[
-  eaccelerator_shm=yes
+  eaccelerator_shm=no
 ])
 
 AC_ARG_WITH(eaccelerator-webui,
-[  --without-eaccelerator-webui        Do not include the eaccelerator WebUI],[
+[  --without-eaccelerator-webui             Do not include the eaccelerator WebUI],[
   eaccelerator_webui=$withval
 ],[
   eaccelerator_webui=yes
 ])
 
 AC_ARG_WITH(eaccelerator-sessions,
-[  --without-eaccelerator-sessions         Do not include eaccelerator sessions],[
+[  --with-eaccelerator-sessions             Include eaccelerator sessions],[
   eaccelerator_sessions=$withval
 ],[
-  eaccelerator_sessions=yes
+  eaccelerator_sessions=no
 ])
 
 AC_ARG_WITH(eaccelerator-content-caching,
-[  --without-eaccelerator-content-caching  Do not include eaccelerator content caching],[
+[  --with-eaccelerator-content-caching      Include eaccelerator content caching],[
   eaccelerator_content_caching=$withval
 ],[
-  eaccelerator_content_caching=yes
+  eaccelerator_content_caching=no
 ])
 
 AC_ARG_WITH(eaccelerator-disassembler,
-[  --with-eaccelerator-disassembler        Include disassembler],[
+[  --with-eaccelerator-disassembler         Include disassembler],[
   eaccelerator_disassembler=$withval
 ],[
   eaccelerator_disassemmbler=no
 ])
 
 AC_ARG_WITH(eaccelerator-use-inode,
-[  --without-eaccelerator-use-inode            Don't use inodes to determine hash keys (never used on win32)],[
+[  --without-eaccelerator-use-inode         Don't use inodes to determine hash keys (never used on win32)],[
   eaccelerator_inode=$withval
 ],[
   eaccelerator_inode=yes
 ])
 
 AC_ARG_WITH(eaccelerator-debug,
-[  --with-eaccelerator-debug            	Enable the debug code so eaccelerator logs verbose.],[
+[  --with-eaccelerator-debug                Enable the debug code so eaccelerator logs verbose.],[
   eaccelerator_debug=$withval
 ],[
   eaccelerator_debug=no
