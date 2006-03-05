@@ -2,7 +2,7 @@
    +----------------------------------------------------------------------+
    | eAccelerator project                                                 |
    +----------------------------------------------------------------------+
-   | Copyright (c) 2004 - 2005 eAccelerator                               |
+   | Copyright (c) 2004 - 2006 eAccelerator                               |
    | http://eaccelerator.net                                              |
    +----------------------------------------------------------------------+
    | This program is free software; you can redistribute it and/or        |
@@ -22,15 +22,7 @@
    |                                                                      |
    | A copy is availble at http://www.gnu.org/copyleft/gpl.txt            |
    +----------------------------------------------------------------------+
-   | Author(s): Dmitry Stogov <dstogov@users.sourceforge.net>             |
-   +----------------------------------------------------------------------+
    $Id$
-*/
-
-/*???
-#ifdef HAVE_SCHED_H
-#  include <sched.h>
-#endif
 */
 
 typedef struct { volatile unsigned int lock;
@@ -43,12 +35,6 @@ typedef struct { volatile unsigned int lock;
 #define spinlock_try_lock(rw)  asm volatile("lock ; decl %0" :"=m" ((rw)->lock) : : "memory")
 #define _spinlock_unlock(rw)   asm volatile("lock ; incl %0" :"=m" ((rw)->lock) : : "memory")
 
-
-/*???
-#ifdef HAVE_SCHED_YIELD
-#  define yield sched_yield
-#else
-*/
 static inline void yield()
 {
   struct timeval t;
@@ -57,9 +43,7 @@ static inline void yield()
   t.tv_usec = 100;
   select(0, NULL, NULL, NULL, &t);
 }
-/*???
-#endif
-*/
+
 static inline void spinlock_unlock(spinlock_t* rw) {
   if (rw->locked && (rw->pid == getpid())) {
     rw->pid = 0;

@@ -2,7 +2,7 @@
    +----------------------------------------------------------------------+
    | eAccelerator project                                                 |
    +----------------------------------------------------------------------+
-   | Copyright (c) 2004 - 2005 eAccelerator                               |
+   | Copyright (c) 2004 - 2006 eAccelerator                               |
    | http://eaccelerator.net                                              |
    +----------------------------------------------------------------------+
    | This program is free software; you can redistribute it and/or        |
@@ -21,10 +21,6 @@
    | MA  02111-1307, USA.                                                 |
    |                                                                      |
    | A copy is availble at http://www.gnu.org/copyleft/gpl.txt            |
-   +----------------------------------------------------------------------+
-   | Author(s): Dmitry Stogov <dstogov@users.sourceforge.net>             |
-   |            Seung Woo <segv@sayclub.com>                              |
-   |            Everaldo Canuto <everaldo_canuto@yahoo.com.br>            |
    +----------------------------------------------------------------------+
    $Id$
 */
@@ -251,7 +247,7 @@ void fixup_op_array(eaccelerator_op_array * from TSRMLS_DC)
 	}
 #ifdef ZEND_ENGINE_2_1
 	if (from->vars != NULL) {
-		zend_uint i;
+		int i;
 		FIXUP(from->vars);
 		for (i = 0; i < from->last_var; i++) {
 			FIXUP(from->vars[i].name);
@@ -718,7 +714,6 @@ static zend_property_info *restore_property_info(zend_property_info *
 void restore_class_parent(char *parent, int len,
 						  zend_class_entry * to TSRMLS_DC)
 {
-	DBG(ea_debug_printf, (EA_DEBUG, "restore_class_parent: restoring parent class %s of class %s\n", (char *) parent, to->name));
 #ifdef ZEND_ENGINE_2
 	zend_class_entry** parent_ptr = NULL;
 	if (zend_lookup_class(parent, len, &parent_ptr TSRMLS_CC) != SUCCESS)
@@ -812,14 +807,6 @@ zend_class_entry *restore_class_entry(zend_class_entry * to,
 {
 	zend_class_entry *old;
 	zend_function *f = NULL;
-/*	int fname_len = 0;		hrak: seems rather unused
-	char *fname_lc = NULL; */
-#ifdef ZEND_ENGINE_2
-/*	int cname_len;			hrak: same here
-	char *cname_lc; */
-	Bucket *p;
-	union _zend_function *old_ctor;
-#endif
 
 	DBG(ea_debug_pad, (EA_DEBUG TSRMLS_CC));
 	DBG(ea_debug_printf, (EA_DEBUG, "[%d] restore_class_entry: %s\n", getpid(), from->name ? from->name : "(top)"));

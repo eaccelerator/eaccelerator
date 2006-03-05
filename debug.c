@@ -2,7 +2,7 @@
    +----------------------------------------------------------------------+
    | eAccelerator project                                                 |
    +----------------------------------------------------------------------+
-   | Copyright (c) 2004 - 2005 eAccelerator                               |
+   | Copyright (c) 2004 - 2006 eAccelerator                               |
    | http://eaccelerator.net                                              |
    +----------------------------------------------------------------------+
    | This program is free software; you can redistribute it and/or        |
@@ -22,9 +22,6 @@
    |                                                                      |
    | A copy is availble at http://www.gnu.org/copyleft/gpl.txt            |
    +----------------------------------------------------------------------+
-   | Author(s): Dmitry Stogov <dstogov@users.sourceforge.net>             |
-   |            Bart Vanbrabant <zoeloelip@users.sourceforge.net>         |
-   +----------------------------------------------------------------------+
    $Id$
 */
 
@@ -35,8 +32,6 @@
 #include "debug.h"
 #include <ctype.h>
 #include <stdio.h>
-#include <unistd.h>
-#include <fcntl.h>
 
 static FILE *F_fp = NULL;
 static int file_no = 0;
@@ -72,37 +67,6 @@ void ea_debug_shutdown ()
     F_fp = NULL;
 }
 
-/* lock the log file, don't lock stderr */
-static void ea_debug_lock() {
-    int rc;
-    struct flock l;
-    if (F_fp != stderr) {
-        l.l_whence   = SEEK_SET;
-        l.l_start    = 0;
-        l.l_len      = 0;
-        l.l_pid      = 0;
-        l.l_type     = F_WRLCK;
-        do {
-            rc = fcntl(file_no, F_SETLKW, &l);
-        } while (rc < 0 && errno == EINTR);
-    }
-}
-
-static void ea_debug_unlock() {
-    int rc;
-    struct flock l;
-    if (F_fp != stderr) {
-        l.l_whence   = SEEK_SET;
-        l.l_start    = 0;
-        l.l_len      = 0;
-        l.l_pid      = 0;
-        l.l_type     = F_UNLCK;
-        do {
-            rc = fcntl(file_no, F_SETLKW, &l);
-        } while (rc < 0 && errno == EINTR);
-    }
-}
-
 /**
  * Print a log message that will be print when the debug level is
  * equal to EA_LOG. This function is always called even if ea isn't
@@ -118,14 +82,14 @@ void ea_debug_log (char *format, ...)
         vsnprintf (output_buf, sizeof (output_buf), format, args);
         va_end (args);
 
-        ea_debug_lock();
-#ifdef ZEND_WIN32
-        OutputDebugString (output_buf);
-#else
+        if (F_fp != stderr) {
+        	EACCELERATOR_FLOCK(file_no, LOCK_EX);
+        }
         fputs (output_buf, F_fp);
         fflush (F_fp);
-#endif
-        ea_debug_unlock();
+        if (F_fp != stderr) {
+        	EACCELERATOR_FLOCK(file_no, LOCK_UN);
+        }
     }
 }
 
@@ -142,12 +106,8 @@ void ea_debug_error (char *format, ...)
     vsnprintf (output_buf, sizeof (output_buf), format, args);
     va_end (args);
 
-#ifdef ZEND_WIN32
-    OutputDebugString (output_buf);
-#else
     fputs (output_buf, stderr);
     fflush (stderr);
-#endif
 }
 
 /* 
@@ -169,10 +129,14 @@ void ea_debug_printf (long debug_level, char *format, ...)
         vsnprintf (output_buf, sizeof (output_buf), format, args);
         va_end (args);
         
-        ea_debug_lock();
+        if (F_fp != stderr) {
+        	EACCELERATOR_FLOCK(file_no, LOCK_EX);
+        }
         fputs (output_buf, F_fp);
         fflush (F_fp);
-        ea_debug_unlock();
+        if (F_fp != stderr) {
+        	EACCELERATOR_FLOCK(file_no, LOCK_UN);
+        }
     }
 }
 
@@ -182,10 +146,14 @@ void ea_debug_printf (long debug_level, char *format, ...)
 void ea_debug_put (long debug_level, char *message)
 {
     if (debug_level & eaccelerator_debug) {
-        ea_debug_lock();
+        if (F_fp != stderr) {
+        	EACCELERATOR_FLOCK(file_no, LOCK_EX);
+        }
         fputs (message, F_fp);
         fflush (F_fp);
-        ea_debug_unlock();
+        if (F_fp != stderr) {
+        	EACCELERATOR_FLOCK(file_no, LOCK_UN);
+        }
     }
 }
 
@@ -195,13 +163,17 @@ void ea_debug_put (long debug_level, char *message)
 void ea_debug_binary_print (long debug_level, char *p, int len)
 {
     if (eaccelerator_debug & debug_level) {
-        ea_debug_lock();
+        if (F_fp != stderr) {
+        	EACCELERATOR_FLOCK(file_no, LOCK_EX);
+        }
         while (len--) {
             fputc (*p++, F_fp);
         }
         fputc ('\n', F_fp);
         fflush (F_fp);
-        ea_debug_unlock();
+        if (F_fp != stderr) {
+        	EACCELERATOR_FLOCK(file_no, LOCK_UN);
+        }
     }
 }
 
@@ -216,16 +188,20 @@ void ea_debug_log_hashkeys (char *p, HashTable * ht)
 
         b = ht->pListHead;
 
-        ea_debug_lock();
+        if (F_fp != stderr) {
+        	EACCELERATOR_FLOCK(file_no, LOCK_EX);
+        }
         fputs(p, F_fp);
         fflush(F_fp);
-        ea_debug_unlock();
         while (b) {
             fprintf (F_fp, "[%d] ", i);
             ea_debug_binary_print (EA_LOG_HASHKEYS, b->arKey, b->nKeyLength);
 
             b = b->pListNext;
             i++;
+        }
+        if (F_fp != stderr) {
+        	EACCELERATOR_FLOCK(file_no, LOCK_UN);
         }
     }
 }
@@ -237,12 +213,16 @@ void ea_debug_pad (long debug_level TSRMLS_DC)
 {
 #ifdef DEBUG /* This ifdef is still req'd because xpad is N/A in a non-debug compile */
     if (eaccelerator_debug & debug_level) {
-        ea_debug_lock();
+        if (F_fp != stderr) {
+        	EACCELERATOR_FLOCK(file_no, LOCK_EX);
+        }
         int i = EAG (xpad);
         while (i-- > 0) {
             fputc ('\t', F_fp);
         }
-        ea_debug_unlock();
+        if (F_fp != stderr) {
+        	EACCELERATOR_FLOCK(file_no, LOCK_UN);
+        }
     }
 #endif
 }

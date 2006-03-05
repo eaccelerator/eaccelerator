@@ -1,3 +1,21 @@
+2006-03-02  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
+
+        * Changed copyright dates to 2006
+        * Updated the eaccelerator url in some last files
+        * I removed all authors from specific files. Authors can be traced 
+          through mmcache and eaccelerator cvs. I did this because some 
+          names should be added to quite some source files while others have
+          added their own while contributing less then the once not mentoined.
+          All contributors are credited in the AUTHORS file and specific 
+          information can be found in the Changelog and cvs.
+
+2006-03-01  Hans Rakers <hans at parse dot nl>
+
+        * Bunch of Win32 fixes. It compiles cleanly now (tested with VC++ 6.0)
+        * Fix to the optimizer for bug #1439344
+        * Fix to ea_store.c for a build problem on RHEL3 reported on the forums at 
+          https://sourceforge.net/forum/message.php?msg_id=3596327
+
 2006-02-28  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
         * Changed the module entry url to eaccelerator.net and year

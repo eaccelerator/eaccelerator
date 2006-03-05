@@ -2,7 +2,7 @@
    +----------------------------------------------------------------------+
    | eAccelerator project                                                 |
    +----------------------------------------------------------------------+
-   | Copyright (c) 2004 - 2005 eAccelerator                               |
+   | Copyright (c) 2004 - 2006 eAccelerator                               |
    | http://eaccelerator.net                                              |
    +----------------------------------------------------------------------+
    | This program is free software; you can redistribute it and/or        |
@@ -21,10 +21,6 @@
    | MA  02111-1307, USA.                                                 |
    |                                                                      |
    | A copy is availble at http://www.gnu.org/copyleft/gpl.txt            |
-   +----------------------------------------------------------------------+
-   | Author(s): Dmitry Stogov <dstogov@users.sourceforge.net>             |
-   |            Seung Woo <segv@sayclub.com>                              |
-   |            Everaldo Canuto <everaldo_canuto@yahoo.com.br>            |
    +----------------------------------------------------------------------+
    $Id$
 */
@@ -253,7 +249,7 @@ void calc_op_array(zend_op_array * from TSRMLS_DC)
 	}
 #ifdef ZEND_ENGINE_2_1
 	if (from->vars != NULL) {
-		zend_uint i;
+		int i;
 		EACCELERATOR_ALIGN(EAG(mem));
 		EAG(mem) += sizeof(zend_compiled_variable) * from->last_var;
 		for (i = 0; i < from->last_var; i ++) {
@@ -537,15 +533,19 @@ eaccelerator_op_array *store_op_array(zend_op_array * from TSRMLS_DC)
 	zend_op *end;
 
 	DBG(ea_debug_pad, (EA_DEBUG TSRMLS_CC));
+#ifdef ZEND_ENGINE_2
 	DBG(ea_debug_printf, (EA_DEBUG, "[%d] store_op_array: %s [scope=%s type=%x]\n", 
             getpid(), from->function_name ? from->function_name : "(top)",
-#ifdef ZEND_ENGINE_2
 			from->scope ? from->scope->name : "NULL"
-#else
-			"NULL"
-#endif
 			, from->type
 		));
+#else
+	DBG(ea_debug_printf, (EA_DEBUG, "[%d] store_op_array: %s [scope=%s type=%x]\n", 
+            getpid(), from->function_name ? from->function_name : "(top)",
+			"NULL"
+			, from->type
+		));
+#endif
 
 	if (from->type == ZEND_INTERNAL_FUNCTION) {
 		EACCELERATOR_ALIGN(EAG(mem));
@@ -705,7 +705,7 @@ eaccelerator_op_array *store_op_array(zend_op_array * from TSRMLS_DC)
 	}
 #ifdef ZEND_ENGINE_2_1
 	if (from->vars != NULL) {
-        	zend_uint i;
+        	int i;
 	        EACCELERATOR_ALIGN(EAG(mem));
 	        to->last_var = from->last_var;
 	        to->vars = (zend_compiled_variable*)EAG(mem);

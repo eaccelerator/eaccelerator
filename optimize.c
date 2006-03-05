@@ -2,8 +2,8 @@
    +----------------------------------------------------------------------+
    | eAccelerator project                                                 |
    +----------------------------------------------------------------------+
-   | Copyright (c) 2004 eAccelerator                                      |
-   | http://eaccelerator.sourceforge.net                                  |
+   | Copyright (c) 2004 - 2006 eAccelerator                               |
+   | http://eaccelerator.net                                              |
    +----------------------------------------------------------------------+
    | This program is free software; you can redistribute it and/or        |
    | modify it under the terms of the GNU General Public License          |
@@ -21,8 +21,6 @@
    | MA  02111-1307, USA.                                                 |
    |                                                                      |
    | A copy is availble at http://www.gnu.org/copyleft/gpl.txt            |
-   +----------------------------------------------------------------------+
-   | Author(s): Dmitry Stogov <dstogov@users.sourceforge.net>             |
    +----------------------------------------------------------------------+
    $Id$
 */
@@ -309,6 +307,7 @@ static void compute_live_var(BB* bb, zend_op_array* op_array, char* global)
              case ZEND_NEW:
 #endif
              case ZEND_FE_FETCH:
+             case ZEND_PRINT:
 #ifdef ZEND_ENGINE_2
              case ZEND_INIT_METHOD_CALL:
              case ZEND_INIT_STATIC_METHOD_CALL:

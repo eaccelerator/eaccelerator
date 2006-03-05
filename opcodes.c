@@ -2,7 +2,7 @@
    +----------------------------------------------------------------------+
    | eAccelerator project                                                 |
    +----------------------------------------------------------------------+
-   | Copyright (c) 2004 eAccelerator                                      |
+   | Copyright (c) 2004 - 2006 eAccelerator                               |
    | http://eaccelerator.sourceforge.net                                  |
    +----------------------------------------------------------------------+
    | This program is free software; you can redistribute it and/or        |
@@ -21,8 +21,6 @@
    | MA  02111-1307, USA.                                                 |
    |                                                                      |
    | A copy is availble at http://www.gnu.org/copyleft/gpl.txt            |
-   +----------------------------------------------------------------------+
-   | Author(s): Dmitry Stogov <dstogov@users.sourceforge.net>             |
    +----------------------------------------------------------------------+
    $Id$
 */
