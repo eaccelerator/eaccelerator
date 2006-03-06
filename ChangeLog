@@ -1,6 +1,7 @@
 2006-03-06  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
         * Removed the old webui and made a new controlpanel en disassembler.
+        * Added php api documentation
 
 2006-03-02  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
