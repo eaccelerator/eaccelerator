@@ -1,5 +1,5 @@
 LTLIBRARY_NAME        = libeaccelerator.la
-LTLIBRARY_SOURCES     = eaccelerator.c optimize.c encoder.c loader.c opcodes.c content.c mm.c webui.c session.c shm.c debug.c cache.c ea_restore.c ea_store.c
+LTLIBRARY_SOURCES     = eaccelerator.c optimize.c encoder.c loader.c opcodes.c content.c mm.c session.c shm.c debug.c cache.c ea_restore.c ea_store.c ea_info.c ea_dasm.c
 LTLIBRARY_SHARED_NAME = eaccelerator.la
 
 EXTRA_CFLAGS = -O2

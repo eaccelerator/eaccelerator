@@ -42,4 +42,6 @@ int eaccelerator_rm (const char *key, int key_len,
 					 eaccelerator_cache_place where TSRMLS_DC);
 size_t eaccelerator_gc (TSRMLS_D);
 
+int eaccelerator_list_keys(zval *return_value TSRMLS_DC);
+
 #endif							/* INCLUDED_CACHE_H */

@@ -36,7 +36,6 @@
 #include "zend_API.h"
 #include "zend_extensions.h"
 
-#include "webui.h"
 #include "debug.h"
 #include "shm.h"
 #include "session.h"
@@ -44,6 +43,8 @@
 #include "cache.h"
 #include "ea_store.h"
 #include "ea_restore.h"
+#include "ea_info.h"
+#include "ea_dasm.h"
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -903,8 +904,7 @@ static zend_op_array* eaccelerator_restore(char *realname, struct stat *buf,
 
   *nreloads = 1;
   EACCELERATOR_UNPROTECT();
-  p = hash_find_mm(realname, buf, nreloads,
-                   ((eaccelerator_shm_ttl > 0)?(compile_time + eaccelerator_shm_ttl):0));
+  p = hash_find_mm(realname, buf, nreloads, ((eaccelerator_shm_ttl > 0)?(compile_time + eaccelerator_shm_ttl):0));
   if (p == NULL && !eaccelerator_scripts_shm_only) {
     p = hash_find_file(realname, buf TSRMLS_CC);
   }
@@ -1386,8 +1386,7 @@ ZEND_DLEXPORT zend_op_array* eaccelerator_compile_file(zend_file_handle *file_ha
     }
 */
     EAG(compiler) = 0;
-    if (t != NULL &&
-        file_handle->opened_path != NULL &&
+    if (t != NULL && file_handle->opened_path != NULL &&
 #ifdef EACCELERATOR_USE_INODE
         eaccelerator_ok_to_cache(file_handle->opened_path TSRMLS_CC)) {
 #else
@@ -1621,8 +1620,10 @@ PHP_MINFO_FUNCTION(eaccelerator) {
   php_info_print_table_start();
   php_info_print_table_header(2, "eAccelerator support", "enabled");
   php_info_print_table_row(2, "Version", EACCELERATOR_VERSION);
-  php_info_print_table_row(2, "Caching Enabled", (EAG(enabled) && (eaccelerator_mm_instance != NULL) && eaccelerator_mm_instance->enabled)?"true":"false");
-  php_info_print_table_row(2, "Optimizer Enabled", (EAG(optimizer_enabled) && (eaccelerator_mm_instance != NULL) && eaccelerator_mm_instance->optimizer_enabled)?"true":"false");
+  php_info_print_table_row(2, "Caching Enabled", (EAG(enabled) && (eaccelerator_mm_instance != NULL) && 
+              eaccelerator_mm_instance->enabled)?"true":"false");
+  php_info_print_table_row(2, "Optimizer Enabled", (EAG(optimizer_enabled) && 
+              (eaccelerator_mm_instance != NULL) && eaccelerator_mm_instance->optimizer_enabled)?"true":"false");
   if (eaccelerator_mm_instance != NULL) {
     size_t available;
     EACCELERATOR_UNPROTECT();
@@ -1741,6 +1742,9 @@ ZEND_INI_ENTRY("eaccelerator.sessions",         "shm_and_disk", PHP_INI_SYSTEM, 
 #endif
 #ifdef WITH_EACCELERATOR_CONTENT_CACHING
 ZEND_INI_ENTRY("eaccelerator.content",          "shm_and_disk", PHP_INI_SYSTEM, eaccelerator_OnUpdateContentCachePlace)
+#endif
+#ifdef WITH_EACCELERATOR_INFO
+STD_PHP_INI_ENTRY("eaccelerator.allowed_admin_path",       "", PHP_INI_SYSTEM, OnUpdateString, allowed_admin_path, zend_eaccelerator_globals, eaccelerator_globals)
 #endif
 STD_PHP_INI_ENTRY("eaccelerator.cache_dir",      "/tmp/eaccelerator", PHP_INI_SYSTEM, OnUpdateString, cache_dir, zend_eaccelerator_globals, eaccelerator_globals)
 PHP_INI_ENTRY("eaccelerator.filter",             "",  PHP_INI_ALL, eaccelerator_filter)
@@ -1917,6 +1921,7 @@ static void eaccelerator_init_globals(zend_eaccelerator_globals *eaccelerator_gl
   eaccelerator_globals->name_space        = '\000';
   eaccelerator_globals->hostname[0]       = '\000';
   eaccelerator_globals->in_request        = 0;
+  eaccelerator_globals->allowed_admin_path= NULL;
 }
 
 static void eaccelerator_globals_dtor(zend_eaccelerator_globals *eaccelerator_globals)
@@ -2071,9 +2076,6 @@ PHP_RINIT_FUNCTION(eaccelerator)
 		zend_function tmp_func;
 		zend_class_entry tmp_class;
 
-		// Don't need this, as the context given by function argument.
-		// TSRMLS_FETCH();
-
 		zend_hash_init_ex(&eaccelerator_global_function_table, 100, NULL, NULL, 1, 0);
 		zend_hash_copy(&eaccelerator_global_function_table, CG(function_table), NULL, &tmp_func, sizeof(zend_function));
 		
@@ -2139,58 +2141,42 @@ PHP_RINIT_FUNCTION(eaccelerator)
 
 PHP_RSHUTDOWN_FUNCTION(eaccelerator)
 {
-	if (eaccelerator_mm_instance == NULL)
-	{
+	if (eaccelerator_mm_instance == NULL) {
 		return SUCCESS;
 	}
 #ifdef WITH_EACCELERATOR_CRASH_DETECTION
 #ifdef SIGSEGV
-	if (EAG(original_sigsegv_handler) != eaccelerator_crash_handler)
-	{
+	if (EAG(original_sigsegv_handler) != eaccelerator_crash_handler) {
 		signal(SIGSEGV, EAG(original_sigsegv_handler));
-	}
-	else
-	{
+	} else {
 		signal(SIGSEGV, SIG_DFL);
 	}
 #endif
 #ifdef SIGFPE
-	if (EAG(original_sigfpe_handler) != eaccelerator_crash_handler)
-	{
+	if (EAG(original_sigfpe_handler) != eaccelerator_crash_handler) {
 		signal(SIGFPE, EAG(original_sigfpe_handler));
-	}
-	else
-	{
+	} else {
 		signal(SIGFPE, SIG_DFL);
 	}
 #endif
 #ifdef SIGBUS
-	if (EAG(original_sigbus_handler) != eaccelerator_crash_handler)
-	{
+	if (EAG(original_sigbus_handler) != eaccelerator_crash_handler) {
 		signal(SIGBUS, EAG(original_sigbus_handler));
-	}
-	else
-	{
+	} else {
 		signal(SIGBUS, SIG_DFL);
 	}
 #endif
 #ifdef SIGILL
-	if (EAG(original_sigill_handler) != eaccelerator_crash_handler)
-	{
+	if (EAG(original_sigill_handler) != eaccelerator_crash_handler) {
 		signal(SIGILL, EAG(original_sigill_handler));
-	}
-	else
-	{
+	} else {
 		signal(SIGILL, SIG_DFL);
 	}
 #endif
 #ifdef SIGABRT
-	if (EAG(original_sigabrt_handler) != eaccelerator_crash_handler)
-	{
+	if (EAG(original_sigabrt_handler) != eaccelerator_crash_handler) {
 		signal(SIGABRT, EAG(original_sigabrt_handler));
-	}
-	else
-	{
+	} else {
 		signal(SIGABRT, SIG_DFL);
 	}
 #endif
@@ -2211,9 +2197,6 @@ static unsigned char eaccelerator_second_arg_force_ref[] = {2, BYREF_NONE, BYREF
 #endif
 
 function_entry eaccelerator_functions[] = {
-#ifdef WITH_EACCELERATOR_WEBUI
-  PHP_FE(eaccelerator, NULL)
-#endif
 #ifdef WITH_EACCELERATOR_SHM
   PHP_FE(eaccelerator_put, NULL)
   PHP_FE(eaccelerator_get, NULL)
@@ -2221,6 +2204,19 @@ function_entry eaccelerator_functions[] = {
   PHP_FE(eaccelerator_gc, NULL)
   PHP_FE(eaccelerator_lock, NULL)
   PHP_FE(eaccelerator_unlock, NULL)
+#endif
+#ifdef WITH_EACCELERATOR_INFO
+  PHP_FE(eaccelerator_caching, NULL)
+  #ifdef WITH_EACCELERATOR_OPTIMIZER
+  PHP_FE(eaccelerator_optimizer, NULL)
+  #endif
+  PHP_FE(eaccelerator_clear, NULL)
+  PHP_FE(eaccelerator_clean, NULL)
+  PHP_FE(eaccelerator_info, NULL)
+  PHP_FE(eaccelerator_purge, NULL)
+  PHP_FE(eaccelerator_cached_scripts, NULL)
+  PHP_FE(eaccelerator_removed_scripts, NULL)
+  PHP_FE(eaccelerator_list_keys, NULL)
 #endif
 #ifdef WITH_EACCELERATOR_ENCODER
   PHP_FE(eaccelerator_encode, eaccelerator_second_arg_force_ref)
@@ -2247,6 +2243,9 @@ function_entry eaccelerator_functions[] = {
   PHP_FE(eaccelerator_rm_page, NULL)
   PHP_FE(eaccelerator_cache_output, NULL)
   PHP_FE(eaccelerator_cache_result, NULL)
+#endif
+#ifdef WITH_EACCELERATOR_DISASSEMBLER
+  PHP_FE(eaccelerator_dasm_file, NULL)
 #endif
 #ifdef ZEND_ENGINE_2
   {NULL, NULL, NULL, 0U, 0U}

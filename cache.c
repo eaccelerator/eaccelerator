@@ -47,35 +47,35 @@ extern int binary_eaccelerator_version;
 extern int binary_php_version;
 extern int binary_zend_version;
 
-static char *build_key (const char *key, int key_len, int *xlen TSRMLS_DC)
+static char *build_key(const char *key, int key_len, int *xlen TSRMLS_DC)
 {
 	int len;
 
 	/*
 	 * namespace 
 	 */
-	len = strlen (EAG (name_space));
+	len = strlen(EAG(name_space));
 	if (len > 0) {
 		char *xkey;
 		*xlen = len + key_len + 1;
-		xkey = emalloc ((*xlen) + 1);
-		memcpy (xkey, EAG (name_space), len);
+		xkey = emalloc((*xlen) + 1);
+		memcpy(xkey, EAG(name_space), len);
 		xkey[len] = ':';
-		memcpy (xkey + len + 1, key, key_len + 1);
+		memcpy(xkey + len + 1, key, key_len + 1);
 		return xkey;
 	}
 
 	/*
 	 * hostname 
 	 */
-	len = strlen (EAG (hostname));
+	len = strlen(EAG (hostname));
 	if (len > 0) {
 		char *xkey;
 		*xlen = len + key_len + 1;
-		xkey = emalloc ((*xlen) + 1);
-		memcpy (xkey, EAG (hostname), len);
+		xkey = emalloc((*xlen) + 1);
+		memcpy(xkey, EAG(hostname), len);
 		xkey[len] = ':';
-		memcpy (xkey + len + 1, key, key_len + 1);
+		memcpy(xkey + len + 1, key, key_len + 1);
 		return xkey;
 	} else {
 		*xlen = key_len;
@@ -138,10 +138,6 @@ int eaccelerator_lock (const char *key, int key_len TSRMLS_DC)
 		} else {
 #ifdef ZEND_WIN32
 			Sleep (100);
-/*???
-#elif defined(HAVE_SCHED_YIELD)
-      sched_yield();
-*/
 #else
 			struct timeval t;
 			t.tv_sec = 0;
@@ -257,6 +253,7 @@ int eaccelerator_put (const char *key, int key_len, zval * val, time_t ttl,
 		memcpy (q->key, xkey, xlen + 1);
 		memcpy (&q->value, val, sizeof (zval));
 		q->ttl = ttl ? time (0) + ttl : 0;
+		q->create = time (0);
 		store_zval (&q->value TSRMLS_CC);
 		zend_hash_destroy (&EAG (strings));
 
@@ -604,4 +601,68 @@ size_t eaccelerator_gc (TSRMLS_D)
 	EACCELERATOR_PROTECT ();
 	return size;
 }
+
+/* get list of all keys stored in memory that matches hostname or namespace */
+int eaccelerator_list_keys(zval *return_value TSRMLS_DC) 
+{
+	unsigned int i, xlen;
+	zval *list;
+	char *xkey;
+	mm_user_cache_entry *p;
+	time_t t = time (0);
+
+	// create key prefix for current host / namespace
+	xlen = strlen(EAG(name_space));
+	if (xlen > 0) {
+		xkey = emalloc(xlen + 1);
+		memcpy(xkey, EAG(name_space), xlen);
+	} else {
+    	xlen = strlen(EAG(hostname));
+	    if (xlen > 0) {
+    		xkey = emalloc(xlen + 1);
+    		memcpy(xkey, EAG(hostname), xlen);
+	    }
+    }
+
+	// initialize return value as an array
+	array_init(return_value);
+
+	for (i = 0; i < MM_USER_HASH_SIZE; ++i) {
+        p = eaccelerator_mm_instance->user_hash[i];
+		while(p != NULL) {
+			if (!xlen || strncmp(p->key, xkey, xlen) == 0) {
+				list = NULL;
+				ALLOC_INIT_ZVAL(list);
+				array_init(list);
+				
+				if (strlen(p->key) > xlen) {
+					add_assoc_string(list, "name", (p->key) + xlen, 1);
+				} else {
+					add_assoc_string(list, "name", p->key, 1);
+				}
+                
+                if (p->ttl) {
+    				if (p->ttl < t) {
+    					add_assoc_long(list, "ttl", (p->ttl -t)); // ttl
+    				} else {
+    					add_assoc_long(list, "ttl", -1); // expired
+    				}
+                } else {
+					add_assoc_long(list, "ttl", 0); // no ttl
+				}
+				
+				add_assoc_long(list, "created", p->create);
+				add_assoc_long(list, "size", p->size);
+				add_next_index_zval(return_value, list);
+			}
+            p = p->next;
+		}
+	}
+
+    if (xlen > 0) 
+    	efree(xkey);
+	return 1;
+}
+
 #endif /* HAVE_EACCELERATOR */
+

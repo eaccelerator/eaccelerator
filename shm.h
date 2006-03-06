@@ -41,5 +41,4 @@ PHP_FUNCTION(eaccelerator_unlock);
 PHP_INI_MH(eaccelerator_OnUpdateKeysCachePlace);
 
 #endif /* WITH_EACCELERATOR_SHM */
-
 #endif /* INCLUDED_SHM_H */

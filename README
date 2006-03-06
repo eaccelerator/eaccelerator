@@ -224,6 +224,24 @@ eaccelerator.content
     "disk_only"    - cache data on disk
     "none"         - don't cache data
 
+eaccelerator.allowed_admin_path
+    The script paths that are allowed to get admin information and do admin 
+    controls
+
+Control panel and disassembler
+------------------------------
+
+If you want to use the control-panel you need to compile eAccelerator with 
+    --with-eaccelerator-info which is the default value.
+You need to copy the control.php file to your webroot and set the path to it 
+in the php.ini or eaccelerator.ini in the eaccelerator.allowed_admin_path 
+directive. If you don't do this you wont be able to see much information and 
+can't control eAccelerator.
+You can set the username and password needed to access the control-panel in 
+the control.php file.
+
+When you compile eAccelerator with --with-eaccelerator-disassembler you need 
+to place the dasm.php file also in the same directory as the control.php file.
 
 eAccelerator API
 ----------------
@@ -288,32 +306,6 @@ eaccelerator_encode($filename)
 
 eaccelerator_load($code)
   loads script which was encoded by eaccelerator_encode()
-
-WEB interface
--------------
-eAccelerator can be managed through web interface script  eaccelerator.php. So
-you need to put this file on  your  web  site.  For  security  reasons  it  is
-recommended to restrict the usage of this script by your local IP.
-
-Since version 2.3.18 admin interface may be protected by password. To generate
-password run the eaccelerator_password.php from command line  and  follow  the 
-instruction.
-
-  $ php -q eaccelerator_password.php
-  Changing password for eAccelerator Web Interface (eaccelerator.php)
-
-  Enter admin name: admin
-  New admin password: eaccelerator
-  Retype new admin password: eaccelerator
-
-  Add the following lines into your php.ini and restart HTTPD
-
-  eaccelerator.admin.name="admin"
-  eaccelerator.admin.password="$1$0ScD9gkb$nOEmFerNMvQ576hELeLrG0"
-
-If you use eaccelerator.php in directory that is password-protected  by  HTTPD
-then eaccelerator's admin name and password must be the same.
-
 
 Contact us
 ----------

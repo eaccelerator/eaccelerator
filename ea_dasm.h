@@ -3,7 +3,7 @@
    | eAccelerator project                                                 |
    +----------------------------------------------------------------------+
    | Copyright (c) 2004 - 2006 eAccelerator                               |
-   | http://eaccelerator.net                                              |
+   | http://eaccelerator.net                                  			  |
    +----------------------------------------------------------------------+
    | This program is free software; you can redistribute it and/or        |
    | modify it under the terms of the GNU General Public License          |
@@ -22,47 +22,27 @@
    |                                                                      |
    | A copy is availble at http://www.gnu.org/copyleft/gpl.txt            |
    +----------------------------------------------------------------------+
-   $Id$
+   $Id: $
 */
 
-typedef struct { volatile unsigned int lock;
-                 volatile pid_t pid;
-                 volatile int locked;
-               } spinlock_t;
+#include "eaccelerator.h"
+#include "zend.h"
 
-#define spinlock_init(rw)  do { (rw)->lock = 0x00000001; (rw)->pid=-1; (rw)->locked=0;} while(0)
+#ifndef INCLUDED_DASM_H
+#define INCLUDED_DASM_H
+#ifdef WITH_EACCELERATOR_DISASSEMBLER
 
-#define spinlock_try_lock(rw)  asm volatile("lock ; decl %0" :"=m" ((rw)->lock) : : "memory")
-#define _spinlock_unlock(rw)   asm volatile("lock ; incl %0" :"=m" ((rw)->lock) : : "memory")
+PHP_FUNCTION(eaccelerator_dasm_file);
 
-static inline void yield()
-{
-  struct timeval t;
+#endif
+#endif /* INCLUDED_DASM_H */
 
-  t.tv_sec = 0;
-  t.tv_usec = 100;
-  select(0, NULL, NULL, NULL, &t);
-}
-
-static inline void spinlock_unlock(spinlock_t* rw) {
-  if (rw->locked && (rw->pid == getpid())) {
-    rw->pid = 0;
-    rw->locked = 0;
-    _spinlock_unlock(rw);
-  }
-}
-
-static inline void spinlock_lock(spinlock_t* rw)
-{
-  while (1) {
-    spinlock_try_lock(rw);
-    if (rw->lock == 0) {
-      rw->pid = getpid();
-      rw->locked = 1;
-      return;
-    }
-    _spinlock_unlock(rw);
-    yield();
-  }
-}
+/*
+ * Local variables:
+ * tab-width: 4
+ * c-basic-offset: 4
+ * End:
+ * vim600: noet sw=4 ts=4 fdm=marker
+ * vim<600: noet sw=4 ts=4
+ */
 

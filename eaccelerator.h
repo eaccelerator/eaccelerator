@@ -303,6 +303,7 @@ typedef struct _mm_user_cache_entry {
 	struct _mm_user_cache_entry *next;
 	unsigned int hv;			/* hash value                  */
 	long ttl;					/* expiration time             */
+	long create;
 	int size;
 	zval value;					/* value                       */
 	char key[1];				/* key value (must be last el) */
@@ -459,6 +460,7 @@ char *cache_dir;
 char *eaccelerator_log_file;
 char *name_space;
 char *mem;
+char *allowed_admin_path;
 HashTable strings;
 zend_class_entry *class_entry;
 mm_cond_entry *cond_list;

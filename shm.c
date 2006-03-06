@@ -67,16 +67,15 @@ PHP_INI_MH (eaccelerator_OnUpdateKeysCachePlace)
 /* PHP function entries														  */
 /******************************************************************************/
 
-PHP_FUNCTION (eaccelerator_lock)
+PHP_FUNCTION(eaccelerator_lock)
 {
 	char *key;
 	int key_len;
 
-	if (zend_parse_parameters (ZEND_NUM_ARGS ()TSRMLS_CC, "s", &key, &key_len)
-		== FAILURE)
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &key, &key_len) == FAILURE)
 		return;
 
-	if (eaccelerator_lock (key, key_len TSRMLS_CC)) {
+	if (eaccelerator_lock(key, key_len TSRMLS_CC)) {
 		RETURN_TRUE;
 	} else {
 		RETURN_FALSE;
@@ -88,8 +87,7 @@ PHP_FUNCTION (eaccelerator_unlock)
 	char *key;
 	int key_len;
 
-	if (zend_parse_parameters (ZEND_NUM_ARGS ()TSRMLS_CC, "s", &key, &key_len)
-		== FAILURE)
+	if (zend_parse_parameters (ZEND_NUM_ARGS ()TSRMLS_CC, "s", &key, &key_len) == FAILURE)
 		return;
 
 	if (eaccelerator_unlock (key, key_len TSRMLS_CC)) {
@@ -107,8 +105,7 @@ PHP_FUNCTION (eaccelerator_put)
 	time_t ttl = 0;
 	long where = eaccelerator_keys_cache_place;
 
-	if (zend_parse_parameters (ZEND_NUM_ARGS ()TSRMLS_CC, "sz|ll", &key, 
-								&key_len, &val, &ttl, &where) == FAILURE)
+	if (zend_parse_parameters (ZEND_NUM_ARGS ()TSRMLS_CC, "sz|ll", &key, &key_len, &val, &ttl, &where) == FAILURE)
 		return;
 
 	if (eaccelerator_put (key, key_len, val, ttl, where TSRMLS_CC)) {
@@ -124,8 +121,7 @@ PHP_FUNCTION (eaccelerator_get)
 	int key_len;
 	long where = eaccelerator_keys_cache_place;
 
-	if (zend_parse_parameters (ZEND_NUM_ARGS ()TSRMLS_CC,
-							   "s|l", &key, &key_len, &where) == FAILURE)
+	if (zend_parse_parameters (ZEND_NUM_ARGS ()TSRMLS_CC, "s|l", &key, &key_len, &where) == FAILURE)
 		return;
 
 	if (eaccelerator_get (key, key_len, return_value, where TSRMLS_CC)) {
@@ -141,8 +137,7 @@ PHP_FUNCTION (eaccelerator_rm)
 	int key_len;
 	long where = eaccelerator_keys_cache_place;
 
-	if (zend_parse_parameters (ZEND_NUM_ARGS ()TSRMLS_CC,
-							   "s|l", &key, &key_len, &where) == FAILURE)
+	if (zend_parse_parameters (ZEND_NUM_ARGS ()TSRMLS_CC, "s|l", &key, &key_len, &where) == FAILURE)
 		return;
 
 	if (eaccelerator_rm (key, key_len, where TSRMLS_CC)) {
@@ -160,5 +155,8 @@ PHP_FUNCTION (eaccelerator_gc)
 	eaccelerator_gc (TSRMLS_C);
 	RETURN_TRUE;
 }
+
+
+
 #endif							/* WITH_EACCELERATOR_SHM */
 #endif							/* HAVE_EACCELERATOR */

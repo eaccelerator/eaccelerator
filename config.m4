@@ -50,13 +50,6 @@ AC_ARG_WITH(eaccelerator-shared-memory,
   eaccelerator_shm=no
 ])
 
-AC_ARG_WITH(eaccelerator-webui,
-[  --without-eaccelerator-webui             Do not include the eaccelerator WebUI],[
-  eaccelerator_webui=$withval
-],[
-  eaccelerator_webui=yes
-])
-
 AC_ARG_WITH(eaccelerator-sessions,
 [  --with-eaccelerator-sessions             Include eaccelerator sessions],[
   eaccelerator_sessions=$withval
@@ -69,6 +62,13 @@ AC_ARG_WITH(eaccelerator-content-caching,
   eaccelerator_content_caching=$withval
 ],[
   eaccelerator_content_caching=no
+])
+
+AC_ARG_WITH(eaccelerator-info,
+[  --without-eaccelerator-info                Do not compile the eAccelerator information functions],[
+  eaccelerator_info=$withval
+],[
+  eaccelerator_info=yes
 ])
 
 AC_ARG_WITH(eaccelerator-disassembler,
@@ -104,6 +104,8 @@ if test "$PHP_EACCELERATOR" != "no"; then
   PHP_EXTENSION(eaccelerator, $ext_shared)
   AC_DEFINE(HAVE_EACCELERATOR, 1, [Define if you like to use eAccelerator])
 
+  AC_DEFINE(WITH_EACCELERATOR_INFO, 1, [Define to be able to get information about eAccelerator])
+
   AC_DEFINE_UNQUOTED(EA_USERID, $ea_userid, [The userid eAccelerator will be running under.]) 
     
   if test "$eaccelerator_crash_detection" = "yes"; then
@@ -121,8 +123,8 @@ if test "$PHP_EACCELERATOR" != "no"; then
   if test "$eaccelerator_shm" = "yes"; then
     AC_DEFINE(WITH_EACCELERATOR_SHM, 1, [Define if you like to use the eAccelerator functions to store keys in shared memory])
   fi
-  if test "$eaccelerator_webui" = "yes"; then
-    AC_DEFINE(WITH_EACCELERATOR_WEBUI, 1, [Define if you like to use the eAccelerator WebUI])
+  if test "$eaccelerator_info" = "yes"; then
+    AC_DEFINE(WITH_EACCELERATOR_INFO, 1, [Define if you want the information functions])
   fi
   if test "$eaccelerator_sessions" = "yes"; then
     AC_DEFINE(WITH_EACCELERATOR_SESSIONS, 1, [Define if you like to use eAccelerator session handlers to store session's information in shared memory])

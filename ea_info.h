@@ -22,16 +22,35 @@
    |                                                                      |
    | A copy is availble at http://www.gnu.org/copyleft/gpl.txt            |
    +----------------------------------------------------------------------+
-   $Id$
+   $Id: $
 */
 
-#ifndef INCLUDED_WEBUI_H
-#define INCLUDED_WEBUI_H
+#ifndef INCLUDED_INFO_H
+#define INCLUDED_INFO_H
 
-#ifdef WITH_EACCELERATOR_WEBUI
+#ifdef WITH_EACCELERATOR_INFO
 
-PHP_FUNCTION(eaccelerator);
+PHP_FUNCTION(eaccelerator_caching);
+#ifdef WITH_EACCELERATOR_OPTIMIZER
+PHP_FUNCTION(eaccelerator_optimizer);
+#endif
+PHP_FUNCTION(eaccelerator_clear);
+PHP_FUNCTION(eaccelerator_clean);
+PHP_FUNCTION(eaccelerator_info);
+PHP_FUNCTION(eaccelerator_purge);
+PHP_FUNCTION(eaccelerator_cached_scripts);
+PHP_FUNCTION(eaccelerator_removed_scripts);
+PHP_FUNCTION(eaccelerator_list_keys);
 
-#endif /* WITH_EACCELERATOR_WEBUI */
+#endif
+#endif /* INCLUDED_INFO_H */
 
-#endif /* INCLUDED_SESSION_H */
+/*
+ * Local variables:
+ * tab-width: 4
+ * c-basic-offset: 4
+ * End:
+ * vim600: noet sw=4 ts=4 fdm=marker
+ * vim<600: noet sw=4 ts=4
+ */
+
