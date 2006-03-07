@@ -22,21 +22,22 @@
    |                                                                      |
    | A copy is availble at http://www.gnu.org/copyleft/gpl.txt            |
    +----------------------------------------------------------------------+
-   $Id$
+   $Id: ea_restore.h 176 2006-03-05 12:18:54Z bart $
 */
 
 #ifndef EA_RESTORE_H
 #define EA_RESTORE_H
 
 #define FIXUP(x) if((x)!=NULL) {(x) = (void*)(((char*)(x)) + ((long)(EAG(mem))));}
-void fixup_op_array (eaccelerator_op_array * from TSRMLS_DC);
-void fixup_class_entry (eaccelerator_class_entry * from TSRMLS_DC);
+void fixup_op_array(eaccelerator_op_array *from TSRMLS_DC);
+void fixup_class_entry(eaccelerator_class_entry *from TSRMLS_DC);
+void fixup_zval(zval *z TSRMLS_DC);
 
-void restore_zval(zval * zv TSRMLS_DC);
+void restore_zval(zval *zv TSRMLS_DC);
 void restore_class(mm_fc_entry *p TSRMLS_DC);
 void restore_function(mm_fc_entry *p TSRMLS_DC);
 zend_op_array* restore_op_array(zend_op_array *to, eaccelerator_op_array *from TSRMLS_DC);
-zend_class_entry *restore_class_entry(zend_class_entry * to, eaccelerator_class_entry *from TSRMLS_DC);
+zend_class_entry *restore_class_entry(zend_class_entry *to, eaccelerator_class_entry *from TSRMLS_DC);
 void restore_class_parent(char *parent, int len, zend_class_entry *to TSRMLS_DC);
 #ifdef ZEND_ENGINE_2
 void restore_class_methods(zend_class_entry *to TSRMLS_DC);

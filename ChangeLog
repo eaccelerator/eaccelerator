@@ -7,6 +7,7 @@
           an empty string was set.
         * Removed the shorttags in control.php and dasm.php to fix bug #8.
         * Set the svn keywords property to some files.
+        * Moved some function defs from eaccelerator.h to the right files.
 
 2006-03-06  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 

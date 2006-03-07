@@ -22,7 +22,7 @@
    |                                                                      |
    | A copy is availble at http://www.gnu.org/copyleft/gpl.txt            |
    +----------------------------------------------------------------------+
-   $Id$
+   $Id: eaccelerator.h 178 2006-03-06 09:08:40Z bart $
 */
 
 #ifndef INCLUDED_EACCELERATOR_H
@@ -400,11 +400,6 @@ void *eaccelerator_malloc2 (size_t size TSRMLS_DC);
 
 unsigned int eaccelerator_crc32 (const char *p, size_t n);
 int eaccelerator_md5 (char *s, const char *prefix, const char *key TSRMLS_DC);
-
-void calc_zval (zval * z TSRMLS_DC);
-void store_zval (zval * z TSRMLS_DC);
-void fixup_zval (zval * z TSRMLS_DC);
-void restore_zval (zval * TSRMLS_DC);
 
 unsigned int hash_mm(const char *data, int len); 
 

@@ -22,18 +22,20 @@
    |                                                                      |
    | A copy is availble at http://www.gnu.org/copyleft/gpl.txt            |
    +----------------------------------------------------------------------+
-   $Id$
+   $Id: ea_store.h 176 2006-03-05 12:18:54Z bart $
 */
 
 #ifndef EA_STORE_H
 #define EA_STORE_H
 
-int calc_size (char *key, zend_op_array * op_array, Bucket * f, Bucket * c TSRMLS_DC);
-void calc_op_array (zend_op_array * from TSRMLS_DC);
-void calc_class_entry (zend_class_entry * from TSRMLS_DC);
+void calc_zval(zval *z TSRMLS_DC);
+int calc_size(char *key, zend_op_array *op_array, Bucket *f, Bucket *c TSRMLS_DC);
+void calc_op_array(zend_op_array *from TSRMLS_DC);
+void calc_class_entry(zend_class_entry *from TSRMLS_DC);
 
-eaccelerator_op_array *store_op_array (zend_op_array * from TSRMLS_DC);
-eaccelerator_class_entry *store_class_entry_ptr (zend_class_entry **from TSRMLS_DC);
-eaccelerator_class_entry *store_class_entry (zend_class_entry *from TSRMLS_DC);
+void store_zval(zval *z TSRMLS_DC);
+eaccelerator_op_array *store_op_array(zend_op_array *from TSRMLS_DC);
+eaccelerator_class_entry *store_class_entry_ptr(zend_class_entry **from TSRMLS_DC);
+eaccelerator_class_entry *store_class_entry(zend_class_entry *from TSRMLS_DC);
 
 #endif /* EA_STORE_H */
