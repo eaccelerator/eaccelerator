@@ -1,3 +1,11 @@
+2006-03-07  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
+
+        * Set refcount to 1 before storing a zval in the usercache. This fixes
+          bug #4.
+        * Some formatting cleanups in cache.c
+        * In restore_zval the zval length could be something else then 0 when 
+          an empty string was set.
+
 2006-03-06  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
         * Removed the old webui and made a new controlpanel en disassembler.

@@ -22,7 +22,7 @@
    |                                                                      |
    | A copy is availble at http://www.gnu.org/copyleft/gpl.txt            |
    +----------------------------------------------------------------------+
-   $Id$
+   $Id: ea_restore.c 176 2006-03-05 12:18:54Z bart $
 */
 
 #include "eaccelerator.h"
@@ -382,8 +382,8 @@ void restore_zval(zval * zv TSRMLS_DC)
 	switch (zv->type & ~IS_CONSTANT_INDEX) {
 	case IS_CONSTANT:
 	case IS_STRING:
-		if (zv->value.str.val == NULL || 
-                zv->value.str.val == "" || zv->value.str.len == 0) {
+		if (zv->value.str.val == NULL || zv->value.str.val == "" || zv->value.str.len == 0) {
+            zv->value.str.len = 0;
 			zv->value.str.val = empty_string;
 			return;
 		} else {
@@ -416,8 +416,7 @@ void restore_zval(zval * zv TSRMLS_DC)
             if (zend_hash_find(CG(class_table), (void *) class_name, name_len + 1, (void **) &ce) != SUCCESS) {
                 char *lowercase_name = estrndup(INCOMPLETE_CLASS, sizeof(INCOMPLETE_CLASS));
                 zend_str_tolower(lowercase_name, sizeof(INCOMPLETE_CLASS));
-                if (zend_hash_find(CG(class_table), lowercase_name,
-                            sizeof(INCOMPLETE_CLASS), (void **) &ce) != SUCCESS) {
+                if (zend_hash_find(CG(class_table), lowercase_name, sizeof(INCOMPLETE_CLASS), (void **) &ce) != SUCCESS) {
                     efree(lowercase_name);
                     zend_error(E_ERROR, "EACCELERATOR can't restore object's class \"%s\"", class_name);
                 } else {
