@@ -5,6 +5,7 @@
         * Some formatting cleanups in cache.c
         * In restore_zval the zval length could be something else then 0 when 
           an empty string was set.
+        * Removed the shorttags in control.php and dasm.php to fix bug #8.
 
 2006-03-06  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 

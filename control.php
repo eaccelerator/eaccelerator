@@ -73,14 +73,14 @@ function create_script_table($list) { ?>
     <?php foreach($list as $script) { ?>
         <tr>
     <?php   if (function_exists('eaccelerator_dasm_file')) { ?>
-            <td class="e"><a href="dasm.php?file=<?= $script['file']; ?>"><?= $script['file']; ?></a></td>
+            <td class="e"><a href="dasm.php?file=<?php echo $script['file']; ?>"><?php echo $script['file']; ?></a></td>
     <?php   } else { ?>
-            <td class="e"><?= $script['file']; ?></td>
+            <td class="e"><?php echo $script['file']; ?></td>
     <?php   } ?>
-            <td class="vr"><?= date('Y-m-d H:i', $script['mtime']); ?></td>
-            <td class="vr"><?= number_format($script['size'] / 1024, 2); ?>KB</td>
-            <td class="vr"><?= $script['reloads']; ?> (<?= $script['usecount']; ?>)</td>
-            <td class="vr"><?= $script['hits']; ?></td>
+            <td class="vr"><?php echo date('Y-m-d H:i', $script['mtime']); ?></td>
+            <td class="vr"><?php echo number_format($script['size'] / 1024, 2); ?>KB</td>
+            <td class="vr"><?php echo $script['reloads']; ?> (<?php echo $script['usecount']; ?>)</td>
+            <td class="vr"><?php echo $script['hits']; ?></td>
         </tr>
     <?php } ?>
     </table>
@@ -102,9 +102,9 @@ function create_key_table($list) {
     foreach($list as $key) {
 ?>
         <tr>
-            <td class="e"><?= $key['name']; ?></td>
-            <td class="vr"><?= date('Y-m-d H:i', $key['created']); ?></td>
-            <td class="vr"><?= number_format($key['size']/1024, 3); ?>KB</td>
+            <td class="e"><?php echo $key['name']; ?></td>
+            <td class="vr"><?php echo date('Y-m-d H:i', $key['created']); ?></td>
+            <td class="vr"><?php echo number_format($key['size']/1024, 3); ?>KB</td>
             <td class="vr"><?php 
                 if ($key['ttl'] == -1) {
                     echo 'expired';
@@ -164,40 +164,40 @@ function print_header() { ?>
 
 <?php print_header(); ?>
 <body class="center">
-<h1>eAccelerator <?= $info['version']; ?> control panel</h1>
+<h1>eAccelerator <?php echo $info['version']; ?> control panel</h1>
 
 <!-- {{{ information -->
 <h2>Information</h2>
 <table>
 <tr>
     <td class="e">Caching enabled</td> 
-    <td><?= $info['cache'] ? 'yes':'no' ?></td>
+    <td><?php echo $info['cache'] ? 'yes':'no' ?></td>
 </tr>
 <tr>
     <td class="e">Optimizer enabled</td>
-    <td><?= $info['optimizer'] ? 'yes':'no' ?></td>
+    <td><?php echo $info['optimizer'] ? 'yes':'no' ?></td>
 </tr>
 <tr>
     <td class="e">Memory usage</td>
-    <td><?= number_format(100 * $info['memoryAllocated'] / $info['memorySize'], 2); ?>% 
-        (<?= number_format($info['memoryAllocated'] / (1024*1024), 2); ?>MB/
-        <?= number_format($info['memorySize'] / (1024*1024), 2); ?>MB)</td>
+    <td><?php echo number_format(100 * $info['memoryAllocated'] / $info['memorySize'], 2); ?>% 
+        (<?php echo number_format($info['memoryAllocated'] / (1024*1024), 2); ?>MB/
+        <?php echo number_format($info['memorySize'] / (1024*1024), 2); ?>MB)</td>
 </tr>
 <tr>
     <td class="e">Free memory</td>
-    <td><?= number_format($info['memoryAvailable'] / (1024*1024), 2); ?>MB</td>
+    <td><?php echo number_format($info['memoryAvailable'] / (1024*1024), 2); ?>MB</td>
 </tr>
 <tr>
     <td class="e">Cached scripts</td>
-    <td><?= $info['cachedScripts']; ?></td>
+    <td><?php echo $info['cachedScripts']; ?></td>
 </tr>
 <tr>
     <td class="e">Removed scripts</td> 
-    <td><?= $info['removedScripts']; ?></td>
+    <td><?php echo $info['removedScripts']; ?></td>
 </tr>
 <tr>
     <td class="e">Cached keys</td>
-    <td><?= $info['cachedKeys']; ?></td>
+    <td><?php echo $info['cachedKeys']; ?></td>
 </tr>
 </table>
 <!-- }}} -->
@@ -208,11 +208,11 @@ function print_header() { ?>
     <table>
         <tr>
             <td class="e">Caching</td>
-            <td><input type="submit" name="caching" value="<?= $info['cache']?'disable':'enable'; ?>" /></td>
+            <td><input type="submit" name="caching" value="<?php echo $info['cache']?'disable':'enable'; ?>" /></td>
         </tr>
         <tr>
             <td class="e">Optimizer</td>
-            <td><input type="submit" name="optimizer" value="<?= $info['optimizer']?'disable':'enable'; ?>" /></td>
+            <td><input type="submit" name="optimizer" value="<?php echo $info['optimizer']?'disable':'enable'; ?>" /></td>
         </tr>
         <tr>
             <td class="e">Clear cache</td>
@@ -247,11 +247,11 @@ if (function_exists('eaccelerator_get')) {
 <br /><br />
 <table>
     <tr><td class="center">
-    <a href="http://eaccelerator.net"><img src="?=<?= $info['logo']; ?>" alt="eA logo" /></a>
+    <a href="http://eaccelerator.net"><img src="?=<?php echo $info['logo']; ?>" alt="eA logo" /></a>
     <strong>Created by the eAccelerator team, <a href="http://eaccelerator.net">http://eaccelerator.net</a></strong><br /><br />
-    <nobr>eAccelerator <?= $info['version']; ?> [shm:<?= $info['shm_type']?> sem:<?= $info['sem_type']; ?>]</nobr><br />
-    <nobr>PHP <?= phpversion();?> [ZE <?= zend_version(); ?>]</nobr><br />
-    <nobr>Using <?= php_sapi_name();?> on <?= php_uname(); ?></nobr><br />
+    <nobr>eAccelerator <?php echo $info['version']; ?> [shm:<?php echo $info['shm_type']?> sem:<?php echo $info['sem_type']; ?>]</nobr><br />
+    <nobr>PHP <?php echo phpversion();?> [ZE <?php echo zend_version(); ?>]</nobr><br />
+    <nobr>Using <?php echo php_sapi_name();?> on <?php echo php_uname(); ?></nobr><br />
     </td></tr>
 </table>
 <!-- }}} -->

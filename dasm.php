@@ -85,12 +85,12 @@
             </tr>
     <?php foreach($op_array as $n => $opline) { ?>
             <tr>
-                <td class="e"><?= $n; ?></td>
-                <td><nobr><?= $opline['opcode']; ?></nobr></td>
-                <td><nobr><?= $opline['extended_value']; ?></nobr></td>
-                <td><nobr><?= convert_string($opline['op1'], 50); ?></nobr></td>
-                <td><nobr><?= convert_string($opline['op2'], 50); ?></nobr></td>
-                <td><nobr><?= convert_string($opline['result'], 50); ?></nobr></td>
+                <td class="e"><?php echo $n; ?></td>
+                <td><nobr><?php echo $opline['opcode']; ?></nobr></td>
+                <td><nobr><?php echo $opline['extended_value']; ?></nobr></td>
+                <td><nobr><?php echo convert_string($opline['op1'], 50); ?></nobr></td>
+                <td><nobr><?php echo convert_string($opline['op2'], 50); ?></nobr></td>
+                <td><nobr><?php echo convert_string($opline['result'], 50); ?></nobr></td>
             </tr>
     <?php } ?>
         </table>
