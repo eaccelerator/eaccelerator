@@ -32,6 +32,7 @@
 #include "cache.h"
 #include "zend.h"
 #include "fopen_wrappers.h"
+#include <fcntl.h>
 
 #ifndef O_BINARY
 #  define O_BINARY 0
