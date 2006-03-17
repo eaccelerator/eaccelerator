@@ -62,6 +62,7 @@ typedef struct _BBlink {
   struct _BBlink* next;
 } BBlink;
 
+#if 0
 static void dump_bb(BB* bb, zend_op_array *op_array) {
   BB* p = bb;
   BBlink *q;
@@ -166,6 +167,7 @@ static void dump_array(int nb,void *pos,char type)
    }
    zend_printf("<br>\n");
 }
+#endif
 
 #define SET_TO_NOP(op) \
   (op)->opcode = ZEND_NOP; \
@@ -312,6 +314,7 @@ static void compute_live_var(BB* bb, zend_op_array* op_array, char* global)
              case ZEND_INIT_METHOD_CALL:
              case ZEND_INIT_STATIC_METHOD_CALL:
              case ZEND_ASSIGN_DIM:
+             case ZEND_ASSIGN_OBJ:
              case ZEND_DECLARE_CLASS:
              case ZEND_DECLARE_INHERITED_CLASS:
 #endif
@@ -2817,7 +2820,7 @@ static int build_cfg(zend_op_array *op_array, BB* bb)
 							(op_array->opcodes[jmp_to->brk].opcode == ZEND_SWITCH_FREE ||
 							op_array->opcodes[jmp_to->brk].opcode == ZEND_FREE))
 						{
-							goto brk_failed;
+							break;
 						}
 						offset = jmp_to->parent;
 					}

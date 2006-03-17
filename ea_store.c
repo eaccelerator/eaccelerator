@@ -905,14 +905,6 @@ eaccelerator_class_entry *store_class_entry(zend_class_entry * from TSRMLS_DC)
 		EAG(mem) += sizeof(HashTable);
 		store_hash(to->static_members, from->static_members, (store_bucket_t) store_zval_ptr, (check_bucket_t) store_static_member_access_check, from);
 	}	
-#  else
-	/* for php < 5.0 */
-	if (from->static_members != NULL) {
-		EACCELERATOR_ALIGN(EAG(mem));
-		to->static_members = (HashTable *) EAG(mem);
-		EAG(mem) += sizeof(HashTable);
-		store_zval_hash(to->static_members, from->static_members);
-	}
 #  endif
 #else
 	store_zval_hash(&to->default_properties, &from->default_properties);

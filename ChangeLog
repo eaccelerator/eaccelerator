@@ -1,3 +1,13 @@
+2006-03-17  Hans Rakers <hans at parse dot nl>
+
+	* Fix for sf.net bug #1442839 (handling of ZEND_ASSIGN_OBJ by the
+	  optimizer)
+	* Changed BRK handling to not bail out of the optimizer prematurely
+	  on a multi-level break. This does need some more testing, but
+	  should fix sf.net bug #1442923
+	* Removed some dead code in ea_store.c and excluded some debug code
+	  from compilation in optimize.c
+
 2006-03-09  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
         * Included fcntl.h in ea_info.c, this should fix bug #13
