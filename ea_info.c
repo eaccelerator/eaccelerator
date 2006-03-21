@@ -84,7 +84,7 @@ PHP_FUNCTION(eaccelerator_caching)
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "b", &enable) == FAILURE)
 		return;
 
-    if (isAdminAllowed()) {
+    if (isAdminAllowed(TSRMLS_C)) {
         EACCELERATOR_UNPROTECT();
         if (enable) {
             eaccelerator_mm_instance->enabled = 1;
@@ -109,7 +109,7 @@ PHP_FUNCTION(eaccelerator_optimizer)
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "b", &enable) == FAILURE)
 		return;
 
-    if (isAdminAllowed()) {
+    if (isAdminAllowed(TSRMLS_C)) {
         EACCELERATOR_UNPROTECT();
         if (enable) {
             eaccelerator_mm_instance->optimizer_enabled = 1;
@@ -131,7 +131,7 @@ PHP_FUNCTION(eaccelerator_clean)
 {
 	time_t t;
 
-    if (!isAdminAllowed()) {
+    if (!isAdminAllowed(TSRMLS_C)) {
         zend_error(E_WARNING, NOT_ADMIN_WARNING);
         RETURN_NULL();
     }
@@ -219,7 +219,7 @@ PHP_FUNCTION(eaccelerator_clear)
 	unsigned int i;
 	mm_cache_entry *p;
 
-    if (!isAdminAllowed()) {
+    if (!isAdminAllowed(TSRMLS_C)) {
         zend_error(E_WARNING, NOT_ADMIN_WARNING);
         RETURN_NULL();
     }
@@ -304,7 +304,7 @@ PHP_FUNCTION(eaccelerator_clear)
 PHP_FUNCTION(eaccelerator_purge)
 {
 
-    if (!isAdminAllowed()) {
+    if (!isAdminAllowed(TSRMLS_C)) {
         zend_error(E_WARNING, NOT_ADMIN_WARNING);
         RETURN_NULL();
     }
@@ -371,7 +371,7 @@ PHP_FUNCTION(eaccelerator_cached_scripts)
     mm_cache_entry *p;
     int i;
 
-    if (!isAdminAllowed()) {
+    if (!isAdminAllowed(TSRMLS_C)) {
         zend_error(E_WARNING, NOT_ADMIN_WARNING);
         RETURN_NULL();
     }
@@ -404,7 +404,7 @@ PHP_FUNCTION(eaccelerator_removed_scripts)
     mm_cache_entry *p;
     zval *script;
 
-    if (!isAdminAllowed()) {
+    if (!isAdminAllowed(TSRMLS_C)) {
         zend_error(E_WARNING, NOT_ADMIN_WARNING);
         RETURN_NULL();
     }
