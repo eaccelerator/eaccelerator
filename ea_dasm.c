@@ -187,6 +187,7 @@ static char *get_zval(zval *v)
 /* {{{ get_op_array: return a php array with the given op_array structure 
  * array() { [0] .. [n] =>
  *      array () {
+ *			[lineno]		=> // the line number in the source code
  *          [opcode]        => // the opcode
  *          [extended_value]=> // the extended value field
  *          [op1]           => // the first opcode
@@ -216,6 +217,9 @@ static zval *get_op_array(eaccelerator_op_array *op_array TSRMLS_DC)
 
             MAKE_STD_ZVAL(el);
             array_init(el);
+
+			/* lineno */
+			add_assoc_long(el, "lineno", opline->lineno);
            
             /* opname */
             if (op != NULL) {

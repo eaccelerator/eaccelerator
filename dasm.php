@@ -38,6 +38,7 @@
         .center table { margin-left: auto; margin-right: auto; text-align: left;}
         .center th { text-align: center !important; }
         td, th { border: 1px solid #000000; font-size: 75%; vertical-align: baseline;}
+		td.source { background-color: #ffffff; font-size: small;}
         h1 {font-size: 150%;}
         h2 {font-size: 125%;}
         .p {text-align: left;}
@@ -54,14 +55,45 @@
 <body class="center">
 <h1>eAccelerator disassembler</h1>
 <?php
-    if (!isset($_GET['file'])) {
+    if (!isset($_GET['file']) && is_file($_GET['file'])) {
         die('File argument not given!');
     }
+	$file = $_GET['file'];
 
-    $asm = eaccelerator_dasm_file($_GET['file']);
+    $asm = eaccelerator_dasm_file($file);
     if ($asm == null) {
         die('File not found!');
-    }
+	}
+
+	$source = explode("\n", htmlentities(file_get_contents($_GET['file']), ENT_QUOTES, 'UTF-8'));
+//	$source = explode("\n", file_get_contents($_GET['file']));
+
+	/* what do we need to do ? */
+	if (!isset($_GET['show'])) {
+		$show = '';
+	} else {
+		$show = $_GET['show'];
+	}
+	switch ($show) {
+		case 'main':
+			print_op_array($asm['op_array']);
+			break;
+		case 'functions':
+			if (is_array($asm['functions'][$_GET['name']])) {
+	            print_function($_GET['name'], $asm['functions'][$_GET['name']]);
+			}
+			break;
+		case 'classes':
+			if (is_array($asm['classes'][$_GET['name']])) {
+				print_class($_GET['name'], $asm['classes'][$_GET['name']]);
+			}
+			if (isset($_GET['method']) && is_array($asm['classes'][$_GET['name']][$_GET['method']])) {
+				print_method($_GET['method'], $asm['classes'][$_GET['name']][$_GET['method']]);
+			}
+			break;
+		default:
+			print_layout();
+	}
 
 /* {{{ convert_string */
     function convert_string($string, $length) {
@@ -83,16 +115,61 @@
                 <th>Op2</th>
                 <th>Result</th>
             </tr>
-    <?php foreach($op_array as $n => $opline) { ?>
+    <?php
+		$count = count($op_array);
+		$line = 0;
+		global $source;
+		$last_line = 0;
+		for ($i = 0; $i < $count; ++$i) {
+			$curr_line =  $op_array[$i]['lineno'];
+			/* find the next line that differs, but only when the start line differs from the previous */
+			$print = $line;
+			if ($last_line < $curr_line) {
+				for ($j = $i + 1; $j < $count; ++$j) {
+					if ($op_array[$j]['lineno'] > $curr_line) {
+						$print = $op_array[$j]['lineno'] - 1;
+						break;
+					}
+				}
+			}
+			$code = '';
+			while($line < $print) {
+				$code .= sprintf("%03d: %s\n", ($line + 1), $source[$line]);
+				++$line;
+			}
+			if ($code != '') {
+				echo "<tr>\n";
+//				echo '<td  class="source" colspan="6"><pre>' . highlight_string($code, true) . "</pre></td>\n";
+				echo '<td  class="source" colspan="6"><pre>' . $code . "</pre></td>\n";
+				echo "</tr>\n";
+			}
+	?>
             <tr>
-                <td class="e"><?php echo $n; ?></td>
-                <td><nobr><?php echo $opline['opcode']; ?></nobr></td>
-                <td><nobr><?php echo $opline['extended_value']; ?></nobr></td>
-                <td><nobr><?php echo convert_string($opline['op1'], 50); ?></nobr></td>
-                <td><nobr><?php echo convert_string($opline['op2'], 50); ?></nobr></td>
-                <td><nobr><?php echo convert_string($opline['result'], 50); ?></nobr></td>
+                <td class="e"><?php echo $i; ?></td>
+                <td><nobr><?php echo $op_array[$i]['opcode']; ?></nobr></td>
+                <td><nobr><?php echo $op_array[$i]['extended_value']; ?></nobr></td>
+                <td><nobr><?php echo convert_string($op_array[$i]['op1'], 50); ?></nobr></td>
+                <td><nobr><?php echo convert_string($op_array[$i]['op2'], 50); ?></nobr></td>
+                <td><nobr><?php echo convert_string($op_array[$i]['result'], 50); ?></nobr></td>
             </tr>
-    <?php } ?>
+    <?php 
+		} 
+		$count = count($source);
+		if ($line < $count) {
+			$code = '';
+			while($line < $count) {
+				$code .= sprintf("%03d: %s\n", ($line + 1), $source[$line]);
+				++$line;
+			}
+			if ($code != '') {
+				echo "<tr>\n";
+				//              echo '<td  class="source" colspan="6"><pre>' . highlight_string($code, true) . "</pre></td>\n";
+				echo '<td  class="source" colspan="6"><pre>' . $code . "</pre></td>\n";
+				echo "</tr>\n";
+			}
+
+		}
+	?>
         </table>
     <?php
     }
@@ -100,47 +177,58 @@
 
 /* {{{ print_function: print the given function */
     function print_function($name, $op_array) {
-        echo "<h3>Function: $name</h3>";
+        echo "<h2>Function: $name</h2>";
         print_op_array($op_array);
     }
 /* }}} */
 
-/* {{{ print_function: print the given function */
+/* {{{ print_method: print the given method */
     function print_method($name, $op_array) {
         echo "<h4>Method: $name</h4>";
         print_op_array($op_array);
     }
 /* }}} */
 
-    /*** start the output ***/
-    /* print op_array */
-    if (is_array($asm['op_array']) && count($asm['op_array'])) {
-        echo "<h2>File op_array</h2>";
-        print_op_array($asm['op_array']);
-    }
+/* {{{ print_layout: print the layout of this script */
+	function print_layout() {
+		global $asm, $file;
+		echo "<h2>Script layout</h2>\n";
+		echo "<div style=\"text-align: left; widht: 800px\">\n";
+		echo "<ul>\n";
+		if (isset($asm['op_array'])) {
+			echo "<li><a href=\"?file=$file&show=main\">Global file op_array</a></li>";
+		}
+		if (isset($asm['functions']) && count($asm['functions']) > 0) {
+			echo "<li>Functions<ul>\n";
+			foreach ($asm['functions'] as $name => $data) {
+				echo "<li><a href=\"?file=$file&show=functions&name=$name\">$name</a></li>";
+			}
+			echo "</ul></li>\n";
+		}
+		if (isset($asm['classes']) && count($asm['classes']) > 0) {
+			echo "<li>Classes<ul>\n";
+			foreach ($asm['classes'] as $name => $data) {
+				echo "<li><a href=\"?file=$file&show=classes&name=$name\">$name</a></li>";
+			}
+			echo "</ul></li>\n";
 
-    /* print functions */
-    if (is_array($asm['functions']) && count($asm['functions']) > 0) {
-        echo "<h2>File functions</h2>";
-        foreach($asm['functions'] as $name => $op_array) {
-            print_function($name, $op_array);
-            echo "<hr />";
-        }
-    }
+		}
+		echo "</ul>\n";
+		echo "</div>\n";
+	}
+/* }}} */
 
-    /* print classes */
-    if (is_array($asm['classes']) && count($asm['classes']) > 0) {
-        echo "<h2>File classes</h2>";
-        foreach($asm['classes'] as $class_name => $methods) {
-            echo "<h3>Class: $class_name</h3>";
-            if (isset($methods) && is_array($methods)) {
-                foreach($methods as $method_name => $method_op_array) { 
-                    print_method($method_name, $method_op_array);
-                }
-            }
-            echo "<hr />";
+/* {{{ print a the class layout */
+	function print_class($name, $class) {
+		global $file;
+        echo "<h2>Class $name</h2>";
+		echo "<div style=\"text-align: left; widht: 800px\"><ul>\n";
+        foreach($class as $method => $data) {
+			echo "<li><a href=\"?file=$file&amp;show=classes&amp;name=$name&amp;method=$method\">$method</a></li>\n";
         }
+		echo "</ul></div>";
     }
+/* }}} */
 ?>
 </body>
 </html>
