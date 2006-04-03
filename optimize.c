@@ -2947,8 +2947,9 @@ cont_failed:
 			zend_try_catch_element* tc_element = op_array->try_catch_array;
 			for (i=0; i<op_array->last_try_catch; i++, tc_element++)
 			{
-				if (tc_element->try_op <= line_num-1 &&
-					line_num-1 < tc_element->catch_op &&
+				// silence compile warnings. Line_num can't be negative here so casting is safe.
+				if (tc_element->try_op <= (zend_uint)line_num-1 &&
+					(zend_uint)line_num-1 < tc_element->catch_op &&
 						(innermost_ketchup == 0 ||
 						innermost_ketchup > tc_element->catch_op)
 					)

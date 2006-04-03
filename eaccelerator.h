@@ -61,11 +61,6 @@
 
 #define EACCELERATOR_MM_FILE "/tmp/eaccelerator"
 
-#ifdef HAVE_EACCELERATOR
-#ifndef HAVE_EACCELERATOR_STANDALONE_LOADER 
-
-#include "mm.h"
-
 #ifdef EACCELERATOR_WITHOUT_FILE_LOCKING
 #  ifndef LOCK_SH
 #    define LOCK_SH 1
@@ -106,6 +101,11 @@
                                    }}
 #  endif
 #endif
+
+#ifdef HAVE_EACCELERATOR
+#ifndef HAVE_EACCELERATOR_STANDALONE_LOADER 
+
+#include "mm.h"
 
 #ifdef ZEND_WIN32
 #  include <process.h>

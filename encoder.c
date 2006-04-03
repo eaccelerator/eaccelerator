@@ -961,7 +961,7 @@ scope_stored:
 #ifdef ZEND_ENGINE_2
 	if (from->try_catch_array != NULL && from->last_try_catch > 0)
 	{
-		zend_uint i;
+		int i;
 		encode32(from->last_try_catch);
 		for (i = 0; i < from->last_try_catch; i++)
 		{

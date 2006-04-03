@@ -654,7 +654,7 @@ static zend_op_array* decode_op_array(zend_op_array *to, char** p, unsigned int*
 	to->last_try_catch = decode32(p, l);
 	if (to->last_try_catch > 0)
 	{
-		zend_uint i;
+		int i;
 		to->try_catch_array = emalloc(sizeof(zend_try_catch_element)*to->last_try_catch);
 		for (i = 0; i < to->last_try_catch; i++)
 		{

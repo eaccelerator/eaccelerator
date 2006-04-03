@@ -162,6 +162,14 @@ SOURCE=..\debug.c
 # End Source File
 # Begin Source File
 
+SOURCE=..\ea_dasm.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\ea_info.c
+# End Source File
+# Begin Source File
+
 SOURCE=..\ea_restore.c
 # End Source File
 # Begin Source File
@@ -175,10 +183,6 @@ SOURCE=..\eaccelerator.c
 # Begin Source File
 
 SOURCE=..\encoder.c
-# End Source File
-# Begin Source File
-
-SOURCE=..\execute.c
 # End Source File
 # Begin Source File
 
@@ -223,6 +227,14 @@ SOURCE=..\content.h
 # Begin Source File
 
 SOURCE=..\debug.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\ea_dasm.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\ea_info.h
 # End Source File
 # Begin Source File
 

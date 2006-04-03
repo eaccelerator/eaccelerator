@@ -1,3 +1,9 @@
+2006-04-03  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
+
+        * Moved the FLOCK stuff to a place so it can be used by eLoader to
+        * Fixed quite some compile warnings on Win32
+        * Updated VC6 project files
+
 2006-03-28  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
         * Removed the constant that were registered in the debug code. They 
