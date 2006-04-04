@@ -1226,6 +1226,7 @@ ZEND_DLEXPORT zend_op_array* eaccelerator_compile_file(zend_file_handle *file_ha
   int   nreloads;
   time_t compile_time;
   int stat_result = 0;
+  struct timeval tv_start;
 
 #ifdef EACCELERATOR_USE_INODE
   realname[0] = '\000';

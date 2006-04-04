@@ -44,7 +44,9 @@
 #  endif
 #endif
 
-#include "debug.h"
+#if !defined(MM_TEST_SEM) && !defined(MM_TEST_SHM)
+# include "debug.h"
+#endif
 
 #include <sys/types.h>
 #include <sys/stat.h>

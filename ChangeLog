@@ -1,3 +1,7 @@
+2006-04-04  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
+
+        * Fixed some error introduced by fixing some win32 stuff :(
+
 2006-04-03  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
         * Moved the FLOCK stuff to a place so it can be used by eLoader to
