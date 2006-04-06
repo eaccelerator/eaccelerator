@@ -826,18 +826,13 @@ zend_class_entry *restore_class_entry(zend_class_entry * to,
 #ifdef ZEND_ENGINE_2
 	to->ce_flags = from->ce_flags;
 	to->num_interfaces = from->num_interfaces;
+	to->interfaces = NULL;
+
 	if (to->num_interfaces > 0) {
 		/* hrak: Allocate the slots which will later be populated by ZEND_ADD_INTERFACE */
 		to->interfaces = (zend_class_entry **) emalloc(sizeof(zend_class_entry *) * to->num_interfaces);
 		memset(to->interfaces, 0, sizeof(zend_class_entry *) * to->num_interfaces);
-	} else {
-		to->interfaces = NULL;
 	}
-
-	to->iterator_funcs = from->iterator_funcs;
-	to->create_object = from->create_object;
-	to->get_iterator = from->get_iterator;
-	to->interface_gets_implemented = from->interface_gets_implemented;
 #endif
 
 	if (from->name != NULL) {

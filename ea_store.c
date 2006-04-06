@@ -836,6 +836,8 @@ static int store_function_inheritance_check(Bucket * p, zend_class_entry * from_
 eaccelerator_class_entry *store_class_entry(zend_class_entry * from TSRMLS_DC)
 {
 	eaccelerator_class_entry *to;
+	unsigned int i;
+
 	EACCELERATOR_ALIGN(EAG(mem));
 	to = (eaccelerator_class_entry *) EAG(mem);
 	EAG(mem) += sizeof(eaccelerator_class_entry);
@@ -846,10 +848,23 @@ eaccelerator_class_entry *store_class_entry(zend_class_entry * from TSRMLS_DC)
 #ifdef ZEND_ENGINE_2
 	to->ce_flags = from->ce_flags;
 	to->static_members = NULL;
-	to->num_interfaces = from->num_interfaces;
-	/* hrak: no need to really store the interfaces since these get populated
-	 * at/after restore by zend_do_inheritance and ZEND_ADD_INTERFACE */
-	to->interfaces = NULL;
+
+	/*
+	 * Scan the interfaces looking for the first one which isn't 0
+	 * This is the first inherited interface and should not be counted in the stored object
+	 */
+	for (i = 0 ; i < from->num_interfaces ; i++) {
+		if (from->interfaces[i] != 0) {
+			break;
+		}
+	}
+	to->num_interfaces = i;
+	DBG(ea_debug_printf, (EA_DEBUG, "from->num_interfaces=%d, to->num_interfaces=%d\n", from->num_interfaces, to->num_interfaces));
+
+	/*
+	 * hrak: no need to really store the interfaces since these get populated
+	 * at/after restore by zend_do_inheritance and ZEND_ADD_INTERFACE
+	 */
 #endif
 
 	DBG(ea_debug_pad, (EA_DEBUG TSRMLS_CC));
@@ -869,10 +884,6 @@ eaccelerator_class_entry *store_class_entry(zend_class_entry * from TSRMLS_DC)
 	to->line_start = from->line_start;
 	to->line_end = from->line_end;
 	to->doc_comment_len = from->doc_comment_len;
-	to->iterator_funcs = from->iterator_funcs;
-	to->create_object = from->create_object;
-	to->get_iterator = from->get_iterator;
-	to->interface_gets_implemented = from->interface_gets_implemented;
 
 	if (from->filename != NULL)
 		to->filename = store_string(from->filename, strlen(from->filename) + 1 TSRMLS_CC);

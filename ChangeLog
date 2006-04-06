@@ -1,5 +1,12 @@
 2006-04-06  Hans Rakers <hans at parse dot nl>
 
+	* Fixed handling of interfaces. This fixes sf.net bug #1440575.
+	  This fix also introduces some changes in the cached object structure
+	  so remember to empty your disk caches if you have them. This is
+	  always a good thing to do after upgrading btw :)
+
+2006-04-06  Hans Rakers <hans at parse dot nl>
+
 	* Reverted the change to the handling of ZEND_BRK made by me on
 	  2006-03-17 since it wasn't working as it should. Since this
 	  reintroduces sf.net bug #1442923 i added some code to prevent this

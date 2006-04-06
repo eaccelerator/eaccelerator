@@ -239,16 +239,6 @@ typedef struct _eaccelerator_class_entry {
 	zend_uint ce_flags;
 	zend_uint num_interfaces;
 
-	char **interfaces;
-	zend_class_iterator_funcs iterator_funcs;
-
-	/* handlers */
-	zend_object_value (*create_object) (zend_class_entry *class_type TSRMLS_DC);
-	zend_object_iterator *(*get_iterator) (zend_class_entry *ce, zval *object TSRMLS_DC);
-	int (*interface_gets_implemented) (zend_class_entry *iface, zend_class_entry *class_type TSRMLS_DC);	/* a class implements this interface */
-
-	/* hra: serializer callbacks may need to be added here in the future for php 5.1 */
-
 	char *filename;
 	zend_uint line_start;
 	zend_uint line_end;
