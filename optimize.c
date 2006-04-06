@@ -2820,7 +2820,7 @@ static int build_cfg(zend_op_array *op_array, BB* bb)
 							(op_array->opcodes[jmp_to->brk].opcode == ZEND_SWITCH_FREE ||
 							op_array->opcodes[jmp_to->brk].opcode == ZEND_FREE))
 						{
-							break;
+							goto brk_failed;
 						}
 						offset = jmp_to->parent;
 					}
@@ -3226,8 +3226,9 @@ void reassign_registers(zend_op_array *op_array, BB* p, char *global) {
           GET_REG(r);
           if (op->opcode == ZEND_DO_FCALL_BY_NAME) {
             op->op1.op_type = IS_UNUSED;
-          } else if (op->opcode == ZEND_FETCH_CONSTANT) {
+          } else if (op->opcode == ZEND_FETCH_CONSTANT && op->op1.op_type == IS_VAR) {
             op->op1.u.var = VAR_VAL(assigned[r]);
+            /* restore op1 type from VAR to CONST (the opcode handler expects this or bombs out with invalid opcode) */
             op->op1.op_type = IS_CONST;
           } else {
             op->op1.u.var = VAR_VAL(assigned[r]);
@@ -3284,6 +3285,20 @@ void reassign_registers(zend_op_array *op_array, BB* p, char *global) {
   free_alloca(used);
   free_alloca(reg_pool);
   free_alloca(assigned);
+}
+
+void restore_operand_types(zend_op_array *op_array) {
+	zend_op* op = op_array->opcodes;
+	int len = op_array->last;
+	int line_num;
+
+	for (line_num=0; line_num < len; op++,line_num++)
+	{
+          if (op->opcode == ZEND_FETCH_CONSTANT && op->op1.op_type == IS_VAR) {
+            /* restore op1 type from VAR to CONST (the opcode handler expects this or bombs out with invalid opcode) */
+            op->op1.op_type = IS_CONST;
+	  }
+	}
 }
 
 /*
@@ -3356,6 +3371,19 @@ void eaccelerator_optimize(zend_op_array *op_array)
     /* dump_bb(bb, op_array); */
 
     free_alloca(global);
+  }
+#  ifdef ZEND_ENGINE_2_1
+  else {
+    /* build_cfg encountered some nested ZEND_BRK or ZEND_CONT's
+       which it could not replace with JMP's
+
+       now restore the operand type changes that build_cfg had
+       already applied, to prevent 'invalid opcode' errors
+       on opcode handlers that expect a strict set of operand
+       types since php-5.1 (like ZEND_FETCH_CONSTANT)
+    */
+    restore_operand_types(op_array);
+#  endif
   }
   free_alloca(bb);
 }
