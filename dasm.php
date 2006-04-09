@@ -16,7 +16,21 @@
    +----------------------------------------------------------------------+
 
    $ Id: $
-*/
+
+/** config **/
+$user = "admin";
+$pw = "eAccelerator";
+/** /config **/
+
+/* {{{ auth */
+if (!isset($_SERVER['PHP_AUTH_USER']) || !isset($_SERVER['PHP_AUTH_USER']) ||
+        $_SERVER['PHP_AUTH_USER'] != $user || $_SERVER['PHP_AUTH_PW'] != $pw) {
+    header('WWW-Authenticate: Basic realm="eAccelerator control panel"');
+    header('HTTP/1.0 401 Unauthorized');
+    exit;
+} 
+/* }}} */
+
 ?>
 
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
@@ -55,7 +69,7 @@
 <body class="center">
 <h1>eAccelerator disassembler</h1>
 <?php
-    if (!isset($_GET['file']) && is_file($_GET['file'])) {
+    if (!isset($_GET['file']) && !is_file($_GET['file'])) {
         die('File argument not given!');
     }
 	$file = $_GET['file'];
@@ -184,7 +198,7 @@
 
 /* {{{ print_method: print the given method */
     function print_method($name, $op_array) {
-        echo "<h4>Method: $name</h4>";
+        echo "<h2>Method: $name</h2>";
         print_op_array($op_array);
     }
 /* }}} */
@@ -193,7 +207,7 @@
 	function print_layout() {
 		global $asm, $file;
 		echo "<h2>Script layout</h2>\n";
-		echo "<div style=\"text-align: left; widht: 800px\">\n";
+		echo "<div style=\"text-align: left; width: 800px\">\n";
 		echo "<ul>\n";
 		if (isset($asm['op_array'])) {
 			echo "<li><a href=\"?file=$file&show=main\">Global file op_array</a></li>";
@@ -222,7 +236,7 @@
 	function print_class($name, $class) {
 		global $file;
         echo "<h2>Class $name</h2>";
-		echo "<div style=\"text-align: left; widht: 800px\"><ul>\n";
+		echo "<div style=\"text-align: left; width: 800px\"><ul>\n";
         foreach($class as $method => $data) {
 			echo "<li><a href=\"?file=$file&amp;show=classes&amp;name=$name&amp;method=$method\">$method</a></li>\n";
         }
