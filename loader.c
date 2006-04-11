@@ -86,7 +86,7 @@ static unsigned int decode_var(unsigned int count, char** p, unsigned int* l) {
     zend_bailout();
   }
 #ifdef ZEND_ENGINE_2
-  return (unsigned int)(((temp_variable*)NULL) + var);
+  return (unsigned int)((intptr_t) ((temp_variable*)NULL) + var);
 #else
   return var;
 #endif

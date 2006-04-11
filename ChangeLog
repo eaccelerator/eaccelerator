@@ -1,3 +1,7 @@
+2006-04-11  Hans Rakers <hans at parse dot nl>
+	* Fix for 64-bit compilation warnings "cast to pointer from
+	  integer of different size"
+
 2006-04-11  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
         * A lot of fixes to silence the compile warnings generated when compiling

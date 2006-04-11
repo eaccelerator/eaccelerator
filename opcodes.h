@@ -85,7 +85,7 @@
 #define OPS_STD       EXT_STD | OP1_STD | OP2_STD | RES_STD
 
 #ifdef ZEND_ENGINE_2
-#  define VAR_NUM(var) ((unsigned int)(((temp_variable *)(var))-((temp_variable *)NULL)))
+#  define VAR_NUM(var) ((unsigned int)(((temp_variable *)((intptr_t) var))-((temp_variable *)NULL)))
 #  define VAR_VAL(var) ((unsigned int)((var)*sizeof(temp_variable)))
 #else
 #  define VAR_NUM(var) ((unsigned int)(var))
