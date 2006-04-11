@@ -121,16 +121,19 @@ void eaccelerator_content_cache_shutdown() {
 
 static int eaccelerator_is_not_modified(zval* return_value TSRMLS_DC) {
   char  etag[256];
-  zval  **server_vars, **match;
+  union {
+    zval **v;
+    void *ptr;
+  } server_vars, match;
 
   if (!SG(headers_sent)) {
     sprintf(etag,"ETag: eaccelerator-%u",eaccelerator_crc32(Z_STRVAL_P(return_value),Z_STRLEN_P(return_value)));
     sapi_add_header(etag, strlen(etag), 1);
-    if (zend_hash_find(&EG(symbol_table), "_SERVER", sizeof("_SERVER"), (void **) &server_vars) == SUCCESS &&
-        Z_TYPE_PP(server_vars) == IS_ARRAY &&
-        zend_hash_find(Z_ARRVAL_PP(server_vars), "HTTP_IF_NONE_MATCH", sizeof("HTTP_IF_NONE_MATCH"), (void **) &match)==SUCCESS &&
-        Z_TYPE_PP(match) == IS_STRING) {
-      if (strcmp(etag+6,Z_STRVAL_PP(match)) == 0 &&
+    if (zend_hash_find(&EG(symbol_table), "_SERVER", sizeof("_SERVER"), &server_vars.ptr) == SUCCESS &&
+        Z_TYPE_PP(server_vars.v) == IS_ARRAY &&
+        zend_hash_find(Z_ARRVAL_PP(server_vars.v), "HTTP_IF_NONE_MATCH", sizeof("HTTP_IF_NONE_MATCH"), &match.ptr)==SUCCESS &&
+        Z_TYPE_PP(match.v) == IS_STRING) {
+      if (strcmp(etag+6,Z_STRVAL_PP(match.v)) == 0 &&
           sapi_add_header("HTTP/1.0 304", sizeof("HTTP/1.0 304") - 1, 1) == SUCCESS &&
           sapi_add_header("Status: 304 Not Modified", sizeof("Status: 304 Not Modified") - 1, 1) == SUCCESS) {
         zval_dtor(return_value);
@@ -183,17 +186,19 @@ static int eaccelerator_send_header(zval **header TSRMLS_DC) {
 static int eaccelerator_get_page(const char* key, int key_len, zval* return_value TSRMLS_DC) {
   int   ret = 0;
   zval cache_array;
-  zval **headers;
-  zval **content;
+  union {
+    zval **v;
+    void *ptr;
+  } headers, content;
   if (eaccelerator_get(key, key_len, &cache_array, eaccelerator_content_cache_place TSRMLS_CC)) {
     if (Z_TYPE(cache_array) == IS_ARRAY) {
-      if (zend_hash_find(Z_ARRVAL(cache_array),"content",sizeof("content"),(void**)&content) == SUCCESS &&
-         Z_TYPE_PP(content) == IS_STRING) {
-        if (zend_hash_find(Z_ARRVAL(cache_array),"headers",sizeof("headers"),(void**)&headers) == SUCCESS &&
-           Z_TYPE_PP(headers) == IS_ARRAY) {
-          zend_hash_apply(Z_ARRVAL_PP(headers), (apply_func_t)eaccelerator_send_header TSRMLS_CC);
+      if (zend_hash_find(Z_ARRVAL(cache_array),"content",sizeof("content"),&content.ptr) == SUCCESS &&
+         Z_TYPE_PP(content.v) == IS_STRING) {
+        if (zend_hash_find(Z_ARRVAL(cache_array),"headers",sizeof("headers"),&headers.ptr) == SUCCESS &&
+           Z_TYPE_PP(headers.v) == IS_ARRAY) {
+          zend_hash_apply(Z_ARRVAL_PP(headers.v), (apply_func_t)eaccelerator_send_header TSRMLS_CC);
         }
-        memcpy(return_value,*content, sizeof(zval));
+        memcpy(return_value,*content.v, sizeof(zval));
         zval_copy_ctor(return_value);
         ret = 1;
       }
@@ -204,15 +209,18 @@ static int eaccelerator_get_page(const char* key, int key_len, zval* return_valu
 }
 
 static void eaccelerator_compress(char* key, int key_len, zval* return_value, time_t ttl TSRMLS_DC) {
-  zval  **server_vars, **encoding;
+  union {
+    zval **v;
+    void *ptr;
+  } server_vars, encoding;
 
   if (EAG(compression_enabled) &&
       EAG(compress_content) &&
       !SG(headers_sent) &&
-      zend_hash_find(&EG(symbol_table), "_SERVER", sizeof("_SERVER"), (void **) &server_vars) == SUCCESS &&
-      Z_TYPE_PP(server_vars) == IS_ARRAY &&
-      zend_hash_find(Z_ARRVAL_PP(server_vars), "HTTP_ACCEPT_ENCODING", sizeof("HTTP_ACCEPT_ENCODING"), (void **) &encoding)==SUCCESS &&
-      Z_TYPE_PP(encoding) == IS_STRING &&
+      zend_hash_find(&EG(symbol_table), "_SERVER", sizeof("_SERVER"), &server_vars.ptr) == SUCCESS &&
+      Z_TYPE_PP(server_vars.v) == IS_ARRAY &&
+      zend_hash_find(Z_ARRVAL_PP(server_vars.v), "HTTP_ACCEPT_ENCODING", sizeof("HTTP_ACCEPT_ENCODING"), &encoding.ptr)==SUCCESS &&
+      Z_TYPE_PP(encoding.v) == IS_STRING &&
       Z_TYPE_P(return_value) == IS_STRING &&
       Z_STRLEN_P(return_value) >= EACCELERATOR_COMPRESS_MIN) {
     char* zkey = NULL;
@@ -234,7 +242,7 @@ static void eaccelerator_compress(char* key, int key_len, zval* return_value, ti
       p = p->next;
     }
 
-    if (strstr(Z_STRVAL_PP(encoding),"x-gzip")) {
+    if (strstr(Z_STRVAL_PP(encoding.v),"x-gzip")) {
       zkey_len = sizeof("gzip_") + key_len - 1;
       zkey = emalloc(zkey_len+1);
       memcpy(zkey,"gzip_",sizeof("gzip_")-1);
@@ -243,7 +251,7 @@ static void eaccelerator_compress(char* key, int key_len, zval* return_value, ti
       enc = "Content-Encoding: x-gzip";
       params[0] = return_value;
       gzip = 1;
-    } else if (strstr(Z_STRVAL_PP(encoding),"gzip")) {
+    } else if (strstr(Z_STRVAL_PP(encoding.v),"gzip")) {
       zkey_len = sizeof("gzip_") + key_len - 1;
       zkey = emalloc(zkey_len+1);
       memcpy(zkey,"gzip_",sizeof("gzip_")-1);
@@ -252,7 +260,7 @@ static void eaccelerator_compress(char* key, int key_len, zval* return_value, ti
       enc = "Content-Encoding: gzip";
       params[0] = return_value;
       gzip = 1;
-    } else if (strstr(Z_STRVAL_PP(encoding),"deflate")) {
+    } else if (strstr(Z_STRVAL_PP(encoding.v),"deflate")) {
       zkey_len = sizeof("deflate_") + key_len - 1;
       zkey = emalloc(zkey_len+1);
       memcpy(zkey,"deflate_",sizeof("deflate_")-1);
@@ -379,7 +387,10 @@ PHP_FUNCTION(eaccelerator_cache_page) {
   char* key;
   int   key_len;
   long  ttl = 0;
-  zval  **server_vars, **encoding;
+  union {
+    zval **v;
+    void *ptr;
+  } server_vars, encoding;
 
   if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
                           "s|l", &key, &key_len, &ttl) == FAILURE) {
@@ -394,26 +405,26 @@ PHP_FUNCTION(eaccelerator_cache_page) {
   if (EAG(compression_enabled) &&
       EAG(compress_content) &&
       !SG(headers_sent) &&
-      zend_hash_find(&EG(symbol_table), "_SERVER", sizeof("_SERVER"), (void **) &server_vars) == SUCCESS &&
-      Z_TYPE_PP(server_vars) == IS_ARRAY &&
-      zend_hash_find(Z_ARRVAL_PP(server_vars), "HTTP_ACCEPT_ENCODING", sizeof("HTTP_ACCEPT_ENCODING"), (void **) &encoding)==SUCCESS &&
-      Z_TYPE_PP(encoding) == IS_STRING) {
+      zend_hash_find(&EG(symbol_table), "_SERVER", sizeof("_SERVER"), &server_vars.ptr) == SUCCESS &&
+      Z_TYPE_PP(server_vars.v) == IS_ARRAY &&
+      zend_hash_find(Z_ARRVAL_PP(server_vars.v), "HTTP_ACCEPT_ENCODING", sizeof("HTTP_ACCEPT_ENCODING"), &encoding.ptr)==SUCCESS &&
+      Z_TYPE_PP(encoding.v) == IS_STRING) {
     char* zkey = NULL;
     char* enc = NULL;
     int   zkey_len = 0;
-    if (strstr(Z_STRVAL_PP(encoding),"x-gzip")) {
+    if (strstr(Z_STRVAL_PP(encoding.v),"x-gzip")) {
       zkey_len = sizeof("gzip_") + key_len - 1;
       zkey = emalloc(zkey_len+1);
       memcpy(zkey,"gzip_",sizeof("gzip_")-1);
       memcpy(zkey+sizeof("gzip_")-1,key,key_len+1);
       enc = "Content-Encoding: x-gzip";
-    } else if (strstr(Z_STRVAL_PP(encoding),"gzip")) {
+    } else if (strstr(Z_STRVAL_PP(encoding.v),"gzip")) {
       zkey_len = sizeof("gzip_") + key_len - 1;
       zkey = emalloc(zkey_len+1);
       memcpy(zkey,"gzip_",sizeof("gzip_")-1);
       memcpy(zkey+sizeof("gzip_")-1,key,key_len+1);
       enc = "Content-Encoding: gzip";
-    } else if (strstr(Z_STRVAL_PP(encoding),"deflate")) {
+    } else if (strstr(Z_STRVAL_PP(encoding.v),"deflate")) {
       zkey_len = sizeof("deflate_") + key_len - 1;
       zkey = emalloc(zkey_len+1);
       memcpy(zkey,"deflate_",sizeof("deflate_")-1);

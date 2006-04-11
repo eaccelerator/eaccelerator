@@ -157,6 +157,7 @@ typedef union mm_word {
 
 #undef MM_SHM_CAN_ATTACH
 
+#if defined(MM_SEM_POSIX) || defined(MM_SEM_FCNTL) || defined(MM_SEM_FLOCK) || defined(MM_SEM_WIN32) || defined(MM_SHM_MMAP_POSIX) || defined(MM_SHM_MMAP_FILE)
 static int strxcat(char* dst, const char* src, int size) {
   int dst_len = strlen(dst);
   int src_len = strlen(src);
@@ -169,6 +170,7 @@ static int strxcat(char* dst, const char* src, int size) {
     return 0;
   }
 }
+#endif
 
 #if defined(MM_SEM_SPINLOCK)
 
@@ -191,9 +193,11 @@ typedef struct mm_mutex {
   spinlock_t spinlock;
 } mm_mutex;
 
+/* not used 
 static int mm_attach_lock(const char* key, mm_mutex* lock) {
   return 1;
 }
+*/
 
 static int mm_init_lock(const char* key, mm_mutex* lock) {
   spinlock_init(&lock->spinlock);

@@ -249,26 +249,27 @@ one_line_comment:
       }
       allow = 1;
     } else if (allow && ch == '_') {
+      size_t result = 0;
       label[0] = ch = fgetc(yyin);
       if (ch == EOF) {break;}
       if (ch == '_') {
         label[1] = ch = fgetc(yyin);
-        if (ch == EOF) {fwrite(label,1,1,yyout); break;}
+        if (ch == EOF) {result = fwrite(label,1,1,yyout); break;}
         if (IEQ('f')) {
           label[2] = ch = fgetc(yyin);
-          if (ch == EOF) {fwrite(label,2,1,yyout); break;}
+          if (ch == EOF) {result = fwrite(label,2,1,yyout); break;}
           if (IEQ('i')) {
             label[3] = ch = fgetc(yyin);
-            if (ch == EOF) {fwrite(label,3,1,yyout); break;}
+            if (ch == EOF) {result = fwrite(label,3,1,yyout); break;}
             if (IEQ('l')) {
               label[4] = ch = fgetc(yyin);
-              if (ch == EOF) {fwrite(label,4,1,yyout); break;}
+              if (ch == EOF) {result = fwrite(label,4,1,yyout); break;}
               if (IEQ('e')) {
                 label[5] = ch = fgetc(yyin);
-                if (ch == EOF) {fwrite(label,5,1,yyout); break;}
+                if (ch == EOF) {result = fwrite(label,5,1,yyout); break;}
                 if (ch == '_') {
                   label[6] = ch = fgetc(yyin);
-                  if (ch == EOF) {fwrite(label,6,1,yyout); break;}
+                  if (ch == EOF) {result = fwrite(label,6,1,yyout); break;}
                   if (ch == '_') {
                     ch = fgetc(yyin);
                     repeat = 1;
@@ -277,40 +278,40 @@ one_line_comment:
                         (ch >= '0' && ch <= '9') ||
                         (ch >= '\x7f' && ch <= '\xff') ||
                         ch == '_') {
-                      fwrite(label,7,1,yyout);
+                      result = fwrite(label,7,1,yyout);
                     } else {
                       fputs("eaccelerator_loader_file()",yyout);
                     }
                   } else {
-                    fwrite(label,7,1,yyout);
+                    result = fwrite(label,7,1,yyout);
                   }
                 } else {
-                  fwrite(label,6,1,yyout);
+                  result = fwrite(label,6,1,yyout);
                 }
               } else {
-                fwrite(label,5,1,yyout);
+                result = fwrite(label,5,1,yyout);
               }
             } else {
-              fwrite(label,4,1,yyout);
+              result = fwrite(label,4,1,yyout);
             }
           } else {
-            fwrite(label,3,1,yyout);
+            result = fwrite(label,3,1,yyout);
           }
         } else if (IEQ('l')) {
           label[2] = ch = fgetc(yyin);
-          if (ch == EOF) {fwrite(label,2,1,yyout); break;}
+          if (ch == EOF) {result = fwrite(label,2,1,yyout); break;}
           if (IEQ('i')) {
             label[3] = ch = fgetc(yyin);
-            if (ch == EOF) {fwrite(label,3,1,yyout); break;}
+            if (ch == EOF) {result = fwrite(label,3,1,yyout); break;}
             if (IEQ('n')) {
               label[4] = ch = fgetc(yyin);
-              if (ch == EOF) {fwrite(label,4,1,yyout); break;}
+              if (ch == EOF) {result = fwrite(label,4,1,yyout); break;}
               if (IEQ('e')) {
                 label[5] = ch = fgetc(yyin);
-                if (ch == EOF) {fwrite(label,5,1,yyout); break;}
+                if (ch == EOF) {result = fwrite(label,5,1,yyout); break;}
                 if (ch == '_') {
                   label[6] = ch = fgetc(yyin);
-                  if (ch == EOF) {fwrite(label,6,1,yyout); break;}
+                  if (ch == EOF) {result = fwrite(label,6,1,yyout); break;}
                   if (ch == '_') {
                     ch = fgetc(yyin);
                     repeat = 1;
@@ -319,30 +320,30 @@ one_line_comment:
                         (ch >= '0' && ch <= '9') ||
                         (ch >= '\x7f' && ch <= '\xff') ||
                         ch == '_') {
-                      fwrite(label,7,1,yyout);
+                      result = fwrite(label,7,1,yyout);
                     } else {
                       fputs("eaccelerator_loader_line()",yyout);
                     }
                   } else {
-                    fwrite(label,7,1,yyout);
+                    result = fwrite(label,7,1,yyout);
                   }
                 } else {
-                  fwrite(label,6,1,yyout);
+                  result = fwrite(label,6,1,yyout);
                 }
               } else {
-                fwrite(label,5,1,yyout);
+                result = fwrite(label,5,1,yyout);
               }
             } else {
-              fwrite(label,4,1,yyout);
+              result = fwrite(label,4,1,yyout);
             }
           } else {
-            fwrite(label,3,1,yyout);
+            result = fwrite(label,3,1,yyout);
           }
         } else {
-          fwrite(label,2,1,yyout);
+          result = fwrite(label,2,1,yyout);
         }
       } else {
-        fwrite(label,1,1,yyout);
+        result = fwrite(label,1,1,yyout);
       }
       allow = 0;
     } else if ((ch >= 'a' && ch <= 'z') ||
@@ -694,9 +695,11 @@ static void encode_property_info(zend_property_info* from) {
 
 static void encode_class_entry(zend_class_entry* from);
 
+/* not used 
 static void encode_class_entry_ptr(zend_class_entry** from) {
   encode_class_entry(*from);
 }
+*/
 #endif
 
 static void encode_hash(HashTable* from, encode_bucket_t encode_bucket) {
@@ -718,6 +721,7 @@ static void encode_hash(HashTable* from, encode_bucket_t encode_bucket) {
   }
 }
 
+/* not used 
 #ifdef ZEND_ENGINE_2
 #define encode_zval_hash_ex(from,p) encode_hash_ex(from, p, (encode_bucket_t)encode_zval_ptr)
 
@@ -744,6 +748,7 @@ static void encode_hash_ex(HashTable* from, Bucket* p, encode_bucket_t encode_bu
   }
 }
 #endif
+*/
 
 static void encode_op(zend_op_array* from, zend_op* opline, unsigned int ops) {
     encode(opline->opcode);
@@ -1182,11 +1187,12 @@ PHP_FUNCTION(eaccelerator_encode)
 				}
 				if (prefix != NULL)
 				{
+                    size_t result = 0;
 					prefix->type = IS_STRING;
 					prefix->value.str.len = pos;
 					prefix->value.str.val = emalloc(pos+1);
 					rewind(src_fp);
-					fread(prefix->value.str.val, pos, 1, src_fp);
+					result = fread(prefix->value.str.val, pos, 1, src_fp);
 					prefix->value.str.val[prefix->value.str.len] = '\000';
 				}
 			}
@@ -1203,9 +1209,10 @@ PHP_FUNCTION(eaccelerator_encode)
 				FILE *tmp_fp = tmpfile();
 				if (tmp_fp)
 				{
+                    size_t result = 0;
 					if (pre_content_len > 0)
 					{
-						fwrite(pre_content, pre_content_len, 1, tmp_fp);
+                        result = fwrite(pre_content, pre_content_len, 1, tmp_fp);
 					}
 #ifndef WITHOUT_FILE_FILTER
 					filter_file(src_fp, tmp_fp TSRMLS_CC);
@@ -1219,7 +1226,7 @@ PHP_FUNCTION(eaccelerator_encode)
 #endif
 					if (post_content_len > 0)
 					{
-						fwrite(post_content, post_content_len, 1, tmp_fp);
+						result = fwrite(post_content, post_content_len, 1, tmp_fp);
 					}
 					rewind(tmp_fp);
 					fclose(src_fp);

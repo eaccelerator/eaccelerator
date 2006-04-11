@@ -269,7 +269,7 @@ static zval *get_op_array(eaccelerator_op_array *op_array TSRMLS_DC)
                 } else if (opline->extended_value == ZEND_ISEMPTY) {
                     snprintf(buf, sizeof(buf), "ZEND_ISEMPTY");
                 } else {
-                    snprintf(buf, sizeof(buf), "");
+					buf[0] = '\0';
                 }
 #ifdef ZEND_ENGINE_2
             } else if ((op->ops & EXT_MASK) == EXT_ASSIGN) {
@@ -278,7 +278,7 @@ static zval *get_op_array(eaccelerator_op_array *op_array TSRMLS_DC)
                 } else if (opline->extended_value == ZEND_ASSIGN_DIM) {
                     snprintf(buf, sizeof(buf), "ZEND_ASSIGN_DIM");
                 } else {
-                    snprintf(buf, sizeof(buf), "");
+					buf[0] = '\0';
                 }
 #ifndef ZEND_ENGINE_2_1
             } else if (opline->opcode == ZEND_UNSET_DIM_OBJ) {
@@ -287,14 +287,14 @@ static zval *get_op_array(eaccelerator_op_array *op_array TSRMLS_DC)
                 } else if (opline->extended_value == ZEND_UNSET_OBJ) {
                     snprintf(buf, sizeof(buf), "ZEND_UNSET_OBJ");
                 } else {
-                    snprintf(buf, sizeof(buf), "");
+					buf[0] = '\0';
                 }
 #endif
 #endif
             } else if (opline->extended_value != 0) {
                 snprintf(buf, sizeof(buf), "%ld", opline->extended_value);
             } else {
-                snprintf(buf, sizeof(buf), "");
+				buf[0] = '\0';
             }
             add_assoc_string(el, "extended_value", buf, 1);
 
@@ -314,7 +314,7 @@ static zval *get_op_array(eaccelerator_op_array *op_array TSRMLS_DC)
                 snprintf(buf, sizeof(buf), "$class%u", VAR_NUM(opline->op1.u.var));
             } else if ((op->ops & OP1_MASK) == OP1_UCLASS) {
                 if (opline->op1.op_type == IS_UNUSED) {
-                    snprintf(buf, sizeof(buf), "");
+					buf[0] = '\0';
                 } else {
                     snprintf(buf, sizeof(buf), "$class%u", VAR_NUM(opline->op1.u.var));
                 }
@@ -328,6 +328,7 @@ static zval *get_op_array(eaccelerator_op_array *op_array TSRMLS_DC)
                         if (offset >= op_array->last_brk_cont) {
                             goto brk_failed;
                         }
+						jmp_to = &op_array->brk_cont_array[offset];
                         offset = jmp_to->parent;
                     } while (--level > 0);
                     snprintf(buf, sizeof(buf), "opline(%d)", jmp_to->brk);
@@ -367,7 +368,7 @@ cont_failed:
                 } else if (opline->op1.op_type == IS_VAR) {
                     snprintf(buf, sizeof(buf), "$var%u", VAR_NUM(opline->op1.u.var));
                 } else if (opline->op1.op_type == IS_UNUSED) {
-                    snprintf(buf, sizeof(buf), "");
+					buf[0] = '\0';
                 } else {
                     snprintf(buf, sizeof(buf), "UNKNOWN NODE %d", opline->op1.op_type);
                 }
@@ -415,7 +416,7 @@ cont_failed:
 				} else if (opline->op2.u.constant.value.lval == ZEND_REQUIRE_ONCE) {
 					snprintf(buf, sizeof(buf), "ZEND_REQUIRE_ONCE");
 				} else {
-                    snprintf(buf, sizeof(buf), "");
+					buf[0] = '\0';
 				}
 			} else if ((op->ops & OP2_MASK) == OP2_ARG) {
 			    snprintf(buf, sizeof(buf), "arg(%u)", opline->op2.u.opline_num);
@@ -425,7 +426,7 @@ cont_failed:
 				} else if (opline->op2.u.constant.value.lval == ZEND_ISEMPTY) {
 					snprintf(buf, sizeof(buf), "ZEND_ISEMPTY");
 				} else {
-					snprintf(buf, sizeof(buf), "");
+					buf[0] = '\0';
 				}
 			} else {
                 if (opline->op2.op_type == IS_CONST) {
@@ -436,7 +437,7 @@ cont_failed:
 				} else if (opline->op2.op_type == IS_VAR) {
 					snprintf(buf, sizeof(buf), "$var%u", VAR_NUM(opline->op2.u.var));
 				} else if (opline->op2.op_type == IS_UNUSED) {
-					snprintf(buf, sizeof(buf), "");
+					buf[0] = '\0';
 				} else {
 					snprintf(buf, sizeof(buf), "UNKNOWN NODE %d", opline->op2.op_type);
 				}
@@ -466,7 +467,7 @@ cont_failed:
     						snprintf(buf, sizeof(buf), "$var%u", VAR_NUM(opline->result.u.var));
                         }
     				} else if (opline->result.op_type == IS_UNUSED) {
-                        snprintf(buf, sizeof(buf), "");
+						buf[0] = '\0';
     				} else {
     					snprintf(buf, sizeof(buf), "UNKNOWN NODE %d", opline->result.op_type);
     				}
@@ -485,7 +486,7 @@ cont_failed:
     				}
     				break;
     			case RES_UNUSED:
-                    snprintf(buf, sizeof(buf), "");
+					buf[0] = '\0';
     				break;
     			default:
     				snprintf(buf, sizeof(buf), "UNKNOWN NODE %d", opline->result.op_type);

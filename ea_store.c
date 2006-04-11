@@ -85,11 +85,14 @@ static void calc_property_info(zend_property_info * from TSRMLS_DC)
 #endif
 }
 
+
 /* Calculate the size of a point to a class entry */
+/* not used
 static void calc_class_entry_ptr(zend_class_entry ** from TSRMLS_DC)
 {
 	calc_class_entry(*from TSRMLS_CC);
 }
+*/
 #endif
 
 /* Calculate the size of an HashTable */
@@ -780,31 +783,37 @@ static int store_static_member_access_check(Bucket * p, zend_class_entry * from_
 {
 	zend_class_entry *from = from_ce;
 	zend_class_entry *parent = from->parent;
-	zend_property_info *pinfo, *cinfo = NULL;
-	zval **pprop = NULL;
-	zval **cprop = p->pData;
+    union {
+        zend_property_info *v;
+        void *ptr;
+    } pinfo, cinfo;
+    union {
+    	zval **v;
+        void *ptr;
+    } pprop, cprop;
 	char *mname, *cname = NULL;
 
+    cprop.v = p->pData;
 	/* Check if this is a parent class. If so, copy unconditionally */
 	if (parent) {
 		/* unpack the \0classname\0membername\0 style property name to seperate vars */
 		zend_unmangle_property_name(p->arKey, &cname, &mname);
 	
 		/* lookup the member's info in parent and child */
-		if((zend_hash_find(&parent->properties_info, mname, strlen(mname)+1, (void**)&pinfo) == SUCCESS) &&
-			(zend_hash_find(&from->properties_info, mname, strlen(mname)+1, (void**)&cinfo) == SUCCESS)) {
+		if((zend_hash_find(&parent->properties_info, mname, strlen(mname)+1, &pinfo.ptr) == SUCCESS) &&
+			(zend_hash_find(&from->properties_info, mname, strlen(mname)+1, &cinfo.ptr) == SUCCESS)) {
 			/* don't copy this static property if protected in parent and static public in child.
 			   inheritance will handle this properly on restore */
-			if(cinfo->flags & ZEND_ACC_STATIC && (pinfo->flags & ZEND_ACC_PROTECTED && cinfo->flags & ZEND_ACC_PUBLIC)) {
+			if(cinfo.v->flags & ZEND_ACC_STATIC && (pinfo.v->flags & ZEND_ACC_PROTECTED && cinfo.v->flags & ZEND_ACC_PUBLIC)) {
 				return ZEND_HASH_APPLY_REMOVE;
 			}
 			/* If the static member points to the same value in parent and child, remove for proper inheritance during restore */
 #  ifdef ZEND_ENGINE_2_1
-			if(zend_hash_quick_find(&parent->default_static_members, p->arKey, p->nKeyLength, p->h, (void**)&pprop) == SUCCESS) {
+			if(zend_hash_quick_find(&parent->default_static_members, p->arKey, p->nKeyLength, p->h, &pprop.ptr) == SUCCESS) {
 #  else
-			if(zend_hash_quick_find(parent->static_members, p->arKey, p->nKeyLength, p->h, (void**)&pprop) == SUCCESS) {
+			if(zend_hash_quick_find(parent->static_members, p->arKey, p->nKeyLength, p->h, &pprop.ptr) == SUCCESS) {
 #  endif
-				if(*pprop == *cprop) {
+				if(*pprop.v == *cprop.v) {
 					return ZEND_HASH_APPLY_REMOVE;
 				}
 			}

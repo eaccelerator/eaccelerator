@@ -212,6 +212,7 @@ static char* decode_lstr_noalloc(unsigned int* len, char** p, unsigned int* l) {
   }
 }
 
+#ifndef ZEND_ENGINE_2
 static unsigned char* decode_pstr(char** p, unsigned int* l) {
   unsigned char c = decode(p, l);
   if (c == 0) {
@@ -229,6 +230,7 @@ static unsigned char* decode_pstr(char** p, unsigned int* l) {
     return str;
   }
 }
+#endif
 
 static double decode_double(char** p, unsigned int* l) {
   unsigned char sign;
@@ -250,7 +252,6 @@ static double decode_double(char** p, unsigned int* l) {
 typedef void* (*decode_bucket_t)(void* to, char**, unsigned int* TSRMLS_DC);
 
 #define decode_zval_hash(to, p, l) decode_hash(to, sizeof(zval*), (decode_bucket_t)decode_zval_ptr, p, l TSRMLS_CC)
-#define decode_zval_hash_noref(to, p, l) decode_hash(to, sizeof(zval*), (decode_bucket_t)decode_zval_ptr_noref, p, l TSRMLS_CC)
 
 static HashTable* decode_hash(HashTable* to, int size, decode_bucket_t decode_bucket, char**p, unsigned int* l TSRMLS_DC);
 static zval* decode_zval_ptr(zval* to, char** p, unsigned int* l TSRMLS_DC);
@@ -315,6 +316,8 @@ static zval* decode_zval_ptr(zval* to, char** p, unsigned int* l TSRMLS_DC) {
   return to;
 }
 
+#ifndef ZEND_ENGINE_2
+#define decode_zval_hash_noref(to, p, l) decode_hash(to, sizeof(zval*), (decode_bucket_t)decode_zval_ptr_noref, p, l TSRMLS_CC)
 static zval* decode_zval_ptr_noref(zval* to, char** p, unsigned int* l TSRMLS_DC) {
   if (to == NULL) {
     ALLOC_ZVAL(to);
@@ -324,6 +327,7 @@ static zval* decode_zval_ptr_noref(zval* to, char** p, unsigned int* l TSRMLS_DC
   to->refcount = 1;
   return to;
 }
+#endif
 
 static void decode_znode(znode* to, unsigned int vars_count, char** p, unsigned int* l TSRMLS_DC) {
   to->op_type = decode(p, l);
@@ -615,14 +619,19 @@ static zend_op_array* decode_op_array(zend_op_array *to, char** p, unsigned int*
 	to->scope            = EAG(class_entry);
 	to->fn_flags         = decode32(p, l);
 	scope_name = decode_lstr((unsigned int*)&scope_name_len, p, l);
-	if (to->scope == NULL && scope_name != NULL) {
-		if (zend_hash_find(CG(class_table), (void *)scope_name, 
-                    scope_name_len, (void **)&to->scope) == SUCCESS) {
-			to->scope = *(zend_class_entry**)to->scope;
-		} else {
-            to->scope = NULL;
-        }
-	}
+    if (to->scope == NULL && scope_name != NULL) {
+      union {
+        zend_class_entry *v;
+        void *ptr;
+      } scope;
+      scope.v = to->scope;
+      if (zend_hash_find(CG(class_table), (void *)scope_name, 
+            scope_name_len, &scope.ptr) == SUCCESS) {
+        to->scope = *(zend_class_entry**)to->scope;
+      } else {
+        to->scope = NULL;
+      }
+    }
 #endif
   if (to->type == ZEND_INTERNAL_FUNCTION) {
     return to;

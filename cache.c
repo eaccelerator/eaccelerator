@@ -278,7 +278,8 @@ int eaccelerator_put(const char *key, int key_len, zval * val, time_t ttl,
                 q->next = q;
                 hdr.crc32 = eaccelerator_crc32((const char *) q, q->size);
                 if (write(f, &hdr, sizeof(hdr)) == sizeof(hdr)) {
-                    write(f, q, q->size);
+                    ssize_t result = 0;
+                    result = write(f, q, q->size);
                     EACCELERATOR_FLOCK(f, LOCK_UN);
                     close(f);
                     ret = 1;
@@ -596,7 +597,7 @@ int eaccelerator_list_keys(zval *return_value TSRMLS_DC)
 {
     unsigned int i, xlen;
     zval *list;
-    char *xkey;
+    char *xkey = "";
     mm_user_cache_entry *p;
     time_t t = time(0);
 

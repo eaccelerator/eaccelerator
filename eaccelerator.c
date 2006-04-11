@@ -349,6 +349,7 @@ static int encode_version(const char *s) {
          (v3 & 0xff);
 }
 
+/* This function isn't used. So disable it for now
 static void decode_version(char *version, int v) {
   int t = (v & 0x000f00) >> 8;
   char c;
@@ -363,7 +364,8 @@ static void decode_version(char *version, int v) {
                                      (v & 0x0ff000) >> 12,
                                      c,
                                      (v & 0x0000ff));
-}
+} 
+*/
 
 #ifdef EACCELERATOR_USE_INODE
 static int eaccelerator_inode_key(char* s, dev_t dev, ino_t ino TSRMLS_DC) {
@@ -1033,6 +1035,7 @@ static int eaccelerator_ok_to_cache(char *realname TSRMLS_DC) {
   return ok;
 }
 
+#ifndef EACCELERATOR_USE_INODE
 static char* eaccelerator_realpath(const char* name, char* realname TSRMLS_DC) {
 /* ???TODO it is possibe to cache name->realname mapping to avoid lstat() calls */
 #if ZEND_MODULE_API_NO >= 20001222
@@ -1041,6 +1044,7 @@ static char* eaccelerator_realpath(const char* name, char* realname TSRMLS_DC) {
   return V_REALPATH(name, realname);
 #endif
 }
+#endif
 
 static int eaccelerator_stat(zend_file_handle *file_handle,
                         char* realname, struct stat* buf TSRMLS_DC) {
@@ -1226,7 +1230,9 @@ ZEND_DLEXPORT zend_op_array* eaccelerator_compile_file(zend_file_handle *file_ha
   int   nreloads;
   time_t compile_time;
   int stat_result = 0;
+#ifdef DEBUG
   struct timeval tv_start;
+#endif
 
 #ifdef EACCELERATOR_USE_INODE
   realname[0] = '\000';
@@ -2095,21 +2101,28 @@ PHP_RINIT_FUNCTION(eaccelerator)
 	/* Storing Host Name */
 	EAG(hostname)[0] = '\000';
 	{
-		zval  **server_vars, **hostname;
+        union {
+            zval **v;
+            void *ptr;
+        } server_vars;
+        union {
+            zval **v;
+            void *ptr;
+        } hostname;
 
-		if (zend_hash_find(&EG(symbol_table), "_SERVER", sizeof("_SERVER"), (void **) &server_vars) == SUCCESS &&
-			Z_TYPE_PP(server_vars) == IS_ARRAY &&
-			zend_hash_find(Z_ARRVAL_PP(server_vars), "SERVER_NAME", sizeof("SERVER_NAME"), (void **) &hostname)==SUCCESS &&
-			Z_TYPE_PP(hostname) == IS_STRING &&
-			Z_STRLEN_PP(hostname) > 0)
+		if (zend_hash_find(&EG(symbol_table), "_SERVER", sizeof("_SERVER"), &server_vars.ptr) == SUCCESS &&
+			Z_TYPE_PP(server_vars.v) == IS_ARRAY &&
+			zend_hash_find(Z_ARRVAL_PP(server_vars.v), "SERVER_NAME", sizeof("SERVER_NAME"), &hostname.ptr)==SUCCESS &&
+			Z_TYPE_PP(hostname.v) == IS_STRING &&
+			Z_STRLEN_PP(hostname.v) > 0)
 		{
-			if (sizeof(EAG(hostname)) > Z_STRLEN_PP(hostname))
+			if (sizeof(EAG(hostname)) > Z_STRLEN_PP(hostname.v))
 			{
-				memcpy(EAG(hostname),Z_STRVAL_PP(hostname),Z_STRLEN_PP(hostname)+1);
+				memcpy(EAG(hostname),Z_STRVAL_PP(hostname.v),Z_STRLEN_PP(hostname.v)+1);
 			}
 			else
 			{
-				memcpy(EAG(hostname),Z_STRVAL_PP(hostname),sizeof(EAG(hostname))-1);
+				memcpy(EAG(hostname),Z_STRVAL_PP(hostname.v),sizeof(EAG(hostname))-1);
 				EAG(hostname)[sizeof(EAG(hostname))-1] = '\000';
 			}
 		}

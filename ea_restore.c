@@ -465,7 +465,10 @@ static void call_op_array_ctor_handler(zend_extension * extension,
 zend_op_array *restore_op_array(zend_op_array * to,
 								eaccelerator_op_array * from TSRMLS_DC)
 {
-	zend_function *function;
+    union {
+    	zend_function *v;
+        void *ptr;
+    } function;
 #ifdef ZEND_ENGINE_2
 	int fname_len = 0;
 	char *fname_lc = NULL;
@@ -529,8 +532,13 @@ zend_op_array *restore_op_array(zend_op_array * to,
 	 * am I right here ? ;-(
 	 */
 	if (from->scope_name != NULL) {
+        union {
+            zend_class_entry *v;
+            void *ptr;
+        } scope;
 		char *from_scope_lc = zend_str_tolower_dup(from->scope_name, from->scope_name_len);
-		if (zend_hash_find (CG(class_table), (void *) from_scope_lc, from->scope_name_len + 1, (void **) &to->scope) != SUCCESS) {
+        scope.v = to->scope;
+		if (zend_hash_find (CG(class_table), (void *) from_scope_lc, from->scope_name_len + 1, &scope.ptr) != SUCCESS) {
 			DBG(ea_debug_pad, (EA_DEBUG TSRMLS_CC));
 			DBG(ea_debug_printf, (EA_DEBUG, "[%d]                   can't find '%s' in class_table. use EAG(class_entry).\n", getpid(), from->scope_name));
 			to->scope = EAG(class_entry);
@@ -548,11 +556,11 @@ zend_op_array *restore_op_array(zend_op_array * to,
 			for (p = EAG(class_entry)->parent; p; p = p->parent) {
 				DBG(ea_debug_pad, (EA_DEBUG TSRMLS_CC));
 				DBG(ea_debug_printf, (EA_DEBUG, "[%d]                   checking parent '%s' have '%s'\n", getpid(), p->name, fname_lc));
-				if (zend_hash_find(&p->function_table, fname_lc, fname_len + 1, (void **) &function) == SUCCESS) {
+				if (zend_hash_find(&p->function_table, fname_lc, fname_len + 1, &function.ptr) == SUCCESS) {
 					DBG(ea_debug_pad, (EA_DEBUG TSRMLS_CC));
 					DBG(ea_debug_printf, (EA_DEBUG, "[%d]                                   '%s' has '%s' of scope '%s'\n", 
-                            getpid(), p->name, fname_lc, function->common.scope->name));
-					to->scope = function->common.scope;
+                            getpid(), p->name, fname_lc, function.v->common.scope->name));
+					to->scope = function.v->common.scope;
 					break;
 				}
 			}
@@ -582,10 +590,10 @@ zend_op_array *restore_op_array(zend_op_array * to,
 #else
                 to->function_name, strlen(to->function_name) + 1,
 #endif
-				(void **) &function) == SUCCESS && function->type == ZEND_INTERNAL_FUNCTION) {
+				&function.ptr) == SUCCESS && function.v->type == ZEND_INTERNAL_FUNCTION) {
 			DBG(ea_debug_pad, (EA_DEBUG TSRMLS_CC));
 			DBG(ea_debug_printf, (EA_DEBUG, "[%d]                                       found in function table\n", getpid()));
-			((zend_internal_function *) (to))->handler = ((zend_internal_function *) function)->handler;
+			((zend_internal_function *) (to))->handler = ((zend_internal_function *) function.v)->handler;
 		} else {
 			/* FIXME. I don't know how to fix handler.
 			 * TODO: must solve this somehow, to avoid returning damaged structure...
@@ -805,7 +813,6 @@ zend_class_entry *restore_class_entry(zend_class_entry * to,
 									  eaccelerator_class_entry * from TSRMLS_DC)
 {
 	zend_class_entry *old;
-	zend_function *f = NULL;
 
 	DBG(ea_debug_pad, (EA_DEBUG TSRMLS_CC));
 	DBG(ea_debug_printf, (EA_DEBUG, "[%d] restore_class_entry: %s\n", getpid(), from->name ? from->name : "(top)"));

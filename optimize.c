@@ -1499,23 +1499,26 @@ static int opt_get_constant(const char* name, int name_len, zend_constant** resu
   if (!EAG(encoder) ||
       (name_len == sizeof("false")-1 && strcmp(name,"false") == 0) ||
       (name_len == sizeof("true")-1 && strcmp(name,"true") == 0)) {
-    zend_constant *c;
+    union {
+      zend_constant *v;
+      void *ptr;
+    } c;
     int retval;
     char *lookup_name = do_alloca(name_len+1);
     memcpy(lookup_name, name, name_len);
     lookup_name[name_len] = '\0';
 
-    if (zend_hash_find(EG(zend_constants), lookup_name, name_len+1, (void **) &c)==SUCCESS) {
-      *result = c;
+    if (zend_hash_find(EG(zend_constants), lookup_name, name_len+1, &c.ptr)==SUCCESS) {
+      *result = c.v;
       retval=1;
     } else {
       zend_str_tolower(lookup_name, name_len);
 
-      if (zend_hash_find(EG(zend_constants), lookup_name, name_len+1, (void **) &c)==SUCCESS) {
-        if ((c->flags & CONST_CS) && (memcmp(c->name, name, name_len)!=0)) {
+      if (zend_hash_find(EG(zend_constants), lookup_name, name_len+1, &c.ptr)==SUCCESS) {
+        if ((c.v->flags & CONST_CS) && (memcmp(c.v->name, name, name_len)!=0)) {
           retval=0;
         } else {
-          *result = c;
+          *result = c.v;
           retval=1;
         }
       } else {
@@ -2543,52 +2546,49 @@ else if (prev != NULL &&
 #endif
             IS_DEFINED(op->op1)) {
           zend_op *x = DEFINED_OP(op->op1);
-          if ((x->opcode == ZEND_FETCH_W || x->opcode == ZEND_FETCH_RW) &&
-              x->op1.op_type == IS_CONST &&
-              x->op1.u.constant.type == IS_STRING) {
+          if ((x->opcode == ZEND_FETCH_W || x->opcode == ZEND_FETCH_RW) && 
+              x->op1.op_type == IS_CONST && x->op1.u.constant.type == IS_STRING) {
+            union {
+              zend_op *v;
+              void *ptr;
+            } op_copy;
             char *s = emalloc(x->op1.u.constant.value.str.len+2);
+            op_copy.v = op;
             memcpy(s,x->op1.u.constant.value.str.val,x->op1.u.constant.value.str.len);
             s[x->op1.u.constant.value.str.len] = (char)FETCH_TYPE(x);
             s[x->op1.u.constant.value.str.len+1] = '\0';
-            zend_hash_update(&assigns,
-                             s, x->op1.u.constant.value.str.len+2,
-                             (void**)&op, sizeof(void*), NULL);
+            zend_hash_update(&assigns, s, x->op1.u.constant.value.str.len+2, &op_copy.ptr, 
+                sizeof(void*), NULL);
             efree(s);
           }
         }
-      } else if ((op->opcode == ZEND_FETCH_R ||
-                  op->opcode == ZEND_FETCH_IS) &&
-                 !global[VAR_NUM(op->result.u.var)] &&
-                 op->op1.op_type == IS_CONST &&
-                 op->op1.u.constant.type == IS_STRING) {
-        zend_op *x;
+      } else if ((op->opcode == ZEND_FETCH_R || op->opcode == ZEND_FETCH_IS) && 
+          !global[VAR_NUM(op->result.u.var)] && op->op1.op_type == IS_CONST &&
+          op->op1.u.constant.type == IS_STRING) {
+        union {
+          zend_op *v;
+          void *ptr;
+        } x;
         char *s = emalloc(op->op1.u.constant.value.str.len+2);
         memcpy(s,op->op1.u.constant.value.str.val,op->op1.u.constant.value.str.len);
         s[op->op1.u.constant.value.str.len] = (char)FETCH_TYPE(op);
         s[op->op1.u.constant.value.str.len+1] = '\0';
 
-        if (zend_hash_find(&assigns,
-                           s, op->op1.u.constant.value.str.len+2,
-                           (void**)&x) == SUCCESS) {
-          x = *(zend_op**)x;
-/*
-          if (x->opcode == ZEND_ASSIGN && x->op2.op_type == IS_CONST) {
-            zend_printf("possible const propogation in %s:%s (%s,%u:%u)<br>\n",op_array->filename, op_array->function_name, op->op1.u.constant.value.str.val, x-op_array->opcodes, op-op_array->opcodes);
-          }
-*/
-          memcpy(&x->result, &op->result, sizeof(op->result));
-          x->result.u.EA.type = 0;
-          SET_DEFINED(x);
-          zend_hash_del(&assigns,
-                        s, op->op1.u.constant.value.str.len+2);
+        if (zend_hash_find(&assigns, s, op->op1.u.constant.value.str.len+2, 
+              &x.ptr) == SUCCESS) {
+          x.v = *(zend_op**)x.v;
+          memcpy(&x.v->result, &op->result, sizeof(op->result));
+          x.v->result.u.EA.type = 0;
+          SET_DEFINED(x.v);
+          zend_hash_del(&assigns, s, op->op1.u.constant.value.str.len+2);
           STR_FREE(op->op1.u.constant.value.str.val);
           SET_TO_NOP(op);
         }
         efree(s);
       } else if (op->opcode == ZEND_FETCH_DIM_R &&
-                 op->extended_value != ZEND_FETCH_ADD_LOCK &&
-                 op->op1.op_type == IS_VAR &&
-                 IS_DEFINED(op->op1)) {
+          op->extended_value != ZEND_FETCH_ADD_LOCK &&
+          op->op1.op_type == IS_VAR &&
+          IS_DEFINED(op->op1)) {
         zend_op *x = DEFINED_OP(op->op1);
         while ((x->opcode == ZEND_ASSIGN_REF ||
                 x->opcode == ZEND_ASSIGN ||
@@ -2609,32 +2609,35 @@ else if (prev != NULL &&
                 IS_DEFINED(x->op1)) {
           x = DEFINED_OP(x->op1);
         }
-        if ((x->opcode == ZEND_FETCH_R ||
-             x->opcode == ZEND_FETCH_W ||
-             x->opcode == ZEND_FETCH_RW) &&
-             x->op1.op_type == IS_CONST &&
-             x->op1.u.constant.type == IS_STRING) {
-          zend_op *y;
+        if ((x->opcode == ZEND_FETCH_R || x->opcode == ZEND_FETCH_W || 
+              x->opcode == ZEND_FETCH_RW) && x->op1.op_type == IS_CONST && 
+            x->op1.u.constant.type == IS_STRING) {
+          union {
+            zend_op *v;
+            void *ptr;
+          } y;
+          union {
+            zend_op *v;
+            void *ptr;
+          } op_copy;
           char *s = emalloc(x->op1.u.constant.value.str.len+2);
+          op_copy.v = op;
           memcpy(s,x->op1.u.constant.value.str.val,x->op1.u.constant.value.str.len);
           s[x->op1.u.constant.value.str.len] = (char)FETCH_TYPE(x);
           s[x->op1.u.constant.value.str.len+1] = '\0';
-          if (zend_hash_find(&fetch_dim,
-                             s, x->op1.u.constant.value.str.len+2,
-                             (void**)&y) == SUCCESS) {
-            y = *(zend_op**)y;
-            y->extended_value = ZEND_FETCH_ADD_LOCK;
-            zend_hash_update(&fetch_dim,
-                             s, x->op1.u.constant.value.str.len+2,
-                             (void**)&op, sizeof(void*), NULL);
+          if (zend_hash_find(&fetch_dim, s, x->op1.u.constant.value.str.len+2, 
+                &y.ptr) == SUCCESS) {
+            y.v = *(zend_op**)y.v;
+            y.v->extended_value = ZEND_FETCH_ADD_LOCK;
+            zend_hash_update(&fetch_dim, s, x->op1.u.constant.value.str.len+2, 
+                &op_copy.ptr, sizeof(void*), NULL);
             SET_UNDEFINED(x->result);
             STR_FREE(x->op1.u.constant.value.str.val);
             SET_TO_NOP(x);
-            memcpy(&op->op1,&y->op1,sizeof(op->op1));
+            memcpy(&op->op1, &y.v->op1, sizeof(op->op1));
           } else {
-            zend_hash_update(&fetch_dim,
-                             s, x->op1.u.constant.value.str.len+2,
-                             (void**)&op, sizeof(void*), NULL);
+            zend_hash_update(&fetch_dim, s, x->op1.u.constant.value.str.len+2, 
+                &op_copy.ptr, sizeof(void*), NULL);
           }
           efree(s);
         }
@@ -3170,7 +3173,9 @@ static void emit_cfg(zend_op_array *op_array, BB* bb)
 void reassign_registers(zend_op_array *op_array, BB* p, char *global) {
   zend_uint i;
   zend_uint n = 0;
+#ifndef ZEND_ENGINE_2
   int uses_globals = 0;
+#endif
   int* assigned = do_alloca(op_array->T * sizeof(int));
   char* reg_pool = do_alloca(op_array->T * sizeof(char));
   char* used     = do_alloca(op_array->T * sizeof(char));
