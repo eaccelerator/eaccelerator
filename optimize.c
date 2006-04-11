@@ -3383,8 +3383,8 @@ void eaccelerator_optimize(zend_op_array *op_array)
        types since php-5.1 (like ZEND_FETCH_CONSTANT)
     */
     restore_operand_types(op_array);
-#  endif
   }
+#  endif
   free_alloca(bb);
 }
 #endif
