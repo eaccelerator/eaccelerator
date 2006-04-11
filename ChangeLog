@@ -2,6 +2,7 @@
 
         * A lot of fixes to silence the compile warnings generated when compiling
           with the default Fedora compiler options
+        * Removed FC compiled options from Makefile.in again, stupid me 
 
 2006-04-11  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
