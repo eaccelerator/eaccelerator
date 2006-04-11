@@ -591,7 +591,10 @@ static int mm_do_lock(mm_mutex* lock, int kind) {
 
 static int mm_do_unlock(mm_mutex* lock) {
   if (ReleaseMutex(g_lock.hMutex) == 0) {
-    return 0;
+      // Releasing the mutex doesn't seem to work under windows. It gives some
+      // extremely obscure error code. Locking seems to work though. Because this
+      // flood the error log of the win32 users we are not going to return 0 here
+      // until a windows dev has found the problem.
   }
   return 1;
 }

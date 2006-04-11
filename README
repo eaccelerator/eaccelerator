@@ -242,70 +242,13 @@ the control.php file.
 
 When you compile eAccelerator with --with-eaccelerator-disassembler you need 
 to place the dasm.php file also in the same directory as the control.php file.
+You can set the username and password needed to access this file at the top
+of the file.
 
 eAccelerator API
 ----------------
 
-eaccelerator_put($key, $value, $ttl=0)
-  puts the $value into shard memory for $ttl seconds.
-
-eaccelerator_get($key)
-  returns the value from shared memory which was stored by  eaccelerator_put()
-  or null if it is not exists or was expired.
-
-eaccelerator_rm($key)
-  removres the $key from shared memory
-
-eaccelerator_gc()
-  removes all expired keys from shared memory
-
-eaccelerator_lock($lock)
-  creates a lock with specified name. The lock can  be  released  by  function
-  eaccelerator_unlock() or automatic on the end of request.
-  For Example:
-  <?php
-    eaccelerator_lock("count");
-    eaccelerator_put("count",eaccelerator_get("count")+1));
-  ?>
-
-eaccelerator_unlock($lock)
-  release lock with specified name
-
-eaccelerator_set_session_handlers()
-  install the eaccelerator session handlers.
-  Since PHP 4.2.0 you can install eaccelerator session handlers
-  in "php.ini" by "session.save_handler=eaccelerator".
-
-eaccelerator_cache_output($key, $eval_code, $ttl=0)
-  caches the output of $eval_code in shared memory for $ttl seconds.
-  Output can be removed from cache by calling mmcach_rm() with the same $key.
-  For Example:
-  <?php eaccelerator_cache_output('test', 'echo time(); phpinfo();', 30); ?>
-
-eaccelerator_cache_result($key, $eval_code, $ttl=0)
-  caches the result of $eval_code in shared memory for $ttl seconds.
-  Result can be removed from cache by calling mmcach_rm() with the same $key.
-  For Example:
-  <?php eaccelerator_cache_output('test', 'time()." Hello";', 30); ?>
-
-eaccelerator_cache_page($key, $ttl=0)
-  caches the full page for $ttl seconds.
-  For Example:
-  <?php
-    eaccelerator_cache_page($_SERVER['PHP_SELF'].'?GET='.serialize($_GET),30);
-    echo time();
-    phpinfo();
-  ?>
-
-eaccelerator_rm_page($key)
-  removes the page which was cached by eaccelerator_cache_page() with the same
-  $key from cache
-
-eaccelerator_encode($filename)
-  returns the encoded bytecode of compiled file $filename
-
-eaccelerator_load($code)
-  loads script which was encoded by eaccelerator_encode()
+API documentation can be found on this website: http://bart.eaccelerator.net/doc/phpdoc/
 
 Contact us
 ----------

@@ -1,3 +1,12 @@
+2006-04-11  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
+
+        * Silenced the unlock function for win32 until a windows developer can
+          take a look at it.
+        * Updated the README a little more for the new control panel
+        * Added release notes for beta2
+        * Bumped up version to 0.9.5-beta2
+        * Released beta2
+
 2006-04-09  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
         * Fixed some typos in dasm.php
@@ -78,7 +87,7 @@
 
 2006-03-06  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
-        * Removed the old webui and made a new controlpanel en disassembler.
+        * Removed the old webui and made a new controlpanel and disassembler.
         * Added php api documentation
 
 2006-03-02  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>

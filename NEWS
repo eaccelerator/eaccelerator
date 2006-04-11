@@ -1,3 +1,24 @@
+Apr 11, 2006 - Bart Vanbrabant
+----------------------------------
+
+ * Released 0.9.5-beta2
+
+    There are some big changes in this beta: 
+        - The shared memory functions, session handler and content cache are 
+          disabled by default now. They are only used by a small amount of
+          users and they could allow local users to fill up the memory, if they
+          aren't secured properly.
+        - The old web control panel and the disassembler have been removed 
+          from the code. They have been replaced with a set of php functions 
+          that allow the same functionality to be implemented in a PHP script.
+          The control.php and the dasm.php files are such scripts. More 
+          information about this can be found in the README.
+        - A lot of bugfixes which bring us closer to full PHP 5.1 support.
+    This version is already quite stable and some people are already using it
+    in production environments. Please test this beta2 as good and as much as
+    you can. If you find a bug, report it back to us on the website and if
+    possible add a small snippet of code so we can reproduce it.
+
 Feb 24, 2006 - Bart Vanbrabant
 ----------------------------------
 
