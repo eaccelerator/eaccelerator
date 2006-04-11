@@ -5,6 +5,7 @@
         * Updated the README a little more for the new control panel
         * Added release notes for beta2
         * Bumped up version to 0.9.5-beta2
+        * Patch for dasm.php form Stadler, see #23
         * Released beta2
 
 2006-04-09  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>

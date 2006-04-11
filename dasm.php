@@ -69,7 +69,7 @@ if (!isset($_SERVER['PHP_AUTH_USER']) || !isset($_SERVER['PHP_AUTH_USER']) ||
 <body class="center">
 <h1>eAccelerator disassembler</h1>
 <?php
-    if (!isset($_GET['file']) && !is_file($_GET['file'])) {
+    if (!isset($_GET['file']) || !is_file($_GET['file'])) {
         die('File argument not given!');
     }
 	$file = $_GET['file'];
@@ -123,6 +123,7 @@ if (!isset($_SERVER['PHP_AUTH_USER']) || !isset($_SERVER['PHP_AUTH_USER']) ||
         <table>
             <tr>
                 <th>N</th>
+                <th>Line</th>
                 <th>Opcode</th>
                 <th>Extented value</th>
                 <th>Op1</th>
@@ -133,18 +134,12 @@ if (!isset($_SERVER['PHP_AUTH_USER']) || !isset($_SERVER['PHP_AUTH_USER']) ||
 		$count = count($op_array);
 		$line = 0;
 		global $source;
-		$last_line = 0;
 		for ($i = 0; $i < $count; ++$i) {
-			$curr_line =  $op_array[$i]['lineno'];
-			/* find the next line that differs, but only when the start line differs from the previous */
-			$print = $line;
-			if ($last_line < $curr_line) {
-				for ($j = $i + 1; $j < $count; ++$j) {
-					if ($op_array[$j]['lineno'] > $curr_line) {
-						$print = $op_array[$j]['lineno'] - 1;
-						break;
-					}
-				}
+			/* if the lineno is greater, than the last line displayed, then show the
+			   code until that line above the opcode */
+			if ($line < $op_array[$i]['lineno'])
+			{
+				$print = $op_array[$i]['lineno'];
 			}
 			$code = '';
 			while($line < $print) {
@@ -153,13 +148,14 @@ if (!isset($_SERVER['PHP_AUTH_USER']) || !isset($_SERVER['PHP_AUTH_USER']) ||
 			}
 			if ($code != '') {
 				echo "<tr>\n";
-//				echo '<td  class="source" colspan="6"><pre>' . highlight_string($code, true) . "</pre></td>\n";
-				echo '<td  class="source" colspan="6"><pre>' . $code . "</pre></td>\n";
+//				echo '<td  class="source" colspan="7"><pre>' . highlight_string($code, true) . "</pre></td>\n";
+				echo '<td  class="source" colspan="7"><pre>' . $code . "</pre></td>\n";
 				echo "</tr>\n";
 			}
 	?>
             <tr>
                 <td class="e"><?php echo $i; ?></td>
+                <td><nobr><?php echo $op_array[$i]['lineno']; ?></nobr></td>
                 <td><nobr><?php echo $op_array[$i]['opcode']; ?></nobr></td>
                 <td><nobr><?php echo $op_array[$i]['extended_value']; ?></nobr></td>
                 <td><nobr><?php echo convert_string($op_array[$i]['op1'], 50); ?></nobr></td>
@@ -177,8 +173,8 @@ if (!isset($_SERVER['PHP_AUTH_USER']) || !isset($_SERVER['PHP_AUTH_USER']) ||
 			}
 			if ($code != '') {
 				echo "<tr>\n";
-				//              echo '<td  class="source" colspan="6"><pre>' . highlight_string($code, true) . "</pre></td>\n";
-				echo '<td  class="source" colspan="6"><pre>' . $code . "</pre></td>\n";
+//				echo '<td  class="source" colspan="7"><pre>' . highlight_string($code, true) . "</pre></td>\n";
+				echo '<td  class="source" colspan="7"><pre>' . $code . "</pre></td>\n";
 				echo "</tr>\n";
 			}
 
