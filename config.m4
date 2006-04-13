@@ -131,6 +131,7 @@ if test "$PHP_EACCELERATOR" != "no"; then
   fi
   if test "$eaccelerator_content_caching" = "yes"; then
     AC_DEFINE(WITH_EACCELERATOR_CONTENT_CACHING, 1, [Define if you like to use eAccelerator content cachin API])
+    AC_DEFINE(WITH_EACCELERATOR_SHM, 1, [Define if you like to use the eAccelerator functions to store keys in shared memory])
   fi
   if test "$eaccelerator_disassembler" = "yes"; then
     AC_DEFINE(WITH_EACCELERATOR_DISASSEMBLER, 1, [Define if you like to explore Zend bytecode])
