@@ -255,9 +255,6 @@ void fixup_op_array(eaccelerator_op_array * from TSRMLS_DC)
 	}
 #endif
 	FIXUP(from->filename);
-#ifdef ZEND_ENGINE_2
-	FIXUP(from->doc_comment);
-#endif
 }
 
 void fixup_class_entry(eaccelerator_class_entry * from TSRMLS_DC)
@@ -266,7 +263,6 @@ void fixup_class_entry(eaccelerator_class_entry * from TSRMLS_DC)
 	FIXUP(from->parent);
 #ifdef ZEND_ENGINE_2
 	FIXUP(from->filename);
-	FIXUP(from->doc_comment);
 	fixup_zval_hash(&from->constants_table);
 	fixup_zval_hash(&from->default_properties);
 	fixup_hash(&from->properties_info,
@@ -647,14 +643,8 @@ zend_op_array *restore_op_array(zend_op_array * to,
 
 	to->line_start = from->line_start;
 	to->line_end = from->line_end;
-	to->doc_comment_len = from->doc_comment_len;
-	to->doc_comment = from->doc_comment;
-	/*???
-	   if (from->doc_comment != NULL) {
-	   to->doc_comment = emalloc(from->doc_comment_len+1);
-	   memcpy(to->doc_comment, from->doc_comment, from->doc_comment_len+1);
-	   }
-	 */
+	to->doc_comment_len = 0;
+	to->doc_comment = NULL;
 #else
 	to->uses_globals = from->uses_globals;
 #endif
@@ -708,10 +698,8 @@ static zend_property_info *restore_property_info(zend_property_info *
 	to->name = emalloc(from->name_length + 1);
 	memcpy(to->name, from->name, from->name_length + 1);
 #ifdef ZEND_ENGINE_2_1
-	if (from->doc_comment != NULL) {
-		to->doc_comment = emalloc(from->doc_comment_len+1);
-		memcpy(to->doc_comment, from->doc_comment, from->doc_comment_len+1);
-	}
+    to->doc_comment_len = 0;
+    to->doc_comment = NULL;
 #endif
 	return to;
 }
@@ -856,17 +844,14 @@ zend_class_entry *restore_class_entry(zend_class_entry * to,
 
 	to->line_start = from->line_start;
 	to->line_end = from->line_end;
-	to->doc_comment_len = from->doc_comment_len;
+	to->doc_comment_len = 0;
+    to->doc_comment = NULL;
 /*	if (from->filename != NULL) {
 		size_t len = strlen(from->filename) + 1;
 		to->filename = emalloc(len);
 		memcpy(to->filename, from->filename, len);
 	}*/
 	to->filename = from->filename;
-	if (from->doc_comment != NULL) {
-		to->doc_comment = emalloc(from->doc_comment_len + 1);
-		memcpy(to->doc_comment, from->doc_comment, from->doc_comment_len + 1);
-	}
 
 	/* restore constants table */
 	restore_zval_hash(&to->constants_table, &from->constants_table);
