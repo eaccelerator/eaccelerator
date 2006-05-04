@@ -64,6 +64,8 @@ if (!isset($_SERVER['PHP_AUTH_USER']) || !isset($_SERVER['PHP_AUTH_USER']) ||
         hr {width: 600px; background-color: #cccccc; border: 0px; height: 1px; color: #000000;}
         input {width: 150px}
         h1 {width: 800px;  border: 1px solid #000000; margin-left: auto; margin-right: auto; background-color: #9999cc;}
+        .l {border: 1px solid #000000; text-align: left; width: 800px; margin: auto; font-size: 65%;}
+        .l h2 {font-size: 200%; text-align: center; }
     </style>
 </head>
 <body class="center">
@@ -79,8 +81,10 @@ if (!isset($_SERVER['PHP_AUTH_USER']) || !isset($_SERVER['PHP_AUTH_USER']) ||
         die('File not found!');
 	}
 
-	$source = explode("\n", htmlentities(file_get_contents($_GET['file']), ENT_QUOTES, 'UTF-8'));
-//	$source = explode("\n", file_get_contents($_GET['file']));
+	require_once('PHP_Highlight.php');
+	$h = new PHP_Highlight;
+	$h->loadFile($_GET['file']);
+	$source = $h->toArray();
 
 	/* what do we need to do ? */
 	if (!isset($_GET['show'])) {
@@ -88,6 +92,8 @@ if (!isset($_SERVER['PHP_AUTH_USER']) || !isset($_SERVER['PHP_AUTH_USER']) ||
 	} else {
 		$show = $_GET['show'];
 	}
+
+	print_layout();
 	switch ($show) {
 		case 'main':
 			print_op_array($asm['op_array']);
@@ -97,16 +103,11 @@ if (!isset($_SERVER['PHP_AUTH_USER']) || !isset($_SERVER['PHP_AUTH_USER']) ||
 	            print_function($_GET['name'], $asm['functions'][$_GET['name']]);
 			}
 			break;
-		case 'classes':
-			if (is_array($asm['classes'][$_GET['name']])) {
-				print_class($_GET['name'], $asm['classes'][$_GET['name']]);
-			}
+		case 'methods':
 			if (isset($_GET['method']) && is_array($asm['classes'][$_GET['name']][$_GET['method']])) {
 				print_method($_GET['method'], $asm['classes'][$_GET['name']][$_GET['method']]);
 			}
 			break;
-		default:
-			print_layout();
 	}
 
 /* {{{ convert_string */
@@ -120,6 +121,7 @@ if (!isset($_SERVER['PHP_AUTH_USER']) || !isset($_SERVER['PHP_AUTH_USER']) ||
 
 /* {{{ print_op_array */
     function print_op_array($op_array) { ?>
+        <h2>Global file op_array</h2>
         <table>
             <tr>
                 <th>N</th>
@@ -148,7 +150,6 @@ if (!isset($_SERVER['PHP_AUTH_USER']) || !isset($_SERVER['PHP_AUTH_USER']) ||
 			}
 			if ($code != '') {
 				echo "<tr>\n";
-//				echo '<td  class="source" colspan="7"><pre>' . highlight_string($code, true) . "</pre></td>\n";
 				echo '<td  class="source" colspan="7"><pre>' . $code . "</pre></td>\n";
 				echo "</tr>\n";
 			}
@@ -173,7 +174,6 @@ if (!isset($_SERVER['PHP_AUTH_USER']) || !isset($_SERVER['PHP_AUTH_USER']) ||
 			}
 			if ($code != '') {
 				echo "<tr>\n";
-//				echo '<td  class="source" colspan="7"><pre>' . highlight_string($code, true) . "</pre></td>\n";
 				echo '<td  class="source" colspan="7"><pre>' . $code . "</pre></td>\n";
 				echo "</tr>\n";
 			}
@@ -203,7 +203,7 @@ if (!isset($_SERVER['PHP_AUTH_USER']) || !isset($_SERVER['PHP_AUTH_USER']) ||
 	function print_layout() {
 		global $asm, $file;
 		echo "<h2>Script layout</h2>\n";
-		echo "<div style=\"text-align: left; width: 800px\">\n";
+		echo "<div class=\"l\">\n";
 		echo "<ul>\n";
 		if (isset($asm['op_array'])) {
 			echo "<li><a href=\"?file=$file&show=main\">Global file op_array</a></li>";
@@ -217,8 +217,12 @@ if (!isset($_SERVER['PHP_AUTH_USER']) || !isset($_SERVER['PHP_AUTH_USER']) ||
 		}
 		if (isset($asm['classes']) && count($asm['classes']) > 0) {
 			echo "<li>Classes<ul>\n";
-			foreach ($asm['classes'] as $name => $data) {
-				echo "<li><a href=\"?file=$file&show=classes&name=$name\">$name</a></li>";
+			foreach ($asm['classes'] as $name => $class) {
+				echo "<li>$name<ul><li style=\"list-style-type: none\">Methods</li>\n";
+				foreach (array_keys($class) as $method) {
+					echo "<li><a href=\"?file=$file&amp;show=methods&amp;name=$name&amp;method=$method\">$method</a></li>\n";
+				}
+				echo "</ul></li>\n";
 			}
 			echo "</ul></li>\n";
 
@@ -226,18 +230,6 @@ if (!isset($_SERVER['PHP_AUTH_USER']) || !isset($_SERVER['PHP_AUTH_USER']) ||
 		echo "</ul>\n";
 		echo "</div>\n";
 	}
-/* }}} */
-
-/* {{{ print a the class layout */
-	function print_class($name, $class) {
-		global $file;
-        echo "<h2>Class $name</h2>";
-		echo "<div style=\"text-align: left; width: 800px\"><ul>\n";
-        foreach($class as $method => $data) {
-			echo "<li><a href=\"?file=$file&amp;show=classes&amp;name=$name&amp;method=$method\">$method</a></li>\n";
-        }
-		echo "</ul></div>";
-    }
 /* }}} */
 ?>
 </body>

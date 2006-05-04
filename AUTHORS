@@ -9,5 +9,8 @@ Inactive member(s) :
 - Shin Seung Woo <segv74 at users.sourceforge.net>
 - Frank Alcantara  <frankalcantara at users.sourceforge.net>
 
+Code used from:
+Aidan Lister <aidan [ett] php [dutt] net> - The PHP_Highlight.php script
+
 eAccelerator is based on Turck MMCache, written by
   Dmitry Stogov <dstogov at users.sourceforge.net>

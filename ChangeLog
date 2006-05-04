@@ -2,6 +2,8 @@
 
         * Don't store the doc_comments in op_array and class_entry. They are 
           useless. this should reduce memory footprint.
+        * Included patch from Stadler from ticket #23. It adds a nice menu 
+          and code highlighting.
 
 2006-04-13  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 

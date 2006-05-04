@@ -241,7 +241,8 @@ You can set the username and password needed to access the control-panel in
 the control.php file.
 
 When you compile eAccelerator with --with-eaccelerator-disassembler you need 
-to place the dasm.php file also in the same directory as the control.php file.
+to place the dasm.php and PHP_Highlight.php file also in the same directory 
+as the control.php file.
 You can set the username and password needed to access this file at the top
 of the file.
 
