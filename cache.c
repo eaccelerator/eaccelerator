@@ -297,7 +297,7 @@ int eaccelerator_put(const char *key, int key_len, zval * val, time_t ttl,
             /*
              * storing to shared memory 
              */
-            slot = q->hv & MM_USER_HASH_MAX;
+            slot = q->hv & EA_USER_HASH_MAX;
             hv = q->hv;
             EACCELERATOR_LOCK_RW();
             eaccelerator_mm_instance->user_hash_cnt++;
@@ -336,7 +336,7 @@ int eaccelerator_get(const char *key, int key_len, zval * return_value,
 
     xkey = build_key(key, key_len, &xlen TSRMLS_CC);
     hv = hash_mm(xkey, xlen);
-    slot = hv & MM_USER_HASH_MAX;
+    slot = hv & EA_USER_HASH_MAX;
 
     if (eaccelerator_mm_instance != NULL && (where == eaccelerator_shm_and_disk 
                 || where == eaccelerator_shm || where == eaccelerator_shm_only)) {
@@ -532,7 +532,7 @@ int eaccelerator_rm(const char *key, int key_len,
     if (eaccelerator_mm_instance != NULL && (where == eaccelerator_shm_and_disk || 
                 where == eaccelerator_shm || where == eaccelerator_shm_only)) {
         hv = hash_mm(xkey, xlen);
-        slot = hv & MM_USER_HASH_MAX;
+        slot = hv & EA_USER_HASH_MAX;
 
         EACCELERATOR_UNPROTECT();
         EACCELERATOR_LOCK_RW();
@@ -573,7 +573,7 @@ size_t eaccelerator_gc(TSRMLS_D)
     }
     EACCELERATOR_UNPROTECT();
     EACCELERATOR_LOCK_RW();
-    for (i = 0; i < MM_USER_HASH_SIZE; i++) {
+    for (i = 0; i < EA_USER_HASH_SIZE; i++) {
         mm_user_cache_entry **p = &eaccelerator_mm_instance->user_hash[i];
         while (*p != NULL) {
             if ((*p)->ttl != 0 && (*p)->ttl < t) {
@@ -617,7 +617,7 @@ int eaccelerator_list_keys(zval *return_value TSRMLS_DC)
     // initialize return value as an array
     array_init(return_value);
 
-    for (i = 0; i < MM_USER_HASH_SIZE; ++i) {
+    for (i = 0; i < EA_USER_HASH_SIZE; ++i) {
         p = eaccelerator_mm_instance->user_hash[i];
         while(p != NULL) {
             if (!xlen || strncmp(p->key, xkey, xlen) == 0) {

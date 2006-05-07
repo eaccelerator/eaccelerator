@@ -147,10 +147,12 @@
 #define EACCELERATOR_BLOCK_INTERRUPTIONS()   HANDLE_BLOCK_INTERRUPTIONS()
 #define EACCELERATOR_UNBLOCK_INTERRUPTIONS() HANDLE_UNBLOCK_INTERRUPTIONS()
 
-#define MM_HASH_SIZE      256
-#define MM_USER_HASH_SIZE 256
-#define MM_HASH_MAX       (MM_HASH_SIZE-1)
-#define MM_USER_HASH_MAX  (MM_USER_HASH_SIZE-1)
+#define EACCELERATOR_HASH_LEVEL 2
+#define EA_HASH_SIZE      512
+#define EA_USER_HASH_SIZE 512
+
+#define EA_HASH_MAX       (EA_HASH_SIZE-1)
+#define EA_USER_HASH_MAX  (EA_USER_HASH_SIZE-1)
 
 #define eaccelerator_malloc(size)        mm_malloc_lock(eaccelerator_mm_instance->mm, size)
 #define eaccelerator_free(x)             mm_free_lock(eaccelerator_mm_instance->mm, x)
@@ -338,8 +340,8 @@ typedef struct {
 	mm_cache_entry *removed;
 	mm_lock_entry *locks;
 
-	mm_cache_entry *hash[MM_HASH_SIZE];
-	mm_user_cache_entry *user_hash[MM_USER_HASH_SIZE];
+	mm_cache_entry *hash[EA_HASH_SIZE];
+	mm_user_cache_entry *user_hash[EA_USER_HASH_SIZE];
 } eaccelerator_mm;
 
 /*

@@ -143,7 +143,7 @@ static mm_cache_entry* hash_find_mm(const char  *key,
 #else
   hv = hash_mm(key, strlen(key));
 #endif
-  slot = hv & MM_HASH_MAX;
+  slot = hv & EA_HASH_MAX;
 
   EACCELERATOR_LOCK_RW();
   q = NULL;
@@ -206,10 +206,10 @@ static void hash_add_mm(mm_cache_entry *x) {
   mm_cache_entry *p,*q;
   unsigned int slot;
 #ifdef EACCELERATOR_USE_INODE
-  slot = (x->st_dev + x->st_ino) & MM_HASH_MAX;
+  slot = (x->st_dev + x->st_ino) & EA_HASH_MAX;
 #else
   x->hv = hash_mm(x->realfilename, strlen(x->realfilename));
-  slot = x->hv & MM_HASH_MAX;
+  slot = x->hv & EA_HASH_MAX;
 #endif
 
   EACCELERATOR_LOCK_RW();
@@ -367,12 +367,20 @@ static void decode_version(char *version, int v) {
 } 
 */
 
+static char num2hex[] = {'0','1','2','3','4','5','6','7','8','9','a','b','c','d','e','f'};
+
 #ifdef EACCELERATOR_USE_INODE
 static int eaccelerator_inode_key(char* s, dev_t dev, ino_t ino TSRMLS_DC) {
-  int n;
-  strncpy(s, EAG(cache_dir), MAXPATHLEN-1);
-  strlcat(s, "/eaccelerator-", MAXPATHLEN-1);
+  int n, i;
+  snprintf(s, MAXPATHLEN-1, "%s/", EAG(cache_dir));
   n = strlen(s);
+  for (i = 1; i <= EACCELERATOR_HASH_LEVEL && n < MAXPATHLEN - 1; i++) {
+    s[n++] = num2hex[(ino >> (i*4)) & 0xf];
+    s[n++] = '/';
+  }
+  s[n] = 0;
+  strlcat(s, "eaccelerator-", MAXPATHLEN-1);
+  n += sizeof("eaccelerator-") - 1;
   while (dev > 0) {
     if (n >= MAXPATHLEN) return 0;
     s[n++] = (dev % 10) +'0';
@@ -398,13 +406,22 @@ int eaccelerator_md5(char* s, const char* prefix, const char* key TSRMLS_DC) {
   char md5str[33];
   PHP_MD5_CTX context;
   unsigned char digest[16];
+  int i;
+  int n;
 
   md5str[0] = '\0';
   PHP_MD5Init(&context);
   PHP_MD5Update(&context, (unsigned char*)key, strlen(key));
   PHP_MD5Final(digest, &context);
   make_digest(md5str, digest);
-  snprintf(s, MAXPATHLEN-1, "%s%s%s", EAG(cache_dir), prefix, md5str);
+  snprintf(s, MAXPATHLEN-1, "%s/", EAG(cache_dir));
+  n = strlen(s);
+  for (i = 0; i < EACCELERATOR_HASH_LEVEL && n < MAXPATHLEN - 1; i++) {
+    s[n++] = md5str[i];
+    s[n++] = '/';
+  }
+  s[n] = 0;
+  snprintf(s, MAXPATHLEN-1, "%s%s%s", s, prefix, md5str);
   return 1;
 #else
   zval retval;
@@ -436,7 +453,7 @@ void eaccelerator_prune(time_t t) {
 
   EACCELERATOR_LOCK_RW();
   eaccelerator_mm_instance->last_prune = t;
-  for (i = 0; i < MM_HASH_SIZE; i++) {
+  for (i = 0; i < EA_HASH_SIZE; i++) {
     mm_cache_entry **p = &eaccelerator_mm_instance->hash[i];
     while (*p != NULL) {
       struct stat buf;
@@ -587,7 +604,6 @@ void eaccelerator_fixup (mm_cache_entry * p TSRMLS_DC)
 
 /******************************************************************************/
 /* Cache file functions.													  */
-/* TODO: create cache subdirectories -> speed improvement highly used servers */
 /******************************************************************************/
 
 /* Retrieve a cache entry from the cache directory */
@@ -728,6 +744,8 @@ static int hash_add_file(mm_cache_entry *p TSRMLS_DC) {
     if (ret) ret = (write(f, p, p->size) == p->size);
     EACCELERATOR_FLOCK(f, LOCK_UN);
     close(f);
+  } else {
+    ea_debug_log("EACCELERATOR: Open for write failed for \"%s\": %s\n", s, strerror(errno));
   }
   return ret;
 }
@@ -1964,24 +1982,45 @@ static int eaccelerator_check_php_version(TSRMLS_D) {
   return ret;
 }
 
+static void make_hash_dirs(char *fullpath, int lvl) {
+  int i, j;
+  int n = strlen(fullpath);
+  mode_t old_umask = umask(0);
+  
+  if (lvl < 1)
+    return;
+  if (fullpath[n-1] != '/')
+    fullpath[n++] = '/';
+  
+  for (j = 0; j < 16; j++) {
+    fullpath[n] = num2hex[j];       
+    fullpath[n+1] = 0;
+    mkdir(fullpath, 0777);
+    make_hash_dirs(fullpath, lvl-1);
+  }
+  fullpath[n+2] = 0;
+  umask(old_umask);
+}
+
+
 PHP_MINIT_FUNCTION(eaccelerator) {
+  char fullpath[MAXPATHLEN];
+
   if (type == MODULE_PERSISTENT) {
 #ifndef ZEND_WIN32
     if (strcmp(sapi_module.name,"apache") == 0) {
-      /* Is the parent process - init */
-/*
-      sleep(1);
-      if (getppid() != 1) {
-*/
       if (getpid() != getpgrp()) {
         return SUCCESS;
       }
     }
 #endif
 #ifdef WITH_EACCELERATOR_LOADER
-    if (zend_hash_exists(&module_registry, EACCELERATOR_LOADER_EXTENSION_NAME, sizeof(EACCELERATOR_LOADER_EXTENSION_NAME))) {
-      zend_error(E_CORE_WARNING,"Extension \"%s\" is not need with \"%s\". Remove it from php.ini\n", EACCELERATOR_LOADER_EXTENSION_NAME, EACCELERATOR_EXTENSION_NAME);
-      zend_hash_del(&module_registry, EACCELERATOR_LOADER_EXTENSION_NAME, sizeof(EACCELERATOR_LOADER_EXTENSION_NAME));
+    if (zend_hash_exists(&module_registry, EACCELERATOR_LOADER_EXTENSION_NAME, 
+                sizeof(EACCELERATOR_LOADER_EXTENSION_NAME))) {
+      zend_error(E_CORE_WARNING,"Extension \"%s\" is not need with \"%s\". Remove it from php.ini\n", 
+              EACCELERATOR_LOADER_EXTENSION_NAME, EACCELERATOR_EXTENSION_NAME);
+      zend_hash_del(&module_registry, EACCELERATOR_LOADER_EXTENSION_NAME, 
+              sizeof(EACCELERATOR_LOADER_EXTENSION_NAME));
     }
 #endif
   }
@@ -2005,6 +2044,9 @@ PHP_MINIT_FUNCTION(eaccelerator) {
   eaccelerator_is_extension = 1;
 
   ea_debug_init(TSRMLS_C);
+
+  snprintf(fullpath, MAXPATHLEN-1, "%s/", EAG(cache_dir));
+  make_hash_dirs(fullpath, EACCELERATOR_HASH_LEVEL);
 
   if (type == MODULE_PERSISTENT &&
       strcmp(sapi_module.name, "cgi") != 0 &&

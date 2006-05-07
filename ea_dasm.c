@@ -513,7 +513,7 @@ static mm_cache_entry *get_cache_entry(const char *file) {
 		EACCELERATOR_UNPROTECT();
 		EACCELERATOR_LOCK_RD();
 		EACCELERATOR_PROTECT();
-		for (slot = 0; slot < MM_HASH_SIZE; slot++) {
+		for (slot = 0; slot < EA_HASH_SIZE; slot++) {
 			p = eaccelerator_mm_instance->hash[slot];
 			while (p != NULL) {
 				if (strcmp(p->realfilename, file) == 0) {

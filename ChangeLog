@@ -1,3 +1,11 @@
+2006-05-07  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
+
+        * Added directory hashing for md5 and inode based keys based on a patch
+          from <mattias at efterfesten.com>, default is 2 levels deep.
+        * Renamed some left over MM based names to EA.
+        * Increased default hash size for user and script to 512 for extra 
+          performance.
+
 2006-05-04  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
         * Don't store the doc_comments in op_array and class_entry. They are 

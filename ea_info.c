@@ -226,7 +226,7 @@ PHP_FUNCTION(eaccelerator_clear)
 
 	EACCELERATOR_UNPROTECT ();
 	EACCELERATOR_LOCK_RW ();
-	for (i = 0; i < MM_HASH_SIZE; i++) {
+	for (i = 0; i < EA_HASH_SIZE; i++) {
 		p = eaccelerator_mm_instance->hash[i];
 		while (p != NULL) {
 			mm_cache_entry *r = p;
@@ -243,7 +243,7 @@ PHP_FUNCTION(eaccelerator_clear)
 		}
 		eaccelerator_mm_instance->hash[i] = NULL;
 	}
-	for (i = 0; i < MM_USER_HASH_SIZE; i++) {
+	for (i = 0; i < EA_USER_HASH_SIZE; i++) {
 		mm_user_cache_entry *p = eaccelerator_mm_instance->user_hash[i];
 		while (p != NULL) {
 			mm_user_cache_entry *r = p;
@@ -378,7 +378,7 @@ PHP_FUNCTION(eaccelerator_cached_scripts)
 
     array_init(return_value);
     
-    for (i = 0; i < MM_HASH_SIZE; i++) {
+    for (i = 0; i < EA_HASH_SIZE; i++) {
         p = eaccelerator_mm_instance->hash[i];
         while (p != NULL) {
             zval *script;

@@ -65,7 +65,7 @@ AC_ARG_WITH(eaccelerator-content-caching,
 ])
 
 AC_ARG_WITH(eaccelerator-info,
-[  --without-eaccelerator-info                Do not compile the eAccelerator information functions],[
+[  --without-eaccelerator-info              Do not compile the eAccelerator information functions],[
   eaccelerator_info=$withval
 ],[
   eaccelerator_info=yes
