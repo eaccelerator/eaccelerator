@@ -1,3 +1,8 @@
+2006-05-08  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
+
+        * Make the disassembler do openbasedir checks before showing a file, 
+          this fixes bug #59
+
 2006-05-07  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
         * Added directory hashing for md5 and inode based keys based on a patch
