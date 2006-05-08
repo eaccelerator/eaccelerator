@@ -959,7 +959,7 @@ static zend_op_array* eaccelerator_restore(char *realname, struct stat *buf,
 static int match(const char* name, const char* pat) {
   char p,k;
   int ok, neg;
-
+  
   while (1) {
     p = *pat++;
     if (p == '\0') {
@@ -1028,7 +1028,7 @@ static int match(const char* name, const char* pat) {
 static int eaccelerator_ok_to_cache(char *realname TSRMLS_DC) {
   mm_cond_entry *p;
   int ok;
-
+fprintf(stderr, "Going to inspect %s\n", realname);fflush(stderr);
   if (EAG(cond_list) == NULL) {
     return 1;
   }
@@ -1251,6 +1251,7 @@ ZEND_DLEXPORT zend_op_array* eaccelerator_compile_file(zend_file_handle *file_ha
 #ifdef DEBUG
   struct timeval tv_start;
 #endif
+  int ok_to_cache = 0;
 
 #ifdef EACCELERATOR_USE_INODE
   realname[0] = '\000';
@@ -1268,15 +1269,13 @@ ZEND_DLEXPORT zend_op_array* eaccelerator_compile_file(zend_file_handle *file_ha
   if (buf.st_mtime >= compile_time && eaccelerator_debug > 0) {
 	ea_debug_log("EACCELERATOR: Warning: \"%s\" is cached but it's mtime is in the future.\n", file_handle->filename);
   }
-  
-  if (!EAG(enabled) || (eaccelerator_mm_instance == NULL) ||
+
+  ok_to_cache = eaccelerator_ok_to_cache(file_handle->filename TSRMLS_CC);
+ 
+  // eAccelerator isn't working, so just compile the file
+  if (!EAG(enabled) || (eaccelerator_mm_instance == NULL) || 
       !eaccelerator_mm_instance->enabled || file_handle == NULL ||
-      file_handle->filename == NULL || stat_result != 0 ||
-#ifdef EACCELERATOR_USE_INODE
-      0) {
-#else
-      !eaccelerator_ok_to_cache(realname TSRMLS_CC)) {
-#endif
+      file_handle->filename == NULL || stat_result != 0 || !ok_to_cache) {
     DBG(ea_debug_printf, (EA_DEBUG, "\t[%d] compile_file: compiling\n", getpid()));
     t = mm_saved_zend_compile_file(file_handle, type TSRMLS_CC);
     DBG(ea_debug_printf, (EA_TEST_PERFORMANCE, "\t[%d] compile_file: end (%ld)\n", getpid(), ea_debug_elapsed_time(&tv_start)));
@@ -1306,13 +1305,13 @@ ZEND_DLEXPORT zend_op_array* eaccelerator_compile_file(zend_file_handle *file_ha
   zend_is_auto_global("_REQUEST", sizeof("_REQUEST")-1 TSRMLS_CC);
   zend_is_auto_global("_FILES", sizeof("_FILES")-1 TSRMLS_CC);
 #endif
-  if (t != NULL) {
+
+  if (t != NULL) { // restore from cache
 #ifdef DEBUG
     ea_debug_log("[%d] EACCELERATOR hit: \"%s\"\n", getpid(), t->filename);
 #else
     ea_debug_log("EACCELERATOR hit: \"%s\"\n", t->filename);
 #endif
-    /* restored from cache */
 
     zend_llist_add_element(&CG(open_files), file_handle);
 #ifdef ZEND_ENGINE_2
@@ -1337,8 +1336,7 @@ ZEND_DLEXPORT zend_op_array* eaccelerator_compile_file(zend_file_handle *file_ha
 #endif
     DBG(ea_debug_printf, (EA_DEBUG, "[%d] Leave COMPILE\n", getpid()));
     return t;
-  } else {
-    /* not in cache or must be recompiled */
+  } else { // not in cache or must be recompiled
     Bucket *function_table_tail;
     Bucket *class_table_tail;
     HashTable* orig_function_table;
@@ -1351,14 +1349,14 @@ ZEND_DLEXPORT zend_op_array* eaccelerator_compile_file(zend_file_handle *file_ha
     int bailout;
 
     DBG(ea_debug_printf, (EA_DEBUG, "\t[%d] compile_file: marking\n", getpid()));
-    if (CG(class_table) != EG(class_table))
-    {
-      DBG(ea_debug_printf, (EA_DEBUG, "\t[%d] oops, CG(class_table)[%08x] != EG(class_table)[%08x]\n", getpid(), CG(class_table), EG(class_table)));
+    if (CG(class_table) != EG(class_table)) {
+      DBG(ea_debug_printf, (EA_DEBUG, "\t[%d] oops, CG(class_table)[%08x] != EG(class_table)[%08x]\n", 
+						getpid(), CG(class_table), EG(class_table)));
       DBG(ea_debug_log_hashkeys, ("CG(class_table)\n", CG(class_table)));
       DBG(ea_debug_log_hashkeys, ("EG(class_table)\n", EG(class_table)));
-    }
-    else {
-      DBG(ea_debug_printf, (EA_DEBUG, "\t[%d] OKAY. That what I thought, CG(class_table)[%08x] == EG(class_table)[%08x]\n", getpid(), CG(class_table), EG(class_table)));
+    } else {
+      DBG(ea_debug_printf, (EA_DEBUG, "\t[%d] OKAY. That what I thought, CG(class_table)[%08x] == EG(class_table)[%08x]\n", 
+						getpid(), CG(class_table), EG(class_table)));
       DBG(ea_debug_log_hashkeys, ("CG(class_table)\n", CG(class_table)));
     }
 
@@ -1383,7 +1381,7 @@ ZEND_DLEXPORT zend_op_array* eaccelerator_compile_file(zend_file_handle *file_ha
 
     DBG(ea_debug_printf, (EA_TEST_PERFORMANCE, "\t[%d] compile_file: compiling (%ld)\n",getpid(),ea_debug_elapsed_time(&tv_start)));
     DBG(ea_debug_printf, (EA_DEBUG, "\t[%d] compile_file: compiling tmp_class_table=%d class_table=%d\n", 
-        getpid(), tmp_class_table.nNumOfElements, orig_class_table->nNumOfElements));
+          getpid(), tmp_class_table.nNumOfElements, orig_class_table->nNumOfElements));
     if (EAG(optimizer_enabled) && eaccelerator_mm_instance->optimizer_enabled) {
       EAG(compiler) = 1;
     }
@@ -1410,13 +1408,8 @@ ZEND_DLEXPORT zend_op_array* eaccelerator_compile_file(zend_file_handle *file_ha
     }
 */
     EAG(compiler) = 0;
-    if (t != NULL && file_handle->opened_path != NULL &&
-#ifdef EACCELERATOR_USE_INODE
-        eaccelerator_ok_to_cache(file_handle->opened_path TSRMLS_CC)) {
-#else
-        (eaccelerator_check_mtime ||
+    if (t != NULL && file_handle->opened_path != NULL && (eaccelerator_check_mtime ||
          ((stat(file_handle->opened_path, &buf) == 0) && S_ISREG(buf.st_mode)))) {
-#endif
       DBG(ea_debug_printf, (EA_TEST_PERFORMANCE, "\t[%d] compile_file: storing in cache (%ld)\n", getpid(), ea_debug_elapsed_time(&tv_start)));
       DBG(ea_debug_printf, (EA_DEBUG, "\t[%d] compile_file: storing in cache\n", getpid()));
 #ifdef WITH_EACCELERATOR_LOADER
@@ -1465,18 +1458,13 @@ ZEND_DLEXPORT zend_op_array* eaccelerator_compile_file(zend_file_handle *file_ha
         }
       }
 #endif
-      function_table_tail = function_table_tail?function_table_tail->pListNext:
-                                                CG(function_table)->pListHead;
-      class_table_tail = class_table_tail?class_table_tail->pListNext:
-                                          CG(class_table)->pListHead;
-      if (eaccelerator_store(file_handle->opened_path, &buf, nreloads, t,
-                        function_table_tail, class_table_tail TSRMLS_CC)) {
+      function_table_tail = function_table_tail?function_table_tail->pListNext:CG(function_table)->pListHead;
+      class_table_tail = class_table_tail?class_table_tail->pListNext:CG(class_table)->pListHead;
+      if (eaccelerator_store(file_handle->opened_path, &buf, nreloads, t, function_table_tail, class_table_tail TSRMLS_CC)) {
 #ifdef DEBUG
-        ea_debug_log("[%d] EACCELERATOR %s: \"%s\"\n", getpid(),
-              (nreloads == 1) ? "cached" : "re-cached", file_handle->opened_path);
+        ea_debug_log("[%d] EACCELERATOR %s: \"%s\"\n", getpid(), (nreloads == 1) ? "cached" : "re-cached", file_handle->opened_path);
 #else
-        ea_debug_log("EACCELERATOR %s: \"%s\"\n",
-          (nreloads == 1) ? "cached" : "re-cached", file_handle->opened_path);
+        ea_debug_log("EACCELERATOR %s: \"%s\"\n", (nreloads == 1) ? "cached" : "re-cached", file_handle->opened_path);
 #endif
       } else {
 #ifdef DEBUG
@@ -1486,25 +1474,21 @@ ZEND_DLEXPORT zend_op_array* eaccelerator_compile_file(zend_file_handle *file_ha
 #endif
       }
     } else {
-      function_table_tail = function_table_tail?function_table_tail->pListNext:
-                                                CG(function_table)->pListHead;
-      class_table_tail = class_table_tail?class_table_tail->pListNext:
-                                          CG(class_table)->pListHead;
+      function_table_tail = function_table_tail?function_table_tail->pListNext:CG(function_table)->pListHead;
+      class_table_tail = class_table_tail?class_table_tail->pListNext:CG(class_table)->pListHead;
     }
     CG(function_table) = orig_function_table;
     CG(class_table) = orig_class_table;
 #ifdef ZEND_ENGINE_2
     EG(class_table) = orig_eg_class_table;
-    DBG(ea_debug_printf, (EA_DEBUG, "\t[%d] restoring CG(class_table)[%08x] != EG(class_table)[%08x]\n", getpid(), CG(class_table), EG(class_table)));
+    DBG(ea_debug_printf, (EA_DEBUG, "\t[%d] restoring CG(class_table)[%08x] != EG(class_table)[%08x]\n", 
+                getpid(), CG(class_table), EG(class_table)));
 #endif
     while (function_table_tail != NULL) {
       zend_op_array *op_array = (zend_op_array*)function_table_tail->pData;
       if (op_array->type == ZEND_USER_FUNCTION) {
-        if (zend_hash_add(CG(function_table),
-                          function_table_tail->arKey,
-                          function_table_tail->nKeyLength,
-                          op_array, sizeof(zend_op_array), NULL) == FAILURE &&
-            function_table_tail->arKey[0] != '\000') {
+        if (zend_hash_add(CG(function_table), function_table_tail->arKey, function_table_tail->nKeyLength, op_array, 
+                    sizeof(zend_op_array), NULL) == FAILURE && function_table_tail->arKey[0] != '\000') {
           CG(in_compilation) = 1;
           CG(compiled_filename) = file_handle->opened_path;
 #ifdef ZEND_ENGINE_2
@@ -1521,11 +1505,8 @@ ZEND_DLEXPORT zend_op_array* eaccelerator_compile_file(zend_file_handle *file_ha
 #ifdef ZEND_ENGINE_2
       zend_class_entry **ce = (zend_class_entry**)class_table_tail->pData;
       if ((*ce)->type == ZEND_USER_CLASS) {
-        if (zend_hash_add(CG(class_table),
-                          class_table_tail->arKey,
-                          class_table_tail->nKeyLength,
-                          ce, sizeof(zend_class_entry*), NULL) == FAILURE &&
-            class_table_tail->arKey[0] != '\000') {
+        if (zend_hash_add(CG(class_table), class_table_tail->arKey, class_table_tail->nKeyLength, 
+                    ce, sizeof(zend_class_entry*), NULL) == FAILURE && class_table_tail->arKey[0] != '\000') {
           CG(in_compilation) = 1;
           CG(compiled_filename) = file_handle->opened_path;
           CG(zend_lineno) = (*ce)->line_start;
@@ -1533,16 +1514,12 @@ ZEND_DLEXPORT zend_op_array* eaccelerator_compile_file(zend_file_handle *file_ha
       zend_class_entry *ce = (zend_class_entry*)class_table_tail->pData;
       if (ce->type == ZEND_USER_CLASS) {
         if (ce->parent != NULL) {
-          if (zend_hash_find(CG(class_table), (void*)ce->parent->name, ce->parent->name_length+1, (void **)&ce->parent) != SUCCESS)
-		  {
+          if (zend_hash_find(CG(class_table), (void*)ce->parent->name, ce->parent->name_length+1, (void **)&ce->parent) != SUCCESS) {
             ce->parent = NULL;
           }
         }
-        if (zend_hash_add(CG(class_table),
-                          class_table_tail->arKey,
-                          class_table_tail->nKeyLength,
-                          ce, sizeof(zend_class_entry), NULL) == FAILURE &&
-            class_table_tail->arKey[0] != '\000') {
+        if (zend_hash_add(CG(class_table), class_table_tail->arKey, class_table_tail->nKeyLength, ce, 
+                    sizeof(zend_class_entry), NULL) == FAILURE && class_table_tail->arKey[0] != '\000') {
           CG(in_compilation) = 1;
           CG(compiled_filename) = file_handle->opened_path;
           CG(zend_lineno) = 0;
@@ -2664,3 +2641,12 @@ static void register_eaccelerator_as_zend_extension() {
 /******************************************************************************/
 
 #endif  /* #ifdef HAVE_EACCELERATOR */
+
+/*
+ * Local variables:
+ * tab-width: 2
+ * c-basic-offset: 2
+ * End:
+ * vim600: noet sw=2 ts=2 fdm=marker
+ * vim<600: noet sw=2 ts=2
+ */
