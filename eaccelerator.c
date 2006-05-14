@@ -835,11 +835,7 @@ static mm_cache_entry *eaccelerator_store_int (char *key, int len,
 
   q = p->c_head;
   while (q != NULL) {
-#ifdef ZEND_ENGINE_2
-      q->fc = store_class_entry ((zend_class_entry *) q->fc TSRMLS_CC);  // hra: exactly the same?!
-#else
       q->fc = store_class_entry ((zend_class_entry *) q->fc TSRMLS_CC);
-#endif
       q = q->next;
   }
 
@@ -1028,7 +1024,6 @@ static int match(const char* name, const char* pat) {
 static int eaccelerator_ok_to_cache(char *realname TSRMLS_DC) {
   mm_cond_entry *p;
   int ok;
-fprintf(stderr, "Going to inspect %s\n", realname);fflush(stderr);
   if (EAG(cond_list) == NULL) {
     return 1;
   }
