@@ -725,9 +725,6 @@ void restore_class_parent(char *parent, int len,
 		/* parent found */
 #ifdef ZEND_ENGINE_2
 		to->parent = *parent_ptr;
-		to->constructor = to->parent->constructor;
-		to->destructor = to->parent->destructor;
-		to->clone = to->parent->clone;
 #endif
 		DBG(ea_debug_printf, (EA_DEBUG, "restore_class_parent: found parent %s..\n", to->parent->name));
 		DBG(ea_debug_printf, (EA_DEBUG, "restore_class_parent: parent type=%d child type=%d\n", to->parent->type, to->type));
@@ -745,16 +742,14 @@ void restore_class_methods(zend_class_entry * to TSRMLS_DC)
 	int fname_len = 0;
 	char *fname_lc = NULL;
 	zend_function *f = NULL;
-	zend_function *old_ctor = to->constructor;
 	Bucket *p = to->function_table.pListHead;
 
 	while (p != NULL) {
 		f = p->pData;
 		fname_len = strlen(f->common.function_name);
 		fname_lc = zend_str_tolower_dup(f->common.function_name, fname_len);
-
-		if (fname_len == cname_len && !memcmp(fname_lc, cname_lc, fname_len) && 
-                to->constructor == old_ctor && f->common.scope != to->parent) {
+		
+		if (fname_len == cname_len && !memcmp(fname_lc, cname_lc, fname_len) && f->common.scope != to->parent) {
 			to->constructor = f;
 		} else if (fname_lc[0] == '_' && fname_lc[1] == '_' && f->common.scope != to->parent) {
 			if (fname_len == sizeof(ZEND_CONSTRUCTOR_FUNC_NAME) - 1 && 

@@ -194,7 +194,6 @@ typedef struct _eaccelerator_op_array {
 	zend_uchar *arg_types;
 #endif
 	char *function_name;
-	char *function_name_lc;
 #ifdef ZEND_ENGINE_2
 	char *scope_name;
 	int scope_name_len;
@@ -224,7 +223,6 @@ typedef struct _eaccelerator_op_array {
 typedef struct _eaccelerator_class_entry {
 	char type;
 	char *name;
-	char *name_lc;
 	zend_uint name_length;
 	char *parent;
 	HashTable function_table;
