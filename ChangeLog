@@ -1,3 +1,7 @@
+2006-06-06  Hans Rakers <hans at parse dot nl>
+	* Fix for ticket #101 ('bailout' is used in zend_globals.h in a ZTS
+	  build) as suggested by <ihanick at gmail dot com>
+
 2006-06-02  Hans Rakers <hans at parse dot nl>
 	* Removed two unused vars from the internal datastructures
 	* Fixed constructor inheritance. This fixes handling of implicit

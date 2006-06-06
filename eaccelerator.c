@@ -1341,7 +1341,7 @@ ZEND_DLEXPORT zend_op_array* eaccelerator_compile_file(zend_file_handle *file_ha
     HashTable tmp_class_table;
     zend_function tmp_func;
     zend_class_entry tmp_class;
-    int bailout;
+    int ea_bailout;
 
     DBG(ea_debug_printf, (EA_DEBUG, "\t[%d] compile_file: marking\n", getpid()));
     if (CG(class_table) != EG(class_table)) {
@@ -1381,7 +1381,7 @@ ZEND_DLEXPORT zend_op_array* eaccelerator_compile_file(zend_file_handle *file_ha
       EAG(compiler) = 1;
     }
 
-    bailout = 0;
+    ea_bailout = 0;
     zend_try {
       t = mm_saved_zend_compile_file(file_handle, type TSRMLS_CC);
     } zend_catch {
@@ -1390,9 +1390,9 @@ ZEND_DLEXPORT zend_op_array* eaccelerator_compile_file(zend_file_handle *file_ha
 #ifdef ZEND_ENGINE_2
       EG(class_table) = orig_eg_class_table;
 #endif
-      bailout = 1;
+      ea_bailout = 1;
     } zend_end_try();
-    if (bailout) {
+    if (ea_bailout) {
       zend_bailout();
     }
     DBG(ea_debug_log_hashkeys, ("class_table\n", CG(class_table)));
@@ -1434,9 +1434,9 @@ ZEND_DLEXPORT zend_op_array* eaccelerator_compile_file(zend_file_handle *file_ha
         } zend_catch {
             CG(function_table)	= orig_function_table;
             CG(class_table)		= orig_class_table;
-            bailout				= 1;
+            ea_bailout				= 1;
         } zend_end_try();
-        if (bailout) {
+        if (ea_bailout) {
           zend_bailout ();
         }
         CG(in_compilation) = old_in_compilation;
