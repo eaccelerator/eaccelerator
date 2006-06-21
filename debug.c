@@ -35,8 +35,6 @@
 #include "debug.h"
 #include <ctype.h>
 #include <stdio.h>
-#include <unistd.h>
-#include <fcntl.h>
 
 static FILE *F_fp = NULL;
 static int file_no = 0;
