@@ -45,7 +45,7 @@ RSC=rc.exe
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /MD /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /YX /FD /c
-# ADD CPP /nologo /MD /W3 /GX /O2 /I "../../.." /I "../../../zend" /I "../../../TSRM" /I "../../../main" /D "NDEBUG" /D "WIN32" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "HAVE_EACCELERATOR" /D "COMPILE_DL_EACCELERATOR" /D "ZEND_WIN32" /D "PHP_WIN32" /D ZTS=1 /D ZEND_DEBUG=0 /D "WITH_EACCELERATOR_LOADER" /D "HAVE_EACCELERATOR_STANDALONE_LOADER" /YX /FD /c
+# ADD CPP /nologo /MD /W3 /GX /O2 /I "../../.." /I "../../../zend" /I "../../../TSRM" /I "../../../main" /D "NDEBUG" /D "WIN32" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "HAVE_EACCELERATOR" /D "COMPILE_DL_ELOADER" /D "ZEND_WIN32" /D "PHP_WIN32" /D ZTS=1 /D ZEND_DEBUG=0 /D "WITH_EACCELERATOR_LOADER" /D "HAVE_EACCELERATOR_STANDALONE_LOADER" /YX /FD /c
 # ADD BASE MTL /nologo /D "NDEBUG" /mktyplib203 /win32
 # ADD MTL /nologo /D "NDEBUG" /mktyplib203 /win32
 # ADD BASE RSC /l 0x409 /d "NDEBUG"
@@ -72,7 +72,7 @@ LINK32=link.exe
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /MD /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /YX /FD /GZ /c
-# ADD CPP /nologo /MD /W3 /Gm /GX /ZI /Od /I "../../.." /I "../../../zend" /I "../../../TSRM" /I "../../../main" /D "_DEBUG" /D "WIN32" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "HAVE_EACCELERATOR" /D "COMPILE_DL_EACCELERATOR" /D "ZEND_WIN32" /D "PHP_WIN32" /D ZTS=1 /D ZEND_DEBUG=0 /D "WITH_EACCELERATOR_LOADER" /D "HAVE_EACCELERATOR_STANDALONE_LOADER" /YX /FD /GZ /c
+# ADD CPP /nologo /MD /W3 /Gm /GX /ZI /Od /I "../../.." /I "../../../zend" /I "../../../TSRM" /I "../../../main" /D "_DEBUG" /D "WIN32" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "HAVE_EACCELERATOR" /D "COMPILE_DL_ELOADER" /D "ZEND_WIN32" /D "PHP_WIN32" /D ZTS=1 /D ZEND_DEBUG=0 /D "WITH_EACCELERATOR_LOADER" /D "HAVE_EACCELERATOR_STANDALONE_LOADER" /YX /FD /GZ /c
 # ADD BASE MTL /nologo /D "_DEBUG" /mktyplib203 /win32
 # ADD MTL /nologo /D "_DEBUG" /mktyplib203 /win32
 # ADD BASE RSC /l 0x409 /d "_DEBUG"
@@ -153,6 +153,14 @@ LINK32=link.exe
 # PROP Default_Filter "cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
 # Begin Source File
 
+SOURCE=..\debug.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\ea_restore.c
+# End Source File
+# Begin Source File
+
 SOURCE=..\loader.c
 # End Source File
 # Begin Source File
@@ -163,6 +171,14 @@ SOURCE=..\opcodes.c
 # Begin Group "Header Files"
 
 # PROP Default_Filter "h;hpp;hxx;hm;inl"
+# Begin Source File
+
+SOURCE=..\debug.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\ea_restore.h
+# End Source File
 # Begin Source File
 
 SOURCE=..\eaccelerator.h

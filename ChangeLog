@@ -2,6 +2,7 @@
 
         * Branched the 0.9.4 release to fix win32
         * Fixes from Simon Westwood
+        * Commit updated windows project files
 
 2006-02-15 Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 

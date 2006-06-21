@@ -178,10 +178,6 @@ SOURCE=..\encoder.c
 # End Source File
 # Begin Source File
 
-SOURCE=..\execute.c
-# End Source File
-# Begin Source File
-
 SOURCE=..\loader.c
 # End Source File
 # Begin Source File
