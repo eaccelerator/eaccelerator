@@ -64,8 +64,11 @@
 #ifndef HAVE_EACCELERATOR_STANDALONE_LOADER 
 
 #include "mm.h"
+#endif
+
 
 #ifdef EACCELERATOR_WITHOUT_FILE_LOCKING
+# include <xxxx1.c>
 #  ifndef LOCK_SH
 #    define LOCK_SH 1
 #    define LOCK_EX 2
@@ -104,7 +107,7 @@
                                        1, 0, &offset);\
                                    }}
 #  endif
-#endif
+
 
 #ifdef ZEND_WIN32
 #  include <process.h>
@@ -388,7 +391,7 @@ int eaccelerator_md5 (char *s, const char *prefix, const char *key TSRMLS_DC);
 void calc_zval (zval * z TSRMLS_DC);
 void store_zval (zval * z TSRMLS_DC);
 void fixup_zval (zval * z TSRMLS_DC);
-void restore_zval (zval * TSRMLS_DC);
+//void restore_zval (zval * TSRMLS_DC);
 
 unsigned int hash_mm(const char *data, int len); 
 

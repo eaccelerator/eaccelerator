@@ -72,37 +72,6 @@ void ea_debug_shutdown ()
     F_fp = NULL;
 }
 
-/* lock the log file, don't lock stderr */
-static void ea_debug_lock() {
-    int rc;
-    struct flock l;
-    if (F_fp != stderr) {
-        l.l_whence   = SEEK_SET;
-        l.l_start    = 0;
-        l.l_len      = 0;
-        l.l_pid      = 0;
-        l.l_type     = F_WRLCK;
-        do {
-            rc = fcntl(file_no, F_SETLKW, &l);
-        } while (rc < 0 && errno == EINTR);
-    }
-}
-
-static void ea_debug_unlock() {
-    int rc;
-    struct flock l;
-    if (F_fp != stderr) {
-        l.l_whence   = SEEK_SET;
-        l.l_start    = 0;
-        l.l_len      = 0;
-        l.l_pid      = 0;
-        l.l_type     = F_UNLCK;
-        do {
-            rc = fcntl(file_no, F_SETLKW, &l);
-        } while (rc < 0 && errno == EINTR);
-    }
-}
-
 /**
  * Print a log message that will be print when the debug level is
  * equal to EA_LOG. This function is always called even if ea isn't
@@ -118,14 +87,15 @@ void ea_debug_log (char *format, ...)
         vsnprintf (output_buf, sizeof (output_buf), format, args);
         va_end (args);
 
-        ea_debug_lock();
-#ifdef ZEND_WIN32
-        OutputDebugString (output_buf);
-#else
-        fputs (output_buf, F_fp);
-        fflush (F_fp);
-#endif
-        ea_debug_unlock();
+        if (F_fp != stderr) {
+			EACCELERATOR_FLOCK(file_no, LOCK_EX);
+		}
+		fputs (output_buf, F_fp);
+		fflush (F_fp);
+		if (F_fp != stderr) {
+			EACCELERATOR_FLOCK(file_no, LOCK_UN);
+		}
+
     }
 }
 

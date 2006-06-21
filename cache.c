@@ -35,6 +35,7 @@
 #include "zend.h"
 #include "zend_API.h"
 #include "zend_extensions.h"
+#include "ea_restore.h"
 
 #include <fcntl.h>
 
