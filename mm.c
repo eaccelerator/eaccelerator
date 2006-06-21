@@ -36,6 +36,8 @@
 # include "php.h"
 #endif
 
+#include "debug.h"
+
 #ifdef WIN32
 #  if 1
 #    define MM_SHM_WIN32
