@@ -1,3 +1,7 @@
+2006-06-26  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
+	* Fix ticket #108
+	* Removed webui.[c|h] from the windows project files
+
 2006-06-06  Hans Rakers <hans at parse dot nl>
 	* Fix for ticket #101 ('bailout' is used in zend_globals.h in a ZTS
 	  build) as suggested by <ihanick at gmail dot com>

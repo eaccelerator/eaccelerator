@@ -1955,7 +1955,7 @@ static int eaccelerator_check_php_version(TSRMLS_D) {
 }
 
 static void make_hash_dirs(char *fullpath, int lvl) {
-  int i, j;
+  int j;
   int n = strlen(fullpath);
   mode_t old_umask = umask(0);
   

@@ -102,6 +102,11 @@
 #  endif
 #endif
 
+#ifndef _INTPTR_T_DEFINED 
+	typedef intptr_t;
+	#define _INTPTR_T_DEFINED
+#endif
+
 #ifdef HAVE_EACCELERATOR
 #ifndef HAVE_EACCELERATOR_STANDALONE_LOADER 
 

@@ -208,10 +208,6 @@ SOURCE=..\session.c
 
 SOURCE=..\shm.c
 # End Source File
-# Begin Source File
-
-SOURCE=..\webui.c
-# End Source File
 # End Group
 # Begin Group "Header Files"
 
@@ -267,10 +263,6 @@ SOURCE=..\session.h
 # Begin Source File
 
 SOURCE=..\shm.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\webui.h
 # End Source File
 # End Group
 # Begin Group "Resource Files"
