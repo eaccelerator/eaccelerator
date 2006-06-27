@@ -3,7 +3,7 @@
    | eAccelerator project                                                 |
    +----------------------------------------------------------------------+
    | Copyright (c) 2004 - 2006 eAccelerator                               |
-   | http://eaccelerator.net                                  		  	  |
+   | http://eaccelerator.net											  |
    +----------------------------------------------------------------------+
    | This program is free software; you can redistribute it and/or        |
    | modify it under the terms of the GNU General Public License          |
@@ -603,7 +603,7 @@ void eaccelerator_fixup (mm_cache_entry * p TSRMLS_DC)
 }
 
 /******************************************************************************/
-/* Cache file functions.													  */
+/* Cache file functions.														*/
 /******************************************************************************/
 
 /* Retrieve a cache entry from the cache directory */
@@ -935,13 +935,19 @@ static zend_op_array* eaccelerator_restore(char *realname, struct stat *buf,
       used->next   = (mm_used_entry*)EAG(used_entries);
       EAG(used_entries) = (void*)used;
       EAG(mem) = op_array->filename;
-      for (e = p->c_head; e!=NULL; e = e->next) {
-        restore_class(e TSRMLS_CC);
-      }
-      for (e = p->f_head; e!=NULL; e = e->next) {
-        restore_function(e TSRMLS_CC);
-      }
-      EAG(mem) = p->realfilename;
+	  /* only restore the classes and functions when we restore this script 
+	   * for the first time. 
+	   */
+      if (!zend_hash_exists(&EAG(restored), p->realfilename, strlen(p->realfilename))) {
+	    for (e = p->c_head; e!=NULL; e = e->next) {
+          restore_class(e TSRMLS_CC);
+        }
+        for (e = p->f_head; e!=NULL; e = e->next) {
+          restore_function(e TSRMLS_CC);
+        }
+		zend_hash_add(&EAG(restored), p->realfilename, strlen(p->realfilename), NULL, 0, NULL);  
+	  }
+	  EAG(mem) = p->realfilename;
     }
   }
   return op_array;
@@ -1252,13 +1258,13 @@ ZEND_DLEXPORT zend_op_array* eaccelerator_compile_file(zend_file_handle *file_ha
   realname[0] = '\000';
 #endif
 
-  DBG(ea_debug_printf, (EA_TEST_PERFORMANCE, "[%d] Enter COMPILE\n",getpid()));
   DBG(ea_debug_start_time, (&tv_start));
   DBG(ea_debug_printf, (EA_DEBUG, "[%d] Enter COMPILE\n",getpid()));
   DBG(ea_debug_printf, (EA_DEBUG, "[%d] compile_file: \"%s\"\n",getpid(), file_handle->filename));
 #ifdef DEBUG
   EAG(xpad)+=2;
 #endif
+
   compile_time = time(0);
   stat_result = eaccelerator_stat(file_handle, realname, &buf TSRMLS_CC);
   if (buf.st_mtime >= compile_time && eaccelerator_debug > 0) {
@@ -1320,9 +1326,6 @@ ZEND_DLEXPORT zend_op_array* eaccelerator_compile_file(zend_file_handle *file_ha
       zend_hash_add(&EG(included_files), file_handle->opened_path, strlen(file_handle->opened_path)+1, (void *)&dummy, sizeof(int), NULL);
       file_handle->handle.fp = NULL;
 #endif
-/*??? I don't understud way estrdup is not need
-      file_handle->opened_path = estrdup(EAG(mem));
-*/
     }
     DBG(ea_debug_printf, (EA_TEST_PERFORMANCE, "\t[%d] compile_file: restored (%ld)\n", getpid(), ea_debug_elapsed_time(&tv_start)));
     DBG(ea_debug_printf, (EA_DEBUG, "\t[%d] compile_file: restored\n", getpid()));
@@ -2083,25 +2086,31 @@ PHP_MSHUTDOWN_FUNCTION(eaccelerator) {
 
 PHP_RINIT_FUNCTION(eaccelerator)
 {
-	if (eaccelerator_mm_instance == NULL)
-	{
+  union {
+		zval **v;
+    void *ptr;
+  } server_vars, hostname;
+
+	if (eaccelerator_mm_instance == NULL) {
 		return SUCCESS;
 	}
+
 	/*
-	 * HOESH: Initialization on first call,
-	 * came from eaccelerator_zend_startup().
+	 * Initialization on first call, comes from eaccelerator_zend_startup().
 	 */
-	if (eaccelerator_global_function_table.nTableSize == 0)
-	{
+	if (eaccelerator_global_function_table.nTableSize == 0) {
 		zend_function tmp_func;
 		zend_class_entry tmp_class;
 
 		zend_hash_init_ex(&eaccelerator_global_function_table, 100, NULL, NULL, 1, 0);
-		zend_hash_copy(&eaccelerator_global_function_table, CG(function_table), NULL, &tmp_func, sizeof(zend_function));
+		zend_hash_copy(&eaccelerator_global_function_table, CG(function_table), NULL, 
+			&tmp_func, sizeof(zend_function));
 		
 		zend_hash_init_ex(&eaccelerator_global_class_table, 10, NULL, NULL, 1, 0);
-		zend_hash_copy(&eaccelerator_global_class_table, CG(class_table), NULL, &tmp_class, sizeof(zend_class_entry));
+		zend_hash_copy(&eaccelerator_global_class_table, CG(class_table), NULL, 
+			&tmp_class, sizeof(zend_class_entry));
 	}
+
 	DBG(ea_debug_printf, (EA_DEBUG, "[%d] Enter RINIT\n",getpid()));
 	DBG(ea_debug_put, (EA_PROFILE_OPCODES, "\n========================================\n"));
 
@@ -2112,40 +2121,30 @@ PHP_RINIT_FUNCTION(eaccelerator)
 	EAG(refcount_helper) = 1;
 	EAG(compress_content) = 1;
 	EAG(content_headers) = NULL;
+
 	/* Storing Host Name */
 	EAG(hostname)[0] = '\000';
-	{
-        union {
-            zval **v;
-            void *ptr;
-        } server_vars;
-        union {
-            zval **v;
-            void *ptr;
-        } hostname;
-
-		if (zend_hash_find(&EG(symbol_table), "_SERVER", sizeof("_SERVER"), &server_vars.ptr) == SUCCESS &&
+  if (zend_hash_find(&EG(symbol_table), "_SERVER", sizeof("_SERVER"), &server_vars.ptr) == SUCCESS &&
 			Z_TYPE_PP(server_vars.v) == IS_ARRAY &&
 			zend_hash_find(Z_ARRVAL_PP(server_vars.v), "SERVER_NAME", sizeof("SERVER_NAME"), &hostname.ptr)==SUCCESS &&
-			Z_TYPE_PP(hostname.v) == IS_STRING &&
-			Z_STRLEN_PP(hostname.v) > 0)
-		{
-			if (sizeof(EAG(hostname)) > Z_STRLEN_PP(hostname.v))
-			{
-				memcpy(EAG(hostname),Z_STRVAL_PP(hostname.v),Z_STRLEN_PP(hostname.v)+1);
-			}
-			else
-			{
-				memcpy(EAG(hostname),Z_STRVAL_PP(hostname.v),sizeof(EAG(hostname))-1);
-				EAG(hostname)[sizeof(EAG(hostname))-1] = '\000';
-			}
+			Z_TYPE_PP(hostname.v) == IS_STRING && Z_STRLEN_PP(hostname.v) > 0) {
+		if (sizeof(EAG(hostname)) > Z_STRLEN_PP(hostname.v)) {
+			memcpy(EAG(hostname),Z_STRVAL_PP(hostname.v),Z_STRLEN_PP(hostname.v)+1);
+		} else {
+			memcpy(EAG(hostname),Z_STRVAL_PP(hostname.v),sizeof(EAG(hostname))-1);
+			EAG(hostname)[sizeof(EAG(hostname))-1] = '\000';
 		}
-	}
+  }
+
+	/* initialise the hash that contains the restored files */
+	zend_hash_init(&EAG(restored), 0, NULL, NULL, 0);
+
 	DBG(ea_debug_printf, (EA_DEBUG, "[%d] Leave RINIT\n",getpid()));
 #ifdef DEBUG
 	EAG(xpad) = 0;
 	EAG(profile_level) = 0;
 #endif
+
 #ifdef WITH_EACCELERATOR_CRASH_DETECTION
 #ifdef SIGSEGV
 	EAG(original_sigsegv_handler) = signal(SIGSEGV, eaccelerator_crash_handler);
@@ -2171,6 +2170,8 @@ PHP_RSHUTDOWN_FUNCTION(eaccelerator)
 	if (eaccelerator_mm_instance == NULL) {
 		return SUCCESS;
 	}
+	ea_debug_hash_display(&EAG(restored));
+	zend_hash_destroy(&EAG(restored));
 #ifdef WITH_EACCELERATOR_CRASH_DETECTION
 #ifdef SIGSEGV
 	if (EAG(original_sigsegv_handler) != eaccelerator_crash_handler) {

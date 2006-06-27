@@ -102,7 +102,7 @@
 #  endif
 #endif
 
-#ifndef _INTPTR_T_DEFINED 
+#if !defined(_INTPTR_T_DEFINED) && ZEND_WIN32
 	typedef intptr_t;
 	#define _INTPTR_T_DEFINED
 #endif
@@ -448,6 +448,7 @@ char *name_space;
 char *mem;
 char *allowed_admin_path;
 HashTable strings;
+HashTable restored;
 zend_class_entry *class_entry;
 mm_cond_entry *cond_list;
 zend_uint refcount_helper;
