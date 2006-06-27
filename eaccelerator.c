@@ -3,7 +3,7 @@
    | eAccelerator project                                                 |
    +----------------------------------------------------------------------+
    | Copyright (c) 2004 - 2006 eAccelerator                               |
-   | http://eaccelerator.net											  |
+   | http://eaccelerator.net											                        |
    +----------------------------------------------------------------------+
    | This program is free software; you can redistribute it and/or        |
    | modify it under the terms of the GNU General Public License          |
@@ -935,14 +935,17 @@ static zend_op_array* eaccelerator_restore(char *realname, struct stat *buf,
       used->next   = (mm_used_entry*)EAG(used_entries);
       EAG(used_entries) = (void*)used;
       EAG(mem) = op_array->filename;
-			/* if a scripts has been restored, don't restore the functions and classes again */
-	    if (!zend_hash_exists(&EG(included_files), op_array->filename, strlen(op_array->filename) + 1)) {
+	    /* only restore the classes and functions when we restore this script 
+	     * for the first time. 
+	     */
+      if (!zend_hash_exists(&EAG(restored), p->realfilename, strlen(p->realfilename))) {
 	      for (e = p->c_head; e!=NULL; e = e->next) {
           restore_class(e TSRMLS_CC);
         }
         for (e = p->f_head; e!=NULL; e = e->next) {
           restore_function(e TSRMLS_CC);
         }
+		    zend_hash_add(&EAG(restored), p->realfilename, strlen(p->realfilename), NULL, 0, NULL);  
 	    }
 	    EAG(mem) = p->realfilename;
     }
@@ -2070,7 +2073,7 @@ PHP_MSHUTDOWN_FUNCTION(eaccelerator) {
   ea_debug_shutdown();
   UNREGISTER_INI_ENTRIES();
 #ifdef ZTS
-	ts_free_id(eaccelerator_globals_id);
+  ts_free_id(eaccelerator_globals_id);
 #else
   eaccelerator_globals_dtor(&eaccelerator_globals TSRMLS_CC);
 #endif
@@ -2131,6 +2134,8 @@ PHP_RINIT_FUNCTION(eaccelerator)
 		}
   }
 
+	zend_hash_init(&EAG(restored), 0, NULL, NULL, 0);
+
 	DBG(ea_debug_printf, (EA_DEBUG, "[%d] Leave RINIT\n",getpid()));
 #ifdef DEBUG
 	EAG(xpad) = 0;
@@ -2162,6 +2167,7 @@ PHP_RSHUTDOWN_FUNCTION(eaccelerator)
 	if (eaccelerator_mm_instance == NULL) {
 		return SUCCESS;
 	}
+	zend_hash_destroy(&EAG(restored));
 #ifdef WITH_EACCELERATOR_CRASH_DETECTION
 #ifdef SIGSEGV
 	if (EAG(original_sigsegv_handler) != eaccelerator_crash_handler) {

@@ -3,8 +3,6 @@
         * Fixed ifdef for #108 to use only on windows
         * Fix for bug #109, #31 and SF-1102070
         * Cleaned-up RINIT a bit for hostname determining
-        * Redone the fix for bug #109, don't keep our own list of restored files,
-          we use the included_files hash from the zend engine.
         * Included the fix from ticket #94 for zts
 
 2006-06-26  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
