@@ -448,7 +448,6 @@ char *name_space;
 char *mem;
 char *allowed_admin_path;
 HashTable strings;
-HashTable restored;
 zend_class_entry *class_entry;
 mm_cond_entry *cond_list;
 zend_uint refcount_helper;

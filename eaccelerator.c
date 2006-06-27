@@ -935,19 +935,16 @@ static zend_op_array* eaccelerator_restore(char *realname, struct stat *buf,
       used->next   = (mm_used_entry*)EAG(used_entries);
       EAG(used_entries) = (void*)used;
       EAG(mem) = op_array->filename;
-	  /* only restore the classes and functions when we restore this script 
-	   * for the first time. 
-	   */
-      if (!zend_hash_exists(&EAG(restored), p->realfilename, strlen(p->realfilename))) {
-	    for (e = p->c_head; e!=NULL; e = e->next) {
+			/* if a scripts has been restored, don't restore the functions and classes again */
+	    if (!zend_hash_exists(&EG(included_files), op_array->filename, strlen(op_array->filename) + 1)) {
+	      for (e = p->c_head; e!=NULL; e = e->next) {
           restore_class(e TSRMLS_CC);
         }
         for (e = p->f_head; e!=NULL; e = e->next) {
           restore_function(e TSRMLS_CC);
         }
-		zend_hash_add(&EAG(restored), p->realfilename, strlen(p->realfilename), NULL, 0, NULL);  
-	  }
-	  EAG(mem) = p->realfilename;
+	    }
+	    EAG(mem) = p->realfilename;
     }
   }
   return op_array;
@@ -1257,7 +1254,6 @@ ZEND_DLEXPORT zend_op_array* eaccelerator_compile_file(zend_file_handle *file_ha
 #ifdef EACCELERATOR_USE_INODE
   realname[0] = '\000';
 #endif
-
   DBG(ea_debug_start_time, (&tv_start));
   DBG(ea_debug_printf, (EA_DEBUG, "[%d] Enter COMPILE\n",getpid()));
   DBG(ea_debug_printf, (EA_DEBUG, "[%d] compile_file: \"%s\"\n",getpid(), file_handle->filename));
@@ -2002,9 +1998,6 @@ PHP_MINIT_FUNCTION(eaccelerator) {
   if (!eaccelerator_check_php_version(TSRMLS_C)) {
     return FAILURE;
   }
-/*??? FIXME
-  ZEND_INIT_MODULE_GLOBALS(eaccelerator, eaccelerator_init_globals, eaccelerator_globals_dtor);
-*/
   ZEND_INIT_MODULE_GLOBALS(eaccelerator, eaccelerator_init_globals, NULL);
   REGISTER_INI_ENTRIES();
   REGISTER_STRING_CONSTANT("EACCELERATOR_VERSION", EACCELERATOR_VERSION, CONST_CS | CONST_PERSISTENT);
@@ -2076,7 +2069,9 @@ PHP_MSHUTDOWN_FUNCTION(eaccelerator) {
   DBG(ea_debug_put, (EA_DEBUG, "========================================\n\n"));
   ea_debug_shutdown();
   UNREGISTER_INI_ENTRIES();
-#ifndef ZTS
+#ifdef ZTS
+	ts_free_id(eaccelerator_globals_id);
+#else
   eaccelerator_globals_dtor(&eaccelerator_globals TSRMLS_CC);
 #endif
   eaccelerator_is_zend_extension = 0;
@@ -2136,9 +2131,6 @@ PHP_RINIT_FUNCTION(eaccelerator)
 		}
   }
 
-	/* initialise the hash that contains the restored files */
-	zend_hash_init(&EAG(restored), 0, NULL, NULL, 0);
-
 	DBG(ea_debug_printf, (EA_DEBUG, "[%d] Leave RINIT\n",getpid()));
 #ifdef DEBUG
 	EAG(xpad) = 0;
@@ -2170,8 +2162,6 @@ PHP_RSHUTDOWN_FUNCTION(eaccelerator)
 	if (eaccelerator_mm_instance == NULL) {
 		return SUCCESS;
 	}
-	ea_debug_hash_display(&EAG(restored));
-	zend_hash_destroy(&EAG(restored));
 #ifdef WITH_EACCELERATOR_CRASH_DETECTION
 #ifdef SIGSEGV
 	if (EAG(original_sigsegv_handler) != eaccelerator_crash_handler) {
