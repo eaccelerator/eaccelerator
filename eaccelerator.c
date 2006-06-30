@@ -2474,6 +2474,7 @@ static int eaccelerator_ioncube_startup(zend_extension *extension) {
 }
 */
 
+
 ZEND_DLEXPORT int eaccelerator_zend_startup(zend_extension *extension) {
  eaccelerator_is_zend_extension = 1;
   eaccelerator_el   = NULL;
@@ -2515,32 +2516,11 @@ ZEND_DLEXPORT int eaccelerator_zend_startup(zend_extension *extension) {
             zend_extensions.tail = p->prev;
           }
         }
-      } else if (strcmp(ext->name, "pcntl") == 0) {
-      } else if (strcmp(ext->name, "DBG") == 0) {
-      } else if (strcmp(ext->name, "Xdebug") == 0) {
-      } else if (strcmp(ext->name, "Advanced PHP Debugger (APD)") == 0) {
       } else if (strcmp(ext->name, "Zend Extension Manager") == 0 ||
                  strcmp(ext->name, "Zend Optimizer") == 0) {
         /* Disable ZendOptimizer Optimizations */
         ZendOptimizer = ext;
         ext->op_array_handler = NULL;
-/*???
-        } else if (strcmp(ext->name, "the ionCube PHP Loader") == 0) {
-          zend_extension* last_ext = (zend_extension*)zend_extensions.tail->data;
-          if (ext != last_ext) {
-            last_ext->startup  = last_startup;
-            last_startup = ext->startup;
-            ext->startup = eaccelerator_ioncube_startup;
-          }
-*/
-      } else {
-        zend_error(E_CORE_ERROR,"[%s] %s %s is incompatible with %s %s",
-                   EACCELERATOR_EXTENSION_NAME,
-                   EACCELERATOR_EXTENSION_NAME,
-                   EACCELERATOR_VERSION,
-                   ext->name,
-                   ext->version);
-        exit(1);
       }
       p = p->next;
     }
