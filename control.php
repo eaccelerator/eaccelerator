@@ -1,5 +1,4 @@
 <?php 
-ini_set('error_reporting', E_ALL);
 /*
    +----------------------------------------------------------------------+
    | eAccelerator control panel                                           |
