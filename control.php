@@ -1,4 +1,5 @@
 <?php 
+ini_set('error_reporting', E_ALL);
 /*
    +----------------------------------------------------------------------+
    | eAccelerator control panel                                           |
@@ -87,28 +88,49 @@ function revcompare($x, $y)
 /* {{{ create_script_table */
 function create_script_table($list) {
   global $sortby;
+
+  if (isset($_GET['order']) && ($_GET['order'] == "asc" || $_GET['order'] =="desc")) {
+    $order = $_GET['order'];
+  } else {
+    $order = "asc";
+  }
+  
+  if (isset($_GET['sort'])) {
+    switch ($_GET['sort']) {
+      case "mtime":
+      case "size":
+      case "reloads":
+      case "hits":
+        $sortby = $_GET['sort'];
+        ($order == "asc" ? uasort($list, 'compare') : uasort($list, 'revcompare'));
+        break;
+      default:
+        $sortby = "file";
+        ($order == "asc" ? uasort($list, 'compare') : uasort($list, 'revcompare'));
+    }
+  }
+
 ?>
     <table>
         <tr>
-            <th><a href="<?=$_SERVER['PHP_SELF']?>?sort=file&order=<?=($_GET['order'] == "asc" ? "desc" : "asc")?>">Filename</a>&nbsp;<? if($_GET['sort'] == "file") echo ($_GET['order'] == "asc" ? "&darr;" : "&uarr;")?></th>
-            <th><a href="<?=$_SERVER['PHP_SELF']?>?sort=mtime&order=<?=($_GET['order'] == "asc" ? "desc" : "asc")?>">MTime</a>&nbsp;<? if($_GET['sort'] == "mtime") echo ($_GET['order'] == "asc" ? "&darr;" : "&uarr;")?></th>
-            <th><a href="<?=$_SERVER['PHP_SELF']?>?sort=size&order=<?=($_GET['order'] == "asc" ? "desc" : "asc")?>">Size</a>&nbsp;<? if($_GET['sort'] == "size") echo ($_GET['order'] == "asc" ? "&darr;" : "&uarr;")?></th>
-            <th><a href="<?=$_SERVER['PHP_SELF']?>?sort=reloads&order=<?=($_GET['order'] == "asc" ? "desc" : "asc")?>">Reloads</a>&nbsp;<? if($_GET['sort'] == "reloads") echo ($_GET['order'] == "asc" ? "&darr;" : "&uarr;")?></th>
-            <th><a href="<?=$_SERVER['PHP_SELF']?>?sort=hits&order=<?=($_GET['order'] == "asc" ? "desc" : "asc")?>">Hits</a>&nbsp;<? if($_GET['sort'] == "hits") echo ($_GET['order'] == "asc" ? "&darr;" : "&uarr;")?></th>
+            <th><a href="<?=$_SERVER['PHP_SELF']?>?sort=file&order=<?=($order == "asc" ? "desc" : "asc")?>">Filename</a>&nbsp;<? if($sortby == "file") echo ($order == "asc" ? "&darr;" : "&uarr;")?></th>
+            <th><a href="<?=$_SERVER['PHP_SELF']?>?sort=mtime&order=<?=($order == "asc" ? "desc" : "asc")?>">MTime</a>&nbsp;<? if($sortby == "mtime") echo ($order == "asc" ? "&darr;" : "&uarr;")?></th>
+            <th><a href="<?=$_SERVER['PHP_SELF']?>?sort=size&order=<?=($order == "asc" ? "desc" : "asc")?>">Size</a>&nbsp;<? if($sortby == "size") echo ($order == "asc" ? "&darr;" : "&uarr;")?></th>
+            <th><a href="<?=$_SERVER['PHP_SELF']?>?sort=reloads&order=<?=($order == "asc" ? "desc" : "asc")?>">Reloads</a>&nbsp;<? if($sortby == "reloads") echo ($order == "asc" ? "&darr;" : "&uarr;")?></th>
+            <th><a href="<?=$_SERVER['PHP_SELF']?>?sort=hits&order=<?=($order == "asc" ? "desc" : "asc")?>">Hits</a>&nbsp;<? if($sortby == "hits") echo ($order == "asc" ? "&darr;" : "&uarr;")?></th>
         </tr>
     <?php
-          switch ($_GET['sort']) {
+          switch ($sortby) {
             case "mtime":
             case "size":
             case "reloads":
             case "hits":
-              $sortby = $_GET['sort'];
-              ($_GET['order'] == "asc" ? uasort($list, compare) : uasort($list, revcompare));
+              ($order == "asc" ? uasort($list, 'compare') : uasort($list, 'revcompare'));
               break;
             case "file":
             default:
               $sortby = "file";
-              ($_GET['order'] == "asc" ? uasort($list, compare) : uasort($list, revcompare));
+              ($order == "asc" ? uasort($list, 'compare') : uasort($list, 'revcompare'));
               
           }
 
