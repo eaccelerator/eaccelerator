@@ -76,6 +76,66 @@ static int isAdminAllowed(TSRMLS_D) {
 }
 /* }}} */
 
+/* {{{ clear_filecache(): Helper function to eaccelerator_clear which finds diskcache entries in the hashed dirs and removes them */
+static int clear_filecache() {
+#ifndef ZEND_WIN32
+	DIR *dp;
+	struct dirent *entry;
+	char s[MAXPATHLEN];
+	char cwd[MAXPATHLEN];
+	struct stat dirstat;
+
+	if (getcwd(cwd, MAXPATHLEN)) {
+		if ((dp = opendir (".")) != NULL) {
+			while ((entry = readdir (dp)) != NULL) {
+				if (strstr (entry->d_name, "eaccelerator") == entry->d_name) {
+					strncpy (s, cwd, MAXPATHLEN - 1);
+					strlcat (s, "/", MAXPATHLEN);
+					strlcat (s, entry->d_name, MAXPATHLEN);
+					unlink(s);
+				}
+				if (stat(entry->d_name, &dirstat) != -1) {
+					if (strcmp(entry->d_name, ".") ==0)
+                          			continue;
+					if (strcmp(entry->d_name, "..") ==0)
+						continue;
+
+					if (S_ISDIR(dirstat.st_mode)) {
+						chdir(entry->d_name);
+						clear_filecache();
+						chdir("..");
+					}
+				}
+			}
+			closedir (dp);
+		}
+	}
+}
+#else
+/* WIN32 TODO: rewrite this for hashed cache dirs */
+{
+	HANDLE hList;
+	TCHAR szDir[MAXPATHLEN];
+	WIN32_FIND_DATA FileData;
+	char s[MAXPATHLEN];
+
+	snprintf (szDir, MAXPATHLEN, "%s\\eaccelerator*", EAG (cache_dir));
+
+	if ((hList = FindFirstFile (szDir, &FileData)) != INVALID_HANDLE_VALUE) {
+		do {
+			strncpy (s, EAG (cache_dir), MAXPATHLEN - 1);
+			strlcat (s, "\\", MAXPATHLEN);
+			strlcat (s, FileData.cFileName, MAXPATHLEN);
+			unlink (s);
+		}
+		while (FindNextFile (hList, &FileData));
+	}
+
+		FindClose (hList);
+}
+#endif
+/* }}} */
+
 /* {{{ PHP_FUNCTION(eaccelerator_caching): enable or disable caching */
 PHP_FUNCTION(eaccelerator_caching) 
 {
@@ -255,47 +315,10 @@ PHP_FUNCTION(eaccelerator_clear)
 	}
 	EACCELERATOR_UNLOCK_RW ();
 	EACCELERATOR_PROTECT ();
-#ifndef ZEND_WIN32
-	/* clear file cache */
-	{
-		DIR *dp;
-		struct dirent *entry;
-		char s[MAXPATHLEN];
-
-		if ((dp = opendir (EAG (cache_dir))) != NULL) {
-			while ((entry = readdir (dp)) != NULL) {
-				if (strstr (entry->d_name, "eaccelerator") == entry->d_name) {
-					strncpy (s, EAG (cache_dir), MAXPATHLEN - 1);
-					strlcat (s, "/", MAXPATHLEN);
-					strlcat (s, entry->d_name, MAXPATHLEN);
-					unlink (s);
-				}
-			}
-			closedir (dp);
-		}
-	}
-#else
-	{
-		HANDLE hList;
-		TCHAR szDir[MAXPATHLEN];
-		WIN32_FIND_DATA FileData;
-		char s[MAXPATHLEN];
-
-		snprintf (szDir, MAXPATHLEN, "%s\\eaccelerator*", EAG (cache_dir));
-
-		if ((hList = FindFirstFile (szDir, &FileData)) != INVALID_HANDLE_VALUE) {
-			do {
-				strncpy (s, EAG (cache_dir), MAXPATHLEN - 1);
-				strlcat (s, "\\", MAXPATHLEN);
-				strlcat (s, FileData.cFileName, MAXPATHLEN);
-				unlink (s);
-			}
-			while (FindNextFile (hList, &FileData));
-		}
-
-		FindClose (hList);
-	}
-#endif
+	
+	chdir(EAG (cache_dir));
+	clear_filecache();
+	
     RETURN_NULL();
 }
 /* }}} */

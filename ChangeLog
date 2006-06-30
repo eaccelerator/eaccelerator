@@ -1,3 +1,13 @@
+2006-06-30  Hans Rakers <hans at parse dot nl>
+
+	* Added ability to sort table columns by clicking on the table
+	  headings in the control panel
+	* Quick & dirty fix for eaccelerator_clear to work with the new
+	  cache dir hashing. This still needs to be done for win32.
+
+	  eaccelerator_clean still needs some fixing to work with the
+	  dir hashing.
+
 2006-06-27  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
         * Fixed ifdef for #108 to use only on windows

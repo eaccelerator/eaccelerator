@@ -60,17 +60,59 @@ if (isset($_POST['caching'])) {
 $info = eaccelerator_info();
 /* }}} */
 
+function compare($x, $y)
+{
+  global $sortby;
+
+  if ( $x[$sortby] == $y[$sortby] )
+    return 0;
+  else if ( $x[$sortby] < $y[$sortby] )
+    return -1;
+  else
+    return 1;
+}
+
+function revcompare($x, $y)
+{
+  global $sortby;
+
+  if ( $x[$sortby] == $y[$sortby] )
+    return 0;
+  else if ( $x[$sortby] < $y[$sortby] )
+    return 1;
+  else
+    return -1;
+}
+   
 /* {{{ create_script_table */
-function create_script_table($list) { ?>
-    <table class="scripts">
+function create_script_table($list) {
+  global $sortby;
+?>
+    <table>
         <tr>
-            <th>Filename</th>
-            <th>MTime</th>
-            <th>Size</th>
-            <th>Reloads</th>
-            <th>Hits</th>
+            <th><a href="<?=$_SERVER['PHP_SELF']?>?sort=file&order=<?=($_GET['order'] == "asc" ? "desc" : "asc")?>">Filename</a>&nbsp;<? if($_GET['sort'] == "file") echo ($_GET['order'] == "asc" ? "&darr;" : "&uarr;")?></th>
+            <th><a href="<?=$_SERVER['PHP_SELF']?>?sort=mtime&order=<?=($_GET['order'] == "asc" ? "desc" : "asc")?>">MTime</a>&nbsp;<? if($_GET['sort'] == "mtime") echo ($_GET['order'] == "asc" ? "&darr;" : "&uarr;")?></th>
+            <th><a href="<?=$_SERVER['PHP_SELF']?>?sort=size&order=<?=($_GET['order'] == "asc" ? "desc" : "asc")?>">Size</a>&nbsp;<? if($_GET['sort'] == "size") echo ($_GET['order'] == "asc" ? "&darr;" : "&uarr;")?></th>
+            <th><a href="<?=$_SERVER['PHP_SELF']?>?sort=reloads&order=<?=($_GET['order'] == "asc" ? "desc" : "asc")?>">Reloads</a>&nbsp;<? if($_GET['sort'] == "reloads") echo ($_GET['order'] == "asc" ? "&darr;" : "&uarr;")?></th>
+            <th><a href="<?=$_SERVER['PHP_SELF']?>?sort=hits&order=<?=($_GET['order'] == "asc" ? "desc" : "asc")?>">Hits</a>&nbsp;<? if($_GET['sort'] == "hits") echo ($_GET['order'] == "asc" ? "&darr;" : "&uarr;")?></th>
         </tr>
-    <?php foreach($list as $script) { ?>
+    <?php
+          switch ($_GET['sort']) {
+            case "mtime":
+            case "size":
+            case "reloads":
+            case "hits":
+              $sortby = $_GET['sort'];
+              ($_GET['order'] == "asc" ? uasort($list, compare) : uasort($list, revcompare));
+              break;
+            case "file":
+            default:
+              $sortby = "file";
+              ($_GET['order'] == "asc" ? uasort($list, compare) : uasort($list, revcompare));
+              
+          }
+
+          foreach($list as $script) { ?>
         <tr>
     <?php   if (function_exists('eaccelerator_dasm_file')) { ?>
             <td class="e"><a href="dasm.php?file=<?php echo $script['file']; ?>"><?php echo $script['file']; ?></a></td>
@@ -78,7 +120,7 @@ function create_script_table($list) { ?>
             <td class="e"><?php echo $script['file']; ?></td>
     <?php   } ?>
             <td class="vr"><?php echo date('Y-m-d H:i', $script['mtime']); ?></td>
-            <td class="vr"><?php echo number_format($script['size'] / 1024, 2); ?>KB</td>
+            <td class="vr"><?php echo number_format($script['size'] / 1024, 2); ?> KB</td>
             <td class="vr"><?php echo $script['reloads']; ?> (<?php echo $script['usecount']; ?>)</td>
             <td class="vr"><?php echo $script['hits']; ?></td>
         </tr>
@@ -150,7 +192,7 @@ function print_header() { ?>
         .e {background-color: #ccccff; font-weight: bold; color: #000000;}
         .h,th {background-color: #9999cc; font-weight: bold; color: #000000;}
         .v,td {background-color: #cccccc; color: #000000;}
-        .vr{background-color: #cccccc; text-align: right; color: #000000;}
+        .vr{background-color: #cccccc; text-align: right; color: #000000; white-space: nowrap;}
         img {float: right; border: 0px;}
         hr {width: 600px; background-color: #cccccc; border: 0px; height: 1px; color: #000000;}
         input {width: 150px}
