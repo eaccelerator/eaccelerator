@@ -77,8 +77,9 @@ static int isAdminAllowed(TSRMLS_D) {
 /* }}} */
 
 /* {{{ clear_filecache(): Helper function to eaccelerator_clear which finds diskcache entries in the hashed dirs and removes them */
-static int clear_filecache() {
+static void clear_filecache(TSRMLS_D)
 #ifndef ZEND_WIN32
+{
 	DIR *dp;
 	struct dirent *entry;
 	char s[MAXPATHLEN];
@@ -102,7 +103,7 @@ static int clear_filecache() {
 
 					if (S_ISDIR(dirstat.st_mode)) {
 						chdir(entry->d_name);
-						clear_filecache();
+						clear_filecache(TSRMLS_C);
 						chdir("..");
 					}
 				}
@@ -131,7 +132,7 @@ static int clear_filecache() {
 		while (FindNextFile (hList, &FileData));
 	}
 
-		FindClose (hList);
+	FindClose (hList);
 }
 #endif
 /* }}} */
@@ -317,7 +318,7 @@ PHP_FUNCTION(eaccelerator_clear)
 	EACCELERATOR_PROTECT ();
 	
 	chdir(EAG (cache_dir));
-	clear_filecache();
+	clear_filecache(TSRMLS_C);
 	
     RETURN_NULL();
 }

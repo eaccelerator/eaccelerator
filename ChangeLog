@@ -1,3 +1,8 @@
+2006-07-02  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
+
+        * Made some fixes to ea_info.c to make eA compile on windows again.
+          This should fix bug #116.
+
 2006-06-30  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
         * Cleaned up the checking for other incompatible extensions a 
