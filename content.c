@@ -137,8 +137,8 @@ static int eaccelerator_is_not_modified(zval* return_value TSRMLS_DC) {
           sapi_add_header("HTTP/1.0 304", sizeof("HTTP/1.0 304") - 1, 1) == SUCCESS &&
           sapi_add_header("Status: 304 Not Modified", sizeof("Status: 304 Not Modified") - 1, 1) == SUCCESS) {
         zval_dtor(return_value);
-        return_value->value.str.val = empty_string;
-        return_value->value.str.len = 0;
+        Z_STRVAL_P(return_value) = empty_string;
+        Z_STRLEN_P(return_value) = 0;
         /*fprintf(stderr,"\nnot-modified\n");*/
         return 1;
       }
@@ -280,7 +280,7 @@ static void eaccelerator_compress(char* key, int key_len, zval* return_value, ti
         call_user_function(CG(function_table), (zval**)NULL, &func, &gzstring, 2, params TSRMLS_CC) == SUCCESS &&
         gzstring.type == IS_STRING) {
       if (gzip) {
-        char* ret = emalloc(gzstring.value.str.len+13);
+        char* ret = emalloc(Z_STRLEN(gzstring) + 13);
         unsigned long crc32 = eaccelerator_crc32(Z_STRVAL_P(return_value),Z_STRLEN_P(return_value));
         ret[0] = '\x1f';
         ret[1] = '\x8b';
@@ -292,19 +292,19 @@ static void eaccelerator_compress(char* key, int key_len, zval* return_value, ti
         ret[7] = '\x00';
         ret[8] = '\x00';
         ret[9] = '\x03';
-        memcpy(ret+10,gzstring.value.str.val+2,gzstring.value.str.len-6);
-        ret[gzstring.value.str.len+4]  = (char)(crc32 & 0xff);
-        ret[gzstring.value.str.len+5]  = (char)((crc32 >> 8) & 0xff);
-        ret[gzstring.value.str.len+6]  = (char)((crc32 >> 16) & 0xff);
-        ret[gzstring.value.str.len+7]  = (char)((crc32 >> 24) & 0xff);
-        ret[gzstring.value.str.len+8]  = (char)(return_value->value.str.len & 0xff);
-        ret[gzstring.value.str.len+9]  = (char)((return_value->value.str.len >> 8) & 0xff);
-        ret[gzstring.value.str.len+10] = (char)((return_value->value.str.len >> 16) & 0xff);
-        ret[gzstring.value.str.len+11] = (char)((return_value->value.str.len >> 24) & 0xff);
-        ret[gzstring.value.str.len+12] = '\x00';
-        STR_FREE(gzstring.value.str.val);
-        gzstring.value.str.val = ret;
-        gzstring.value.str.len += 12;
+        memcpy(ret + 10, Z_STRVAL(gzstring) + 2, Z_STRLEN(gzstring) - 6);
+        ret[Z_STRLEN(gzstring)+4]  = (char)(crc32 & 0xff);
+        ret[Z_STRLEN(gzstring)+5]  = (char)((crc32 >> 8) & 0xff);
+        ret[Z_STRLEN(gzstring)+6]  = (char)((crc32 >> 16) & 0xff);
+        ret[Z_STRLEN(gzstring)+7]  = (char)((crc32 >> 24) & 0xff);
+        ret[Z_STRLEN(gzstring)+8]  = (char)(Z_STRLEN_P(return_value) & 0xff);
+        ret[Z_STRLEN(gzstring)+9]  = (char)((Z_STRLEN_P(return_value) >> 8) & 0xff);
+        ret[Z_STRLEN(gzstring)+10] = (char)((Z_STRLEN_P(return_value) >> 16) & 0xff);
+        ret[Z_STRLEN(gzstring)+11] = (char)((Z_STRLEN_P(return_value) >> 24) & 0xff);
+        ret[Z_STRLEN(gzstring)+12] = '\x00';
+        STR_FREE(Z_STRVAL(gzstring));
+        Z_STRVAL(gzstring) = ret;
+        Z_STRLEN(gzstring) += 12;
       }
       eaccelerator_put_page(zkey, zkey_len, &gzstring, ttl TSRMLS_CC);
       if (!eaccelerator_is_not_modified(&gzstring TSRMLS_CC) &&
@@ -345,12 +345,12 @@ PHP_FUNCTION(_eaccelerator_output_handler) {
     return;
   }
   memcpy(return_value, content, sizeof(zval));
-  s = key = return_value->value.str.val;
+  s = key = Z_STRVAL_P(return_value);
   if ((status & PHP_OUTPUT_HANDLER_START) != 0) {
     while (*s) {++s;}
     ttl = atoi(key);
     s = key = s+1;
-    if (s - return_value->value.str.val > return_value->value.str.len) {
+    if (s - Z_STRVAL_P(return_value) > Z_STRLEN_P(return_value)) {
       zval_copy_ctor(return_value);
       eaccelerator_destroy_headers(TSRMLS_C);
       return;
@@ -358,21 +358,21 @@ PHP_FUNCTION(_eaccelerator_output_handler) {
     while (*s) {++s;}
     key_len = atoi(key);
     s = key = s+1;
-    if (s - return_value->value.str.val > return_value->value.str.len) {
+    if (s - Z_STRVAL_P(return_value) > Z_STRLEN_P(return_value)) {
       zval_copy_ctor(return_value);
       eaccelerator_destroy_headers(TSRMLS_C);
       return;
     }
     while (*s) {++s;}
     ++s;
-    if (s - return_value->value.str.val > return_value->value.str.len) {
+    if (s - Z_STRVAL_P(return_value) > Z_STRLEN_P(return_value)) {
       zval_copy_ctor(return_value);
       eaccelerator_destroy_headers(TSRMLS_C);
       return;
     }
   }
-  return_value->value.str.len -= (s-return_value->value.str.val);
-  return_value->value.str.val = s;
+  Z_STRLEN_P(return_value) -= (s-Z_STRVAL_P(return_value));
+  Z_STRVAL_P(return_value) = s;
   zval_copy_ctor(return_value);
   if ((status & PHP_OUTPUT_HANDLER_START) != 0 &&
       (status & PHP_OUTPUT_HANDLER_END) != 0 &&
@@ -437,7 +437,7 @@ PHP_FUNCTION(eaccelerator_cache_page) {
       if (!eaccelerator_is_not_modified(return_value TSRMLS_CC) &&
           sapi_add_header(enc, strlen(enc), 1) == SUCCESS &&
           sapi_add_header("Vary: Accept-Encoding", sizeof("Vary: Accept-Encoding") - 1, 1) == SUCCESS) {
-        ZEND_WRITE(return_value->value.str.val, return_value->value.str.len);
+        ZEND_WRITE(Z_STRVAL_P(return_value), Z_STRLEN_P(return_value));
       }
       efree(zkey);
       zend_bailout();
@@ -453,7 +453,7 @@ PHP_FUNCTION(eaccelerator_cache_page) {
     if (!(PG(connection_status) & PHP_CONNECTION_ABORTED)) {
       eaccelerator_compress(key, key_len, return_value, ttl TSRMLS_CC);
     }
-    ZEND_WRITE(return_value->value.str.val, return_value->value.str.len);
+    ZEND_WRITE(Z_STRVAL_P(return_value), Z_STRLEN_P(return_value));
     zend_bailout();
     RETURN_TRUE;
   } else {
@@ -548,7 +548,7 @@ PHP_FUNCTION(eaccelerator_cache_output) {
   } else if (eaccelerator_get(key, key_len, return_value, eaccelerator_content_cache_place TSRMLS_CC) &&
       return_value->type == IS_STRING) {
     /*  Output is cached. Print it. */
-    ZEND_WRITE(return_value->value.str.val, return_value->value.str.len);
+    ZEND_WRITE(Z_STRVAL_P(return_value), Z_STRLEN_P(return_value));
     zval_dtor(return_value);
     RETURN_TRUE;
   } else {

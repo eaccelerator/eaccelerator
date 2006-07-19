@@ -141,22 +141,22 @@ static void fixup_hash(HashTable * source,
 
 void fixup_zval(zval * zv TSRMLS_DC)
 {
-	switch (zv->type & ~IS_CONSTANT_INDEX) {
+	switch (Z_TYPE_P(zv) & ~IS_CONSTANT_INDEX) {
 	case IS_CONSTANT:			/* fallthrough */
 	case IS_STRING:
-		if (zv->value.str.val == NULL || zv->value.str.len == 0) {
-			zv->value.str.val = empty_string;
-			zv->value.str.len = 0;
+		if (Z_STRVAL_P(zv) == NULL || Z_STRLEN_P(zv) == 0) {
+			Z_STRVAL_P(zv) = empty_string;
+			Z_STRLEN_P(zv) = 0;
 		} else {
-			FIXUP(zv->value.str.val);
+			FIXUP(Z_STRVAL_P(zv));
 		}
 		break;
 	case IS_ARRAY:				/* fallthrough */
 	case IS_CONSTANT_ARRAY:
-		if (zv->value.ht == NULL || zv->value.ht == &EG(symbol_table)) {
+		if (Z_ARRVAL_P(zv) == NULL || Z_ARRVAL_P(zv) == &EG(symbol_table)) {
 		} else {
-			FIXUP(zv->value.ht);
-			fixup_zval_hash(zv->value.ht);
+			FIXUP(Z_ARRVAL_P(zv));
+			fixup_zval_hash(Z_ARRVAL_P(zv));
 		}
 		break;
 	case IS_OBJECT:
@@ -164,10 +164,10 @@ void fixup_zval(zval * zv TSRMLS_DC)
 			return;
 		}
 #ifndef ZEND_ENGINE_2
-		FIXUP(zv->value.obj.ce);
-		if (zv->value.obj.properties != NULL) {
-			FIXUP(zv->value.obj.properties);
-			fixup_zval_hash(zv->value.obj.properties);
+		FIXUP(Z_OBJVAL_P(zv).ce);
+		if (Z_OBJVAL_P(zv).properties != NULL) {
+			FIXUP(Z_OBJVAL_P(zv).properties);
+			fixup_zval_hash(Z_OBJVAL_P(zv).properties);
 		}
 #endif
 	default:
@@ -378,22 +378,22 @@ void restore_zval(zval * zv TSRMLS_DC)
 	switch (zv->type & ~IS_CONSTANT_INDEX) {
 	case IS_CONSTANT:
 	case IS_STRING:
-		if (zv->value.str.val == NULL || zv->value.str.val == "" || zv->value.str.len == 0) {
-            zv->value.str.len = 0;
-			zv->value.str.val = empty_string;
+		if (Z_STRVAL_P(zv) == NULL || Z_STRVAL_P(zv) == "" || Z_STRLEN_P(zv) == 0) {
+            Z_STRLEN_P(zv) = 0;
+			Z_STRVAL_P(zv) = empty_string;
 			return;
 		} else {
-			char *p = emalloc(zv->value.str.len + 1);
-			memcpy(p, zv->value.str.val, zv->value.str.len + 1);
-			zv->value.str.val = p;
+			char *p = emalloc(Z_STRLEN_P(zv) + 1);
+			memcpy(p, Z_STRVAL_P(zv), Z_STRLEN_P(zv) + 1);
+			Z_STRVAL_P(zv) = p;
 		}
 		return;
 
 	case IS_ARRAY:
 	case IS_CONSTANT_ARRAY:
-		if (zv->value.ht != NULL && zv->value.ht != &EG(symbol_table)) {
-			zv->value.ht = restore_zval_hash(NULL, zv->value.ht);
-			zv->value.ht->pDestructor = ZVAL_PTR_DTOR;
+		if (Z_ARRVAL_P(zv) != NULL && Z_ARRVAL_P(zv) != &EG(symbol_table)) {
+			Z_ARRVAL_P(zv) = restore_zval_hash(NULL, Z_ARRVAL_P(zv));
+			Z_ARRVAL_P(zv)->pDestructor = ZVAL_PTR_DTOR;
 		}
 		return;
 
@@ -401,7 +401,7 @@ void restore_zval(zval * zv TSRMLS_DC)
     {
 #ifndef ZEND_ENGINE_2
         zend_bool incomplete_class = 0;
-        char *class_name = (char *) zv->value.obj.ce;
+        char *class_name = (char *) Z_OBJVAL_P(zv).ce;
         int name_len = 0;
         if (!EAG(compress)) {
             return;
@@ -417,19 +417,19 @@ void restore_zval(zval * zv TSRMLS_DC)
                     zend_error(E_ERROR, "EACCELERATOR can't restore object's class \"%s\"", class_name);
                 } else {
                     efree(lowercase_name);
-                    zv->value.obj.ce = ce;
+                    Z_OBJVAL_P(zv).ce = ce;
                     incomplete_class = 1;
                 }
             } else {
-                zv->value.obj.ce = ce;
+                Z_OBJVAL_P(zv).ce = ce;
             }
         }
-        if (zv->value.obj.properties != NULL) {
-            zv->value.obj.properties = restore_zval_hash(NULL, zv->value.obj.properties);
-            zv->value.obj.properties->pDestructor = ZVAL_PTR_DTOR;
+        if (Z_OBJVAL_P(zv).properties != NULL) {
+            Z_OBJVAL_P(zv).properties = restore_zval_hash(NULL, Z_OBJVAL_P(zv).properties);
+            Z_OBJVAL_P(zv).properties->pDestructor = ZVAL_PTR_DTOR;
             /* Clearing references */
             {
-                Bucket *p = zv->value.obj.properties->pListHead;
+                Bucket *p = Z_OBJVAL_P(zv).properties->pListHead;
                 while (p != NULL) {
                     ((zval *) (p->pDataPtr))->refcount = 1;
                     p = p->pListNext;

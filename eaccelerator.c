@@ -434,11 +434,10 @@ int eaccelerator_md5(char* s, const char* prefix, const char* key TSRMLS_DC) {
   params[0] = &param;
   ZVAL_STRING(params[0], (char*)key, 0);
   if (call_user_function(CG(function_table), (zval**)NULL, &md5, &retval, 1, params TSRMLS_CC) == SUCCESS &&
-      retval.type == IS_STRING &&
-      retval.value.str.len == 32) {
+      Z_TYPE(retval) == IS_STRING && Z_STRLEN(retval) == 32) {
     strncpy(s, EAG(cache_dir), MAXPATHLEN-1);
     strlcat(s, prefix, MAXPATHLEN);
-    strlcat(s, retval.value.str.val, MAXPATHLEN);
+    strlcat(s, Z_STRVAL(retval), MAXPATHLEN);
     zval_dtor(&retval);
     return 1;
   }

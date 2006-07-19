@@ -293,8 +293,9 @@ static int retrive_opcode_handlers(TSRMLS_D) {
     str.type = IS_STRING;
     str.is_ref = 1;
     str.refcount = 2;
-    str.value.str.val = "return 1;";
-    str.value.str.len = 9;
+
+    Z_STRVAL(str) = "return 1;";
+    Z_STRLEN(str) = 9;
     old = ext->op_array_handler;
     ext->op_array_handler = retrive_opcode_handlers_handler;
     p = compile_string(&str, empty_string TSRMLS_CC);

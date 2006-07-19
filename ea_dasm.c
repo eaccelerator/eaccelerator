@@ -125,25 +125,25 @@ static char *get_zval(zval *v)
     char buf[512];
     size_t size;
 
-    switch (v->type & ~IS_CONSTANT_INDEX) {
+    switch (Z_TYPE_P(v) & ~IS_CONSTANT_INDEX) {
         case IS_NULL:
             str = emalloc(sizeof("null"));
             strncpy(str, "null", sizeof("null"));
             break;
         case IS_LONG:
-            snprintf(buf, sizeof(buf), "long(%ld)", v->value.lval);
+            snprintf(buf, sizeof(buf), "long(%ld)", Z_LVAL_P(v));
             str = emalloc(strlen(buf) + 1);
             strcpy(str, buf);
             break;
         case IS_DOUBLE:
-            snprintf(buf, sizeof(buf), "double(%e)", v->value.dval);
+            snprintf(buf, sizeof(buf), "double(%e)", Z_DVAL_P(v));
             str = emalloc(strlen(buf) + 1);
             strcpy(str, buf);
             break;
         case IS_STRING:
-            size = v->value.str.len + 1 + sizeof("string('')");
+            size = Z_STRLEN_P(v) + 1 + sizeof("string('')");
             str = emalloc(size);
-            snprintf(str, size, "string('%s')", v->value.str.val); 
+            snprintf(str, size, "string('%s')", Z_STRVAL_P(v)); 
             break;
         case IS_BOOL:
             if (v->value.lval) {
@@ -167,16 +167,16 @@ static char *get_zval(zval *v)
             strcpy(str, "resource(?)");
             break;
         case IS_CONSTANT:
-            size = v->value.str.len + 1 + sizeof("constant('')");
+            size = Z_STRLEN(v) + 1 + sizeof("constant('')");
             str = emalloc(size);
-            snprintf(str, size, "constant('%s')", v->value.str.val); 
+            snprintf(str, size, "constant('%s')", Z_STRVAL_P(v)); 
             break;
         case IS_CONSTANT_ARRAY:
             str = emalloc(sizeof("constant_array(?)"));
             strcpy(str, "constant_array(?)");
             break;
         default:
-            snprintf(buf, sizeof(buf), "unknown(type=%d)", v->type);
+            snprintf(buf, sizeof(buf), "unknown(type=%d)", Z_TYPE_P(v));
             str = emalloc(strlen(buf) + 1);
             strcpy(str, buf);
     }
