@@ -146,7 +146,7 @@ static char *get_zval(zval *v)
             snprintf(str, size, "string('%s')", Z_STRVAL_P(v)); 
             break;
         case IS_BOOL:
-            if (v->value.lval) {
+            if (Z_LVAL_P(v)) {
                 str = emalloc(sizeof("bool(true)"));
                 strcpy(str, "bool(true)");
             } else {
@@ -167,7 +167,7 @@ static char *get_zval(zval *v)
             strcpy(str, "resource(?)");
             break;
         case IS_CONSTANT:
-            size = Z_STRLEN(v) + 1 + sizeof("constant('')");
+            size = Z_STRLEN_P(v) + 1 + sizeof("constant('')");
             str = emalloc(size);
             snprintf(str, size, "constant('%s')", Z_STRVAL_P(v)); 
             break;
