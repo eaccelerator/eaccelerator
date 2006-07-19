@@ -678,7 +678,7 @@ int mm_unlock(MM* mm) {
 static MM* mm_create_shm(const char* key, size_t size) {
   int fd;
   void** segment = NULL;
-  if ((fd = shmget(IPC_PRIVATE, size, (IPC_CREAT | SHM_R | SHM_W))) != -1) {
+  if ((fd = shmget(IPC_PRIVATE, size, (IPC_CREAT | SHM_R | SHM_W))) >= 0) {
     MM* p;
     if ((p = (MM*)shmat(fd, NULL, 0)) != ((void *)-1)) {
       struct shmid_ds shmbuf;
@@ -699,71 +699,26 @@ static MM* mm_create_shm(const char* key, size_t size) {
     }
     shmctl(fd, IPC_RMID, NULL);
   } else {
-    /* can't get one shared memory segment, trying to get several */
     size_t seg_size = 1024*1024;
-    size_t orig_size = size;
-    void*  p;
-    MM*    root = NULL;
-    char*  prev = NULL;
 
     while (seg_size <= size/2) {
       seg_size *= 2;
     }
     while ((fd = shmget(IPC_PRIVATE, seg_size, (IPC_CREAT | SHM_R | SHM_W))) == -1) {
       if (seg_size <= 1024*1024) {
+        ea_debug_error("eAccelerator: shmmax should be at least 2MB");
         return (MM*)-1;
       }
       seg_size /= 2;
     }
-    while (size > 0) {
-      if (fd != -1 ||
-          (fd = shmget(IPC_PRIVATE, (size > seg_size)?seg_size:size, (IPC_CREAT | SHM_R | SHM_W))) != -1) {
-        if ((p = (void *)shmat(fd, prev?(prev+seg_size):NULL, 0)) != ((void *)-1) &&
-            (prev == NULL || prev + seg_size == p)) {
-          struct shmid_ds shmbuf;
-/*???
-          memset(p, 0, (size > seg_size)?seg_size:size);
-*/
-          if (shmctl(fd, IPC_STAT, &shmbuf) == 0) {
-            shmbuf.shm_perm.uid = getuid();
-            shmbuf.shm_perm.gid = getgid();
-            if (shmctl(fd, IPC_SET, &shmbuf) == 0) {
-              shmctl(fd, IPC_RMID, NULL);
-              if (root == NULL) {
-                root = (MM*)p;
-                segment = (void**)((char*)p+sizeof(MM));
-              } else {
-                *segment = p;
-                segment++;
-              }
-              prev = (char*)p;
-              fd = -1;
-              if (size > seg_size) {
-                size -= seg_size;
-              } else {
-                size = 0;
-              }
-              continue;
-            }
-          }
-          shmdt(p);
-        }
-        shmctl(fd, IPC_RMID, NULL);
-      }
-      if (root != NULL) {
-        while (segment > (void**)((char*)root+sizeof(MM))) {
-          segment--;
-          shmdt(*segment);
-        }
-      }
-      shmdt(root);
-      return (MM*)-1;
-    }
-    *segment = (void*)-1;
-    segment++;
-    root->size  = orig_size;
-    root->start = (void*)segment;
-    return root;
+    ea_debug_error("eAccelerator: Could not allocate %d bytes, the maximum size the kernel allows is %d bytes. "
+            "Lower the amount of memory request or increase the limit in /proc/sys/kernel/shmmax.\n", size, seg_size);
+
+    /* bart: Removed the code that tried to allocate more then one segment 
+     * because it didn't work, this part needs a redesign of the mm code to 
+     * allow this. It should allocate one to init the shared memory and add
+     * the other to the free list.
+     */
   }
   return (MM*)-1;
 }

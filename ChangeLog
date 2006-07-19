@@ -1,6 +1,10 @@
 2006-07-19  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
         * Use some more zval macro's to cleanup things a bit
+        * Removed the code from mm.c that tried to allocate more then one segment 
+          because it didn't work, this part needs a redesign of the mm code to 
+          allow this. It should allocate one to init the shared memory and add
+          the other to the free list.
 
 2006-07-02  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
