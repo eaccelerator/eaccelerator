@@ -24,6 +24,9 @@
         echo "WARNING: Please compile eAccelerator with --with-eacelerator-info ". 
             "to provide us more information about your configuration.\n";
     }
+
+    header('Content-type: text/plain');
+    header('Content-Disposition: attachment; filename="bugreport.txt"');
 ?>
 eAccelerator bug report
 =======================
