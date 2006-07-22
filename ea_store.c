@@ -128,8 +128,8 @@ void calc_zval(zval * zv TSRMLS_DC)
 		break;
 	case IS_OBJECT:
 #ifndef ZEND_ENGINE_2
-		if (Z_OBJVAL_P(zv).ce != NULL) {
-			zend_class_entry *ce = Z_OBJVAL_P(zv).ce;
+		if (Z_OBJCE_P(zv) != NULL) {
+			zend_class_entry *ce = Z_OBJCE_P(zv);
 			if (!EAG(compress)) {
 				DBG(ea_debug_error, ("[%d] EACCELERATOR can't cache objects\n", getpid()));
 				zend_bailout();
@@ -141,12 +141,12 @@ void calc_zval(zval * zv TSRMLS_DC)
 				}
 				ce = ce->parent;
 			}
-			calc_string(Z_OBJVAL_P(zv).ce->name, Z_OBJVAL_P(zv).ce->name_length + 1 TSRMLS_CC);
+			calc_string(Z_OBJCE_P(zv)->name, Z_OBJCE_P(zv)->name_length + 1 TSRMLS_CC);
 		}
-		if (Z_OBJVAL_P(zv).properties != NULL) {
+		if (Z_OBJPROP_P(zv) != NULL) {
 			EACCELERATOR_ALIGN(EAG(mem));
 			EAG(mem) += sizeof(HashTable);
-			calc_zval_hash(Z_OBJVAL_P(zv).properties);
+			calc_zval_hash(Z_OBJPROP_P(zv));
 		}
 #endif
 		return;
@@ -496,18 +496,18 @@ void store_zval(zval * zv TSRMLS_DC)
 			return;
 		}
 #ifndef ZEND_ENGINE_2
-		if (Z_OBJVAL_P(zv).ce != NULL) {
-			char *s = store_string(Z_OBJVAL_P(zv).ce->name, Z_OBJVAL_P(zv).ce->name_length + 1 TSRMLS_CC);
-			zend_str_tolower(s, Z_OBJVAL_P(zv).ce->name_length);
-			Z_OBJVAL_P(zv).ce = (zend_class_entry *) s;
+		if (Z_OBJCE_P(zv) != NULL) {
+			char *s = store_string(Z_OBJCE_P(zv)->name, Z_OBJCE_P(zv)->name_length + 1 TSRMLS_CC);
+			zend_str_tolower(s, Z_OBJCE_P(zv)->name_length);
+			Z_OBJCE_P(zv) = (zend_class_entry *) s;
 		}
-		if (Z_OBJVAL_P(zv).properties != NULL) {
+		if (Z_OBJPROP_P(zv) != NULL) {
 			HashTable *p;
 			EACCELERATOR_ALIGN(EAG(mem));
 			p = (HashTable *) EAG(mem);
 			EAG(mem) += sizeof(HashTable);
-			store_zval_hash(p, Z_OBJVAL_P(zv).properties);
-			Z_OBJVAL_P(zv).properties = p;
+			store_zval_hash(p, Z_OBJPROP_P(zv));
+			Z_OBJPROP_P(zv) = p;
 		}
 #endif
 	default:

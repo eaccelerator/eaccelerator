@@ -164,10 +164,10 @@ void fixup_zval(zval * zv TSRMLS_DC)
 			return;
 		}
 #ifndef ZEND_ENGINE_2
-		FIXUP(Z_OBJVAL_P(zv).ce);
-		if (Z_OBJVAL_P(zv).properties != NULL) {
-			FIXUP(Z_OBJVAL_P(zv).properties);
-			fixup_zval_hash(Z_OBJVAL_P(zv).properties);
+		FIXUP(Z_OBJCE_P(zv));
+		if (Z_OBJPROP_P(zv) != NULL) {
+			FIXUP(Z_OBJPROP_P(zv));
+			fixup_zval_hash(Z_OBJPROP_P(zv));
 		}
 #endif
 	default:
@@ -401,7 +401,7 @@ void restore_zval(zval * zv TSRMLS_DC)
     {
 #ifndef ZEND_ENGINE_2
         zend_bool incomplete_class = 0;
-        char *class_name = (char *) Z_OBJVAL_P(zv).ce;
+        char *class_name = (char *) Z_OBJCE_P(zv);
         int name_len = 0;
         if (!EAG(compress)) {
             return;
@@ -417,19 +417,19 @@ void restore_zval(zval * zv TSRMLS_DC)
                     zend_error(E_ERROR, "EACCELERATOR can't restore object's class \"%s\"", class_name);
                 } else {
                     efree(lowercase_name);
-                    Z_OBJVAL_P(zv).ce = ce;
+                    Z_OBJCE_P(zv) = ce;
                     incomplete_class = 1;
                 }
             } else {
-                Z_OBJVAL_P(zv).ce = ce;
+                Z_OBJCE_P(zv) = ce;
             }
         }
-        if (Z_OBJVAL_P(zv).properties != NULL) {
-            Z_OBJVAL_P(zv).properties = restore_zval_hash(NULL, Z_OBJVAL_P(zv).properties);
-            Z_OBJVAL_P(zv).properties->pDestructor = ZVAL_PTR_DTOR;
+        if (Z_OBJPROP_P(zv) != NULL) {
+            Z_OBJPROP_P(zv) = restore_zval_hash(NULL, Z_OBJPROP_P(zv));
+            Z_OBJPROP_P(zv)->pDestructor = ZVAL_PTR_DTOR;
             /* Clearing references */
             {
-                Bucket *p = Z_OBJVAL_P(zv).properties->pListHead;
+                Bucket *p = Z_OBJPROP_P(zv)->pListHead;
                 while (p != NULL) {
                     ((zval *) (p->pDataPtr))->refcount = 1;
                     p = p->pListNext;
