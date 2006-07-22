@@ -32,6 +32,7 @@
 #include "cache.h"
 #include "zend.h"
 #include "fopen_wrappers.h"
+#include "debug.h"
 #include <fcntl.h>
 
 #ifndef O_BINARY
@@ -77,62 +78,59 @@ static int isAdminAllowed(TSRMLS_D) {
 /* }}} */
 
 /* {{{ clear_filecache(): Helper function to eaccelerator_clear which finds diskcache entries in the hashed dirs and removes them */
-static void clear_filecache(TSRMLS_D)
+static void clear_filecache(const char* dir)
 #ifndef ZEND_WIN32
 {
 	DIR *dp;
 	struct dirent *entry;
 	char s[MAXPATHLEN];
-	char cwd[MAXPATHLEN];
 	struct stat dirstat;
-
-	if (getcwd(cwd, MAXPATHLEN)) {
-		if ((dp = opendir (".")) != NULL) {
-			while ((entry = readdir (dp)) != NULL) {
-				if (strstr (entry->d_name, "eaccelerator") == entry->d_name) {
-					strncpy (s, cwd, MAXPATHLEN - 1);
-					strlcat (s, "/", MAXPATHLEN);
-					strlcat (s, entry->d_name, MAXPATHLEN);
-					unlink(s);
-				}
-				if (stat(entry->d_name, &dirstat) != -1) {
-					if (strcmp(entry->d_name, ".") ==0)
-                          			continue;
-					if (strcmp(entry->d_name, "..") ==0)
-						continue;
-
-					if (S_ISDIR(dirstat.st_mode)) {
-						chdir(entry->d_name);
-						clear_filecache(TSRMLS_C);
-						chdir("..");
-					}
+	
+	if ((dp = opendir(dir)) != NULL) {
+		while ((entry = readdir(dp)) != NULL) {
+			strncpy(s, dir, MAXPATHLEN - 1);
+			strlcat(s, "/", MAXPATHLEN);
+			strlcat(s, entry->d_name, MAXPATHLEN);
+			if (strstr(entry->d_name, "eaccelerator") == entry->d_name) {
+				unlink(s);
+			}
+			if (stat(s, &dirstat) != -1) {
+				if (strcmp(entry->d_name, ".") == 0)
+					continue;
+				if (strcmp(entry->d_name, "..") == 0)
+					continue;
+				if (S_ISDIR(dirstat.st_mode)) {
+					clear_filecache(s);
 				}
 			}
-			closedir (dp);
 		}
+		closedir (dp);
+	} else {
+		ea_debug_error("eAccelerator: Could not open cachedir %s\n", dir);
 	}
 }
 #else
-/* WIN32 TODO: rewrite this for hashed cache dirs */
 {
-	HANDLE hList;
-	TCHAR szDir[MAXPATHLEN];
-	WIN32_FIND_DATA FileData;
-	char s[MAXPATHLEN];
+	HANDLE  hFind;
+    WIN32_FIND_DATA wfd;
+    char path[MAXPATHLEN];
+    size_t dirlen = strlen(dir);
+  
+    memcpy(path, dir, dirlen);
+    strcpy(path + dirlen++, "\\*");
 
-	snprintf (szDir, MAXPATHLEN, "%s\\eaccelerator*", EAG (cache_dir));
-
-	if ((hList = FindFirstFile (szDir, &FileData)) != INVALID_HANDLE_VALUE) {
+    hFind = FindFirstFile(path, &wfd);
+	if (hFind == INVALID_HANDLE_VALUE) {
 		do {
-			strncpy (s, EAG (cache_dir), MAXPATHLEN - 1);
-			strlcat (s, "\\", MAXPATHLEN);
-			strlcat (s, FileData.cFileName, MAXPATHLEN);
-			unlink (s);
-		}
-		while (FindNextFile (hList, &FileData));
+			strcpy(path + dirlen, wfd.cFileName);
+			if (FILE_ATTRIBUTE_DIRECTORY & wfd.dwFileAttributes) {
+				clear_filecache(path);
+			} else if (!DeleteFile(path)) {
+				zend_error(E_CORE_WARNING, "Can't delete file %s: error %d", path, GetLastError());
+			}
+		} while (FindNextFile(hFind, &wfd));
 	}
-
-	FindClose (hList);
+    FindClose (hFind);
 }
 #endif
 /* }}} */
@@ -316,9 +314,8 @@ PHP_FUNCTION(eaccelerator_clear)
 	}
 	EACCELERATOR_UNLOCK_RW ();
 	EACCELERATOR_PROTECT ();
-	
-	chdir(EAG (cache_dir));
-	clear_filecache(TSRMLS_C);
+
+	clear_filecache(EAG(cache_dir));
 	
     RETURN_NULL();
 }

@@ -1,6 +1,8 @@
 2006-07-22  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
         * Some zval macro's differ for php4 and 5, this fixes #146.
+        * Also rewrite clean code for cache files on win32 for directory 
+          hashing. This hasn't been tested on windows!!!
 
 2006-07-19  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
