@@ -1,3 +1,8 @@
+2006-07-23  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
+
+        * Fix ticket #143, seems that PHP < 5 doesn't make the extension lower 
+          case.
+
 2006-07-22  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
         * Some zval macro's differ for php4 and 5, this fixes #146.

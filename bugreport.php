@@ -16,7 +16,7 @@
             die("eAccelerator doesn't work with the SAPI you are using!\n");
     }
 
-    if (!extension_loaded('eaccelerator')) {
+    if (!extension_loaded('eaccelerator') && !extension_loaded('eAccelerator') ) {
         die("eAccelerator isn't loaded, why do you want to report a bug?\n");
     }
 
