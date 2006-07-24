@@ -1,3 +1,11 @@
+2006-07-24  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
+
+        * Make clean routine support dir hashing. Again, this should be tested
+          on win32!
+        * Use a define for the magic string in the eAccelerator file headers
+        * Bump up version to 0.9.5-rc1
+        * Put -O2 back on for -rc1
+
 2006-07-23  Hans Rakers <hans at parse dot nl>
 	* Fix for ticket #47 and #63, related to problems restoring empty
 	  strings and empty string array keys from the disk cache.

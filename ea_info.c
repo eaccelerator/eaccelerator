@@ -106,7 +106,7 @@ static void clear_filecache(const char* dir)
 		}
 		closedir (dp);
 	} else {
-		ea_debug_error("eAccelerator: Could not open cachedir %s\n", dir);
+		ea_debug_error("[%s] Could not open cachedir %s\n", EACCELERATOR_EXTENSION_NAME, dir);
 	}
 }
 #else
@@ -117,7 +117,7 @@ static void clear_filecache(const char* dir)
     size_t dirlen = strlen(dir);
   
     memcpy(path, dir, dirlen);
-    strcpy(path + dirlen++, "\\*");
+    strcpy(path + dirlen++, "\\eaccelerator*");
 
     hFind = FindFirstFile(path, &wfd);
 	if (hFind == INVALID_HANDLE_VALUE) {
@@ -126,7 +126,87 @@ static void clear_filecache(const char* dir)
 			if (FILE_ATTRIBUTE_DIRECTORY & wfd.dwFileAttributes) {
 				clear_filecache(path);
 			} else if (!DeleteFile(path)) {
-				zend_error(E_CORE_WARNING, "Can't delete file %s: error %d", path, GetLastError());
+				ea_debug_error("[%s] Can't delete file %s: error %d\n", EACCELERATOR_EXTENSION_NAME, path, GetLastError());
+			}
+		} while (FindNextFile(hFind, &wfd));
+	}
+    FindClose (hFind);
+}
+#endif
+/* }}} */
+
+/* {{{  clean_file: check if the given file is expired */
+static inline void clean_file(char *file, time_t t) 
+{
+	int f;
+
+	if ((f = open(file, O_RDONLY | O_BINARY)) > 0) {
+		mm_file_header hdr;
+		EACCELERATOR_FLOCK (f, LOCK_SH);
+		if (read(f, &hdr, sizeof(hdr)) != sizeof(hdr) 
+				|| strncmp (hdr.magic, EA_MAGIC,	8) != 0 
+				|| (hdr.mtime != 0 && hdr.mtime < t)) {
+			EACCELERATOR_FLOCK (f, LOCK_UN);
+			close (f);
+			unlink (file);
+		} else {
+			EACCELERATOR_FLOCK (f, LOCK_UN);
+			close (f);
+		}
+	}
+}
+/* }}} */
+
+/* {{{ clean_filecache(): Helper function for eaccelerator_clean, it will remove all expired entries from the user cache */
+static void clean_filecache(const char* dir, time_t t)
+#ifndef ZEND_WIN32
+{
+	DIR *dp;
+	struct dirent *entry;
+	char s[MAXPATHLEN];
+	struct stat dirstat;
+	
+	if ((dp = opendir(dir)) != NULL) {
+		while ((entry = readdir(dp)) != NULL) {
+			strncpy(s, dir, MAXPATHLEN - 1);
+			strlcat(s, "/", MAXPATHLEN);
+			strlcat(s, entry->d_name, MAXPATHLEN);
+			if (strstr(entry->d_name, "eaccelerator-user") == entry->d_name) {
+				clean_file(s, t);
+			}
+			if (stat(s, &dirstat) != -1) {
+				if (strcmp(entry->d_name, ".") == 0)
+					continue;
+				if (strcmp(entry->d_name, "..") == 0)
+					continue;
+				if (S_ISDIR(dirstat.st_mode)) {
+					clean_filecache(s, t);
+				}
+			}
+		}
+		closedir (dp);
+	} else {
+		ea_debug_error("[%s] Could not open cachedir %s\n", EACCELERATOR_EXTENSION_NAME, dir);
+	}
+}
+#else
+{
+	HANDLE  hFind;
+    WIN32_FIND_DATA wfd;
+    char path[MAXPATHLEN];
+    size_t dirlen = strlen(dir);
+  
+    memcpy(path, dir, dirlen);
+    strcpy(path + dirlen++, "\\eaccelerator-user*");
+
+    hFind = FindFirstFile(path, &wfd);
+	if (hFind == INVALID_HANDLE_VALUE) {
+		do {
+			strcpy(path + dirlen, wfd.cFileName);
+			if (FILE_ATTRIBUTE_DIRECTORY & wfd.dwFileAttributes) {
+				clear_filecache(path);
+			} else {
+				clean_file(path, t);
 			}
 		} while (FindNextFile(hFind, &wfd));
 	}
@@ -201,72 +281,8 @@ PHP_FUNCTION(eaccelerator_clean)
 	eaccelerator_prune (t);
 
 	/* Remove expired keys (session data, content) from disk cache */
-#ifndef ZEND_WIN32
-	/* clear file cache */
-	{
-		DIR *dp;
-		struct dirent *entry;
-		char s[MAXPATHLEN];
+	clean_filecache(EAG(cache_dir), t);
 
-		if ((dp = opendir (EAG (cache_dir))) != NULL) {
-			while ((entry = readdir (dp)) != NULL) {
-				if (strstr(entry->d_name, "eaccelerator-user") == entry->d_name) {
-					int f;
-					strncpy (s, EAG (cache_dir), MAXPATHLEN - 1);
-					strlcat (s, "/", MAXPATHLEN);
-					strlcat (s, entry->d_name, MAXPATHLEN);
-					if ((f = open (s, O_RDONLY | O_BINARY)) > 0) {
-						mm_file_header hdr;
-						EACCELERATOR_FLOCK (f, LOCK_SH);
-						if (read (f, &hdr, sizeof (hdr)) != sizeof (hdr) 
-                                || strncmp (hdr.magic, "EACCELERATOR",	8) != 0 || (hdr.mtime != 0 && hdr.mtime < t)) {
-							EACCELERATOR_FLOCK (f, LOCK_UN);
-							close (f);
-							unlink (s);
-						} else {
-							EACCELERATOR_FLOCK (f, LOCK_UN);
-							close (f);
-						}
-					}
-				}
-			}
-			closedir (dp);
-		}
-	}
-#else
-	{
-		HANDLE hList;
-		TCHAR szDir[MAXPATHLEN];
-		WIN32_FIND_DATA FileData;
-		char s[MAXPATHLEN];
-
-		snprintf (szDir, MAXPATHLEN, "%s\\eaccelerator-user*", EAG (cache_dir));
-
-		if ((hList = FindFirstFile (szDir, &FileData)) != INVALID_HANDLE_VALUE) {
-			do {
-				int f;
-				strncpy (s, EAG (cache_dir), MAXPATHLEN - 1);
-				strlcat (s, "\\", MAXPATHLEN);
-				strlcat (s, FileData.cFileName, MAXPATHLEN);
-				if ((f = open (s, O_RDONLY | O_BINARY)) > 0) {
-					mm_file_header hdr;
-					EACCELERATOR_FLOCK (f, LOCK_SH);
-					if (read (f, &hdr, sizeof (hdr)) != sizeof (hdr) 
-                            || strncmp (hdr.magic, "EACCELERATOR", 8) != 0 || (hdr.mtime != 0 && hdr.mtime < t)) {
-						EACCELERATOR_FLOCK (f, LOCK_UN);
-						close (f);
-						unlink (s);
-					} else {
-						EACCELERATOR_FLOCK (f, LOCK_UN);
-						close (f);
-					}
-				}
-			}
-			while (FindNextFile (hList, &FileData));
-		}
-		FindClose (hList);
-	}
-#endif
 	/* Remove expired keys (session data, content) from shared memory */
 	eaccelerator_gc (TSRMLS_C);
 }

@@ -2,6 +2,6 @@ LTLIBRARY_NAME        = libeaccelerator.la
 LTLIBRARY_SOURCES     = eaccelerator.c optimize.c encoder.c loader.c opcodes.c content.c mm.c session.c shm.c debug.c cache.c ea_restore.c ea_store.c ea_info.c ea_dasm.c
 LTLIBRARY_SHARED_NAME = eaccelerator.la
 
-EXTRA_CFLAGS = -O2 
+EXTRA_CFLAGS = -O2 -g -Wall 
 
 include $(top_srcdir)/build/dynlib.mk
