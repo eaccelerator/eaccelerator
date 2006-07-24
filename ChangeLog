@@ -1,3 +1,7 @@
+2006-07-23  Hans Rakers <hans at parse dot nl>
+	* Fix for ticket #47 and #63, related to problems restoring empty
+	  strings and empty string array keys from the disk cache.
+
 2006-07-23  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
         * Fix ticket #143, seems that PHP < 5 doesn't make the extension lower 

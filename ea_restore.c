@@ -144,20 +144,12 @@ void fixup_zval(zval * zv TSRMLS_DC)
 	switch (Z_TYPE_P(zv) & ~IS_CONSTANT_INDEX) {
 	case IS_CONSTANT:			/* fallthrough */
 	case IS_STRING:
-		if (Z_STRVAL_P(zv) == NULL || Z_STRLEN_P(zv) == 0) {
-			Z_STRVAL_P(zv) = empty_string;
-			Z_STRLEN_P(zv) = 0;
-		} else {
-			FIXUP(Z_STRVAL_P(zv));
-		}
+		FIXUP(Z_STRVAL_P(zv));
 		break;
 	case IS_ARRAY:				/* fallthrough */
 	case IS_CONSTANT_ARRAY:
-		if (Z_ARRVAL_P(zv) == NULL || Z_ARRVAL_P(zv) == &EG(symbol_table)) {
-		} else {
-			FIXUP(Z_ARRVAL_P(zv));
-			fixup_zval_hash(Z_ARRVAL_P(zv));
-		}
+		FIXUP(Z_ARRVAL_P(zv));
+		fixup_zval_hash(Z_ARRVAL_P(zv));
 		break;
 	case IS_OBJECT:
 		if (!EAG(compress)) {
@@ -379,7 +371,7 @@ void restore_zval(zval * zv TSRMLS_DC)
 	case IS_CONSTANT:
 	case IS_STRING:
 		if (Z_STRVAL_P(zv) == NULL || Z_STRVAL_P(zv) == "" || Z_STRLEN_P(zv) == 0) {
-            Z_STRLEN_P(zv) = 0;
+			Z_STRLEN_P(zv) = 0;
 			Z_STRVAL_P(zv) = empty_string;
 			return;
 		} else {
