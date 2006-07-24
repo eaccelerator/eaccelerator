@@ -1,3 +1,29 @@
+Jul 24, 2006 - Bart Vanbrabant
+----------------------------------
+
+ * Released 0.9.5-rc1
+    
+    Changes in this version (from 0.9.4):
+        - This version brings full php 5.1 support, this has as side-effect that
+          eAccelerator won't work anymore with php 4 on windows, on other 
+          platforms this isn't a problem.
+        - The shared memory functions, session handler and content cache are 
+          disabled by default now. They are only used by a small amount of
+          users and they could allow local users to fill up the memory, if they
+          aren't secured properly.
+        - The old web control panel and the disassembler have been removed 
+          from the code. They have been replaced with a set of php functions 
+          that allow the same functionality to be implemented in a PHP script.
+          The control.php and the dasm.php files are such scripts. More 
+          information about this can be found in the README.
+        - Memory footprint should be reduced because redundant information in
+          the cached scripts is no longer stored.
+    WARNING: The encoder and loader DO not support php 5.1 nor php 5.0 and contain
+    a lot of bug for php 4. This is the last release the encoder/loader 
+    functionality will be available. Maybe later a new encoder/loader will be 
+    included but there aren't any plans for that.
+    
+
 Apr 11, 2006 - Bart Vanbrabant
 ----------------------------------
 
