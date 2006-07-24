@@ -1,0 +1,65 @@
+// $Id$
+// vim:ft=javascript
+
+ARG_ENABLE("eaccelerator", "Enable eaccelerator support", "no");
+ARG_ENABLE("eloader", "Enable eloader support", "no");
+
+ARG_WITH("eaccelerator-crash-detection", "Include eaccelerator crash detection", "yes");
+ARG_WITH("eaccelerator-optimizer", "Include eaccelerator optimizer", "yes");
+ARG_WITH("eaccelerator-encoder", "Include eaccelerator encoder", "yes");
+ARG_WITH("eaccelerator-loader", "Include eaccelerator loader", "yes");
+ARG_WITH("eaccelerator-shared-memory", "Include eaccelerator shared memory functions", "no");
+ARG_WITH("eaccelerator-sessions", "Include eaccelerator sessions", "no");
+ARG_WITH("eaccelerator-content-caching", "Include eaccelerator content caching", "no");
+ARG_WITH("eaccelerator-info", "Compile the eAccelerator information functions", "yes");
+ARG_WITH("eaccelerator-disassembler", "Include disassembler", "no");
+ARG_WITH("eaccelerator-debug", "Enable the debug code so eaccelerator logs verbosely", "no");
+
+if (PHP_EACCELERATOR != "no" && PHP_ELOADER != "no") {
+	ERROR("You can't enable eaccelerator and eloader support at the same time.");
+}
+
+if (PHP_EACCELERATOR != "no") {
+	EXTENSION("eaccelerator", "eaccelerator.c optimize.c encoder.c loader.c opcodes.c content.c mm.c session.c shm.c debug.c cache.c ea_restore.c ea_store.c ea_info.c ea_dasm.c", PHP_EACCELERATOR_SHARED);
+	AC_DEFINE("HAVE_EACCELERATOR", 1, "Define if you like to use eAccelerator");
+
+	if (PHP_EACCELERATOR_CRASH_DETECTION != "no") {
+		AC_DEFINE("WITH_EACCELERATOR_CRASH_DETECTION", 1, "Define if you like to release eAccelerator resources on PHP crash");
+	}
+	if (PHP_EACCELERATOR_OPTIMIZER != "no") {
+		AC_DEFINE("WITH_EACCELERATOR_OPTIMIZER", 1, "Define if you like to use peephole opcode optimization");
+	}
+	if (PHP_EACCELERATOR_ENCODER != "no") {
+		AC_DEFINE("WITH_EACCELERATOR_ENCODER", 1, "Define if you like to use eAccelerator enoder");
+	}
+	if (PHP_EACCELERATOR_LOADER != "no" && PHP_ELOADER == "no") {
+		AC_DEFINE("WITH_EACCELERATOR_LOADER", 1, "Define if you like to load files encoded by eAccelerator encoder");
+	}
+	if (PHP_EACCELERATOR_SHARED_MEMORY != "no" || PHP_EACCELERATOR_CONTENT_CACHING != "no") {
+		AC_DEFINE("WITH_EACCELERATOR_SHM", 1, "Define if you like to use the eAccelerator functions to store keys in shared memory");
+	}
+	if (PHP_EACCELERATOR_INFO != "no") {
+		AC_DEFINE("WITH_EACCELERATOR_INFO", 1, "Define if you want the information functions");
+	}
+	if (PHP_EACCELERATOR_SESSIONS != "no") {
+		AC_DEFINE("WITH_EACCELERATOR_SESSIONS", 1, "Define if you like to use eAccelerator session handlers to store session's information in shared memory");
+	}
+	if (PHP_EACCELERATOR_CONTENT_CACHING != "no") {
+		AC_DEFINE("WITH_EACCELERATOR_CONTENT_CACHING", 1, "Define if you like to use eAccelerator content cachin API");
+	}
+	if (PHP_EACCELERATOR_DISASSEMBLER != "no") {
+		AC_DEFINE("WITH_EACCELERATOR_DISASSEMBLER", 1, "Define if you like to explore Zend bytecode");
+	}
+	if (PHP_EACCELERATOR_DEBUG != "no") {
+		AC_DEFINE("DEBUG", 1, "Undef when you want to enable eaccelerator debug code");
+	}
+
+	AC_DEFINE("HAVE_EXT_SESSION_PHP_SESSION_H", 1, "Define if you have the <ext/session/php_session.h> header file.");
+}
+
+if (PHP_ELOADER != "no") {
+	EXTENSION("eloader", "loader.c opcodes.c ea_restore.c", PHP_ELOADER_SHARED, "/D HAVE_EACCELERATOR_STANDALONE_LOADER");
+	AC_DEFINE("HAVE_EACCELERATOR", 1, "Define if you like to use eAccelerator");
+
+	AC_DEFINE("WITH_EACCELERATOR_LOADER", 1, "Define if you like to load files encoded by eAccelerator encoder");
+}
