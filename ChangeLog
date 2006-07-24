@@ -5,6 +5,7 @@
         * Use a define for the magic string in the eAccelerator file headers
         * Bump up version to 0.9.5-rc1
         * Put -O2 back on for -rc1
+        * Update the VC2005 project files
 
 2006-07-23  Hans Rakers <hans at parse dot nl>
 	* Fix for ticket #47 and #63, related to problems restoring empty
