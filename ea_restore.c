@@ -221,6 +221,8 @@ void fixup_op_array(eaccelerator_op_array * from TSRMLS_DC)
 			}
 #  ifdef ZEND_ENGINE_2_1
 			ZEND_VM_SET_OPCODE_HANDLER(opline);
+#  elif defined(ZEND_ENGINE_2)
+            opline->handler = zend_opcode_handlers[opline->opcode];
 #  else
 			opline->handler = get_opcode_handler(opline->opcode TSRMLS_CC);
 #  endif

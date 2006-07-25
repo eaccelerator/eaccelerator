@@ -1,3 +1,9 @@
+2006-07-25  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
+
+        * Fix restoring of opcode handler for php 5.0.5 when files are loaded
+          from disk cache. This fixes bug #147
+        * Some update in the release notes for the upcoming rc1
+
 2006-07-24  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
         * Make clean routine support dir hashing. Again, this should be tested

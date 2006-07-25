@@ -18,10 +18,13 @@ Jul 24, 2006 - Bart Vanbrabant
           information about this can be found in the README.
         - Memory footprint should be reduced because redundant information in
           the cached scripts is no longer stored.
+        - File hashing in the cache directory to improve performance with a 
+          big amount of cache files.
     WARNING: The encoder and loader DO not support php 5.1 nor php 5.0 and contain
     a lot of bug for php 4. This is the last release the encoder/loader 
     functionality will be available. Maybe later a new encoder/loader will be 
     included but there aren't any plans for that.
+    As always all patches and help are more then welcome.
     
 
 Apr 11, 2006 - Bart Vanbrabant
