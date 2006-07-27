@@ -114,6 +114,7 @@ void calc_zval(zval * zv TSRMLS_DC)
 {
 	switch (Z_TYPE_P(zv) & ~IS_CONSTANT_INDEX) {
 	case IS_CONSTANT:
+    case IS_OBJECT: /* object should have been serialized before storing them */
 	case IS_STRING:
 		calc_string(Z_STRVAL_P(zv), Z_STRLEN_P(zv) + 1 TSRMLS_CC);
 		break;
@@ -125,30 +126,6 @@ void calc_zval(zval * zv TSRMLS_DC)
 			calc_zval_hash(Z_ARRVAL_P(zv));
 		}
 		break;
-	case IS_OBJECT:
-#ifndef ZEND_ENGINE_2
-		if (Z_OBJCE_P(zv) != NULL) {
-			zend_class_entry *ce = Z_OBJCE_P(zv);
-			if (!EAG(compress)) {
-				DBG(ea_debug_error, ("[%d] EACCELERATOR can't cache objects\n", getpid()));
-				zend_bailout();
-			}
-			while (ce != NULL) {
-				if (ce->type != ZEND_USER_CLASS && strcmp(ce->name, "stdClass") != 0) {
-					DBG(ea_debug_error, ("[%d] EACCELERATOR can't cache objects\n", getpid()));
-					zend_bailout();
-				}
-				ce = ce->parent;
-			}
-			calc_string(Z_OBJCE_P(zv)->name, Z_OBJCE_P(zv)->name_length + 1 TSRMLS_CC);
-		}
-		if (Z_OBJPROP_P(zv) != NULL) {
-			EACCELERATOR_ALIGN(EAG(mem));
-			EAG(mem) += sizeof(HashTable);
-			calc_zval_hash(Z_OBJPROP_P(zv));
-		}
-#endif
-		return;
 	case IS_RESOURCE:
 		DBG(ea_debug_error, ("[%d] EACCELERATOR can't cache resources\n", getpid()));
 		zend_bailout();
@@ -475,6 +452,7 @@ void store_zval(zval * zv TSRMLS_DC)
 {
 	switch (Z_TYPE_P(zv) & ~IS_CONSTANT_INDEX) {
 	case IS_CONSTANT:
+    case IS_OBJECT: /* object should have been serialized before storing them */
 	case IS_STRING:
 		Z_STRVAL_P(zv) = store_string(Z_STRVAL_P(zv), Z_STRLEN_P(zv) + 1 TSRMLS_CC);
 		break;
@@ -489,25 +467,6 @@ void store_zval(zval * zv TSRMLS_DC)
 			Z_ARRVAL_P(zv) = p;
 		}
 		break;
-	case IS_OBJECT:
-		if (!EAG(compress)) {
-			return;
-		}
-#ifndef ZEND_ENGINE_2
-		if (Z_OBJCE_P(zv) != NULL) {
-			char *s = store_string(Z_OBJCE_P(zv)->name, Z_OBJCE_P(zv)->name_length + 1 TSRMLS_CC);
-			zend_str_tolower(s, Z_OBJCE_P(zv)->name_length);
-			Z_OBJCE_P(zv) = (zend_class_entry *) s;
-		}
-		if (Z_OBJPROP_P(zv) != NULL) {
-			HashTable *p;
-			EACCELERATOR_ALIGN(EAG(mem));
-			p = (HashTable *) EAG(mem);
-			EAG(mem) += sizeof(HashTable);
-			store_zval_hash(p, Z_OBJPROP_P(zv));
-			Z_OBJPROP_P(zv) = p;
-		}
-#endif
 	default:
 		break;
 	}

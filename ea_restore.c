@@ -143,6 +143,7 @@ void fixup_zval(zval * zv TSRMLS_DC)
 {
 	switch (Z_TYPE_P(zv) & ~IS_CONSTANT_INDEX) {
 	case IS_CONSTANT:			/* fallthrough */
+    case IS_OBJECT:             /* fallthrough: object are serialized */
 	case IS_STRING:
 		FIXUP(Z_STRVAL_P(zv));
 		break;
@@ -151,17 +152,6 @@ void fixup_zval(zval * zv TSRMLS_DC)
 		FIXUP(Z_ARRVAL_P(zv));
 		fixup_zval_hash(Z_ARRVAL_P(zv));
 		break;
-	case IS_OBJECT:
-		if (!EAG(compress)) {
-			return;
-		}
-#ifndef ZEND_ENGINE_2
-		FIXUP(Z_OBJCE_P(zv));
-		if (Z_OBJPROP_P(zv) != NULL) {
-			FIXUP(Z_OBJPROP_P(zv));
-			fixup_zval_hash(Z_OBJPROP_P(zv));
-		}
-#endif
 	default:
 		break;
 	}
@@ -371,6 +361,7 @@ void restore_zval(zval * zv TSRMLS_DC)
 {
 	switch (zv->type & ~IS_CONSTANT_INDEX) {
 	case IS_CONSTANT:
+    case IS_OBJECT:
 	case IS_STRING:
 		if (Z_STRVAL_P(zv) == NULL || Z_STRVAL_P(zv) == "" || Z_STRLEN_P(zv) == 0) {
 			Z_STRLEN_P(zv) = 0;
@@ -390,57 +381,6 @@ void restore_zval(zval * zv TSRMLS_DC)
 			Z_ARRVAL_P(zv)->pDestructor = ZVAL_PTR_DTOR;
 		}
 		return;
-
-	case IS_OBJECT:
-    {
-#ifndef ZEND_ENGINE_2
-        zend_bool incomplete_class = 0;
-        char *class_name = (char *) Z_OBJCE_P(zv);
-        int name_len = 0;
-        if (!EAG(compress)) {
-            return;
-        }
-        if (class_name != NULL) {
-            zend_class_entry *ce = NULL;
-            name_len = strlen(class_name);
-            if (zend_hash_find(CG(class_table), (void *) class_name, name_len + 1, (void **) &ce) != SUCCESS) {
-                char *lowercase_name = estrndup(INCOMPLETE_CLASS, sizeof(INCOMPLETE_CLASS));
-                zend_str_tolower(lowercase_name, sizeof(INCOMPLETE_CLASS));
-                if (zend_hash_find(CG(class_table), lowercase_name, sizeof(INCOMPLETE_CLASS), (void **) &ce) != SUCCESS) {
-                    efree(lowercase_name);
-                    zend_error(E_ERROR, "EACCELERATOR can't restore object's class \"%s\"", class_name);
-                } else {
-                    efree(lowercase_name);
-                    Z_OBJCE_P(zv) = ce;
-                    incomplete_class = 1;
-                }
-            } else {
-                Z_OBJCE_P(zv) = ce;
-            }
-        }
-        if (Z_OBJPROP_P(zv) != NULL) {
-            Z_OBJPROP_P(zv) = restore_zval_hash(NULL, Z_OBJPROP_P(zv));
-            Z_OBJPROP_P(zv)->pDestructor = ZVAL_PTR_DTOR;
-            /* Clearing references */
-            {
-                Bucket *p = Z_OBJPROP_P(zv)->pListHead;
-                while (p != NULL) {
-                    ((zval *) (p->pDataPtr))->refcount = 1;
-                    p = p->pListNext;
-                }
-            }
-        }
-        if (incomplete_class && class_name != NULL) {
-            zval *val;
-            MAKE_STD_ZVAL(val);
-            Z_TYPE_P(val) = IS_STRING;
-            Z_STRVAL_P(val) = estrndup(class_name, name_len);
-            Z_STRLEN_P(val) = name_len;
-            zend_hash_update(Z_OBJPROP_P(zv), MAGIC_MEMBER, sizeof(MAGIC_MEMBER), &val, sizeof(val), NULL);
-        }
-#endif
-        return;
-    }
 	}
 }
 
