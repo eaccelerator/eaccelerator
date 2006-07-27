@@ -206,10 +206,11 @@ void ea_debug_pad (long debug_level TSRMLS_DC)
 {
 #ifdef DEBUG /* This ifdef is still req'd because xpad is N/A in a non-debug compile */
     if (eaccelerator_debug & debug_level) {
+		int i;
         if (F_fp != stderr) {
         	EACCELERATOR_FLOCK(file_no, LOCK_EX);
         }
-        int i = EAG (xpad);
+        i = EAG (xpad);
         while (i-- > 0) {
             fputc ('\t', F_fp);
         }

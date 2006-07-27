@@ -46,7 +46,7 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalOptions="/D &quot;_CRT_SECURE_NO_DEPRECATE&quot; /D &quot;_CRT_NONSTDC_NO_DEPRECATE&quot;&#x0D;&#x0A;"
+				AdditionalOptions="/D &quot;_CRT_SECURE_NO_DEPRECATE&quot; /D &quot;_CRT_NONSTDC_NO_DEPRECATE&quot;"
 				Optimization="2"
 				InlineFunctionExpansion="1"
 				AdditionalIncludeDirectories="../../..,../../../zend,../../../TSRM,../../../main"
@@ -143,7 +143,7 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalOptions="/D &quot;_CRT_SECURE_NO_DEPRECATE&quot;"
+				AdditionalOptions="/D &quot;_CRT_SECURE_NO_DEPRECATE&quot; /D &quot;_CRT_NONSTDC_NO_DEPRECATE&quot;"
 				Optimization="2"
 				InlineFunctionExpansion="1"
 				AdditionalIncludeDirectories="../../..,../../../zend,../../../TSRM,../../../main"
@@ -240,7 +240,7 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalOptions="/D &quot;_CRT_SECURE_NO_DEPRECATE&quot;"
+				AdditionalOptions="/D &quot;_CRT_SECURE_NO_DEPRECATE&quot; /D &quot;_CRT_NONSTDC_NO_DEPRECATE&quot;"
 				Optimization="0"
 				AdditionalIncludeDirectories="../../..,../../../zend,../../../TSRM,../../../main"
 				PreprocessorDefinitions="_DEBUG;ZEND_DEBUG=1;DEBUG;WIN32;_WINDOWS;_USRDLL;HAVE_EACCELERATOR;COMPILE_DL_EACCELERATOR;ZEND_WIN32;PHP_WIN32;ZTS=1;HAVE_EXT_SESSION_PHP_SESSION_H=1;WITH_EACCELERATOR_CRASH_DETECTION;WITH_EACCELERATOR_OPTIMIZER;WITH_EACCELERATOR_ENCODER;WITH_EACCELERATOR_LOADER;WITH_EACCELERATOR_SESSIONS;WITH_EACCELERATOR_CONTENT_CACHING;WITH_EACCELERATOR_SHM;WITH_EACCELERATOR_INFO"
@@ -338,7 +338,7 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalOptions="/D &quot;_CRT_SECURE_NO_DEPRECATE&quot;"
+				AdditionalOptions="/D &quot;_CRT_SECURE_NO_DEPRECATE&quot; /D &quot;_CRT_NONSTDC_NO_DEPRECATE&quot;"
 				Optimization="0"
 				AdditionalIncludeDirectories="../../..,../../../zend,../../../TSRM,../../../main"
 				PreprocessorDefinitions="_DEBUG;ZEND_DEBUG=1;DEBUG;WIN32;_WINDOWS;_USRDLL;HAVE_EACCELERATOR;COMPILE_DL_EACCELERATOR;ZEND_WIN32;PHP_WIN32;ZTS=1;HAVE_EXT_SESSION_PHP_SESSION_H=1;WITH_EACCELERATOR_CRASH_DETECTION;WITH_EACCELERATOR_OPTIMIZER;WITH_EACCELERATOR_ENCODER;WITH_EACCELERATOR_LOADER;WITH_EACCELERATOR_SESSIONS;WITH_EACCELERATOR_CONTENT_CACHING;WITH_EACCELERATOR_SHM;WITH_EACCELERATOR_INFO"

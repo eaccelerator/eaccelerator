@@ -1075,7 +1075,9 @@ static int eaccelerator_encode(char* key, zend_op_array* op_array,
 
 #ifdef ZEND_ENGINE_2
 
+#if !defined(WIN32) && !defined(DEBUG)
 ZEND_DLIMPORT int isatty(int fd);
+#endif
 
 static size_t eaccelerator_stream_stdio_reader(void *handle, char *buf, size_t len TSRMLS_DC)
 {
