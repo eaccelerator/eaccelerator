@@ -2,6 +2,8 @@
 
         * Branched 0.9.5, development for 0.9.6 will start in trunk
         * Bumped up version to 0.9.6-dev
+        * Killing the very broken encoder. Once when eAccelerator is in full
+          shape an encoder may return.
 
 2006-07-25  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 

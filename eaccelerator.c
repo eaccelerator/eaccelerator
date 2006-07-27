@@ -1408,52 +1408,6 @@ ZEND_DLEXPORT zend_op_array* eaccelerator_compile_file(zend_file_handle *file_ha
          ((stat(file_handle->opened_path, &buf) == 0) && S_ISREG(buf.st_mode)))) {
       DBG(ea_debug_printf, (EA_TEST_PERFORMANCE, "\t[%d] compile_file: storing in cache (%ld)\n", getpid(), ea_debug_elapsed_time(&tv_start)));
       DBG(ea_debug_printf, (EA_DEBUG, "\t[%d] compile_file: storing in cache\n", getpid()));
-#ifdef WITH_EACCELERATOR_LOADER
-      if (t->last >= 3 &&
-          t->opcodes[0].opcode == ZEND_SEND_VAL &&
-          t->opcodes[1].opcode == ZEND_DO_FCALL &&
-          t->opcodes[2].opcode == ZEND_RETURN &&
-          t->opcodes[1].op1.op_type == IS_CONST &&
-          t->opcodes[1].op1.u.constant.type == IS_STRING &&
-          t->opcodes[1].op1.u.constant.value.str.len == sizeof("eaccelerator_load")-1 &&
-          (memcmp(t->opcodes[1].op1.u.constant.value.str.val, "eaccelerator_load", sizeof("eaccelerator_load")-1) == 0) &&
-          t->opcodes[0].op1.op_type == IS_CONST &&
-          t->opcodes[0].op1.u.constant.type == IS_STRING) {
-        zend_op_array* new_t = NULL;
-        zend_bool old_in_compilation = CG(in_compilation);
-        char* old_filename = CG(compiled_filename);
-        int old_lineno = CG(zend_lineno);
-
-        CG(in_compilation) = 1;
-        zend_set_compiled_filename(t->filename TSRMLS_CC);
-        CG(zend_lineno) = t->opcodes[1].lineno;
-
-        zend_try {
-          new_t = eaccelerator_load(
-            t->opcodes[0].op1.u.constant.value.str.val,
-            t->opcodes[0].op1.u.constant.value.str.len TSRMLS_CC);
-        } zend_catch {
-            CG(function_table)	= orig_function_table;
-            CG(class_table)		= orig_class_table;
-            ea_bailout				= 1;
-        } zend_end_try();
-        if (ea_bailout) {
-          zend_bailout ();
-        }
-        CG(in_compilation) = old_in_compilation;
-        CG(compiled_filename) = old_filename;
-        CG(zend_lineno) = old_lineno;
-        if (new_t != NULL) {
-#ifdef ZEND_ENGINE_2
-          destroy_op_array(t TSRMLS_CC);
-#else
-          destroy_op_array(t);
-#endif
-          efree(t);
-          t = new_t;
-        }
-      }
-#endif
       function_table_tail = function_table_tail?function_table_tail->pListNext:CG(function_table)->pListHead;
       class_table_tail = class_table_tail?class_table_tail->pListNext:CG(class_table)->pListHead;
       if (eaccelerator_store(file_handle->opened_path, &buf, nreloads, t, function_table_tail, class_table_tail TSRMLS_CC)) {
@@ -1908,7 +1862,6 @@ static void eaccelerator_init_globals(zend_eaccelerator_globals *eaccelerator_gl
   eaccelerator_globals->cache_dir         = NULL;
   eaccelerator_globals->optimizer_enabled = 1;
   eaccelerator_globals->compiler          = 0;
-  eaccelerator_globals->encoder           = 0;
   eaccelerator_globals->cond_list         = NULL;
   eaccelerator_globals->content_headers   = NULL;
 #ifdef WITH_EACCELERATOR_SESSIONS
@@ -1985,15 +1938,6 @@ PHP_MINIT_FUNCTION(eaccelerator) {
       if (getpid() != getpgrp()) {
         return SUCCESS;
       }
-    }
-#endif
-#ifdef WITH_EACCELERATOR_LOADER
-    if (zend_hash_exists(&module_registry, EACCELERATOR_LOADER_EXTENSION_NAME, 
-                sizeof(EACCELERATOR_LOADER_EXTENSION_NAME))) {
-      zend_error(E_CORE_WARNING,"Extension \"%s\" is not need with \"%s\". Remove it from php.ini\n", 
-              EACCELERATOR_LOADER_EXTENSION_NAME, EACCELERATOR_EXTENSION_NAME);
-      zend_hash_del(&module_registry, EACCELERATOR_LOADER_EXTENSION_NAME, 
-              sizeof(EACCELERATOR_LOADER_EXTENSION_NAME));
     }
 #endif
   }
@@ -2114,7 +2058,6 @@ PHP_RINIT_FUNCTION(eaccelerator)
 	EAG(in_request) = 1;
 	EAG(used_entries) = NULL;
 	EAG(compiler) = 0;
-	EAG(encoder) = 0;
 	EAG(refcount_helper) = 1;
 	EAG(compress_content) = 1;
 	EAG(content_headers) = NULL;
@@ -2240,14 +2183,6 @@ function_entry eaccelerator_functions[] = {
   PHP_FE(eaccelerator_cached_scripts, NULL)
   PHP_FE(eaccelerator_removed_scripts, NULL)
   PHP_FE(eaccelerator_list_keys, NULL)
-#endif
-#ifdef WITH_EACCELERATOR_ENCODER
-  PHP_FE(eaccelerator_encode, eaccelerator_second_arg_force_ref)
-#endif
-#ifdef WITH_EACCELERATOR_LOADER
-  PHP_FE(eaccelerator_load, NULL)
-  PHP_FE(_eaccelerator_loader_file, NULL)
-  PHP_FE(_eaccelerator_loader_line, NULL)
 #endif
 #ifdef WITH_EACCELERATOR_SESSIONS
 #ifndef HAVE_PHP_SESSIONS_SUPPORT

@@ -108,7 +108,6 @@
 #endif
 
 #ifdef HAVE_EACCELERATOR
-#ifndef HAVE_EACCELERATOR_STANDALONE_LOADER 
 
 #include "mm.h"
 
@@ -176,7 +175,6 @@
 
 /******************************************************************************/
 
-#endif /* HAVE_EACCELERATOR_STANDALONE_LOADER */
 
 #ifndef offsetof
 #  define offsetof(str,fld) ((size_t)&(((str*)NULL)->fld))
@@ -258,7 +256,6 @@ typedef struct _mm_fc_entry {
 	char htabkey[1];			/* must be last element */
 } mm_fc_entry;
 
-#ifndef HAVE_EACCELERATOR_STANDALONE_LOADER
 
 /*
  * A mm_cache_entry is a bucket for one PHP script file.
@@ -398,11 +395,6 @@ unsigned int hash_mm(const char *data, int len);
 void eaccelerator_optimize (zend_op_array * op_array);
 #  endif
 
-#ifdef WITH_EACCELERATOR_ENCODER
-PHP_FUNCTION (eaccelerator_encode);
-#endif
-#endif /* HAVE_EACCELERATOR_STANDALONE_LOADER */
-
 #ifdef ZTS
 #  define EAG(v) TSRMG(eaccelerator_globals_id, zend_eaccelerator_globals*, v)
 #else
@@ -419,13 +411,6 @@ typedef struct _mm_cond_entry {
 	struct _mm_cond_entry *next;
 } mm_cond_entry;
 
-#ifdef WITH_EACCELERATOR_LOADER
-zend_op_array *eaccelerator_load (char *src, int src_len TSRMLS_DC);
-PHP_FUNCTION (eaccelerator_load);
-PHP_FUNCTION (_eaccelerator_loader_file);
-PHP_FUNCTION (_eaccelerator_loader_line);
-#endif
-
 /*
  * Globals (different for each process/thread)
  */
@@ -436,7 +421,6 @@ zend_bool enabled;
 zend_bool optimizer_enabled;
 zend_bool compression_enabled;
 zend_bool compiler;
-zend_bool encoder;
 zend_bool compress;
 zend_bool compress_content;
 zend_bool in_request;
@@ -483,15 +467,8 @@ ZEND_END_MODULE_GLOBALS (eaccelerator)
 ZEND_EXTERN_MODULE_GLOBALS (eaccelerator)
 
 #define EACCELERATOR_EXTENSION_NAME "eAccelerator"
-#define EACCELERATOR_LOADER_EXTENSION_NAME "eLoader"
 
 #define EA_MAGIC "EACCELERATOR"
-
-#define EA_ENCODER_VERSION   0x00000004
-#define EA_ENCODER_END       0x00
-#define EA_ENCODER_NAMESPACE 0x01
-#define EA_ENCODER_CLASS     0x02
-#define EA_ENCODER_FUNCTION  0x03
 
 #define EACCELERATOR_VERSION_GUID   "PHPE8EDA1B6-806A-4851-B1C8-A6B4712F44FB"
 #define EACCELERATOR_LOGO_GUID      "PHPE6F78DE9-13E4-4dee-8518-5FA2DACEA803"

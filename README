@@ -19,14 +19,6 @@ compiled PHP script in the cache, so one script can be executed simultaneously
 by several engines. Files that can't fit in shared memory are cached  on  disk
 only.
 
-eAccelerator contains a PHP encoder and loader. You  can  encode  PHP  scripts
-using encoder.php in order to distribute them without sources.  Encoded  files 
-can be run on any site which  runs  PHP  with  eAccelerator.  The  sources  of
-encoded scripts can't be restored because they are stored in a  compiled  form
-and the encoded version doesn't contain the source. Of course, some  internals
-of the scripts can  be  restored  with  different  reverse  engineering  tools
-(disassemblers, debuggers, etc), but it is not trivial.
-
 eAccelerator is compatible with Zend Optimizer's loader. Zend  Optimizer  must
 be installed after eAccelerator in php.ini. If you don't use  scripts  encoded
 with  Zend  Encoder  we  do  not  recommend  to  install  Zend  Optimizer with 

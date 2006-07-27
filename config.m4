@@ -29,20 +29,6 @@ AC_ARG_WITH(eaccelerator-optimizer,
   eaccelerator_optimizer=yes
 ])
 
-AC_ARG_WITH(eaccelerator-encoder,
-[  --without-eaccelerator-encoder           Do not include eaccelerator encoder],[
-  eaccelerator_encoder=$withval
-],[
-  eaccelerator_encoder=yes
-])
-
-AC_ARG_WITH(eaccelerator-loader,
-[  --without-eaccelerator-loader            Do not include eaccelerator loader],[
-  eaccelerator_loader=$withval
-],[
-  eaccelerator_loader=yes
-])
-
 AC_ARG_WITH(eaccelerator-shared-memory,
 [  --with-eaccelerator-shared-memory        Include eaccelerator shared memory functions],[
   eaccelerator_shm=$withval
@@ -113,12 +99,6 @@ if test "$PHP_EACCELERATOR" != "no"; then
   fi
   if test "$eaccelerator_optimizer" = "yes"; then
     AC_DEFINE(WITH_EACCELERATOR_OPTIMIZER, 1, [Define if you like to use peephole opcode optimization])
-  fi
-  if test "$eaccelerator_encoder" = "yes"; then
-    AC_DEFINE(WITH_EACCELERATOR_ENCODER, 1, [Define if you like to use eAccelerator enoder])
-  fi
-  if test "$eaccelerator_loader" = "yes"; then
-    AC_DEFINE(WITH_EACCELERATOR_LOADER, 1, [Define if you like to load files encoded by eAccelerator encoder])
   fi
   if test "$eaccelerator_shm" = "yes"; then
     AC_DEFINE(WITH_EACCELERATOR_SHM, 1, [Define if you like to use the eAccelerator functions to store keys in shared memory])

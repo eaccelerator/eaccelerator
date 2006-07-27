@@ -42,9 +42,8 @@ inline
 #endif
 static void calc_string(char *str, int len TSRMLS_DC)
 {
-	if (len > MAX_DUP_STR_LEN || zend_hash_add(&EAG(strings), str, len,
-											   &str, sizeof(char *),
-											   NULL) == SUCCESS) {
+	if (len > MAX_DUP_STR_LEN || 
+            zend_hash_add(&EAG(strings), str, len, &str, sizeof(char *), NULL) == SUCCESS) {
 		EACCELERATOR_ALIGN(EAG(mem));
 		EAG(mem) += len;
 	}
@@ -343,7 +342,6 @@ int calc_size(char *key, zend_op_array * op_array,
 	return (size_t) EAG(mem);
 }
 
-/** Functions to store a script **/
 static inline char *store_string(char *str, int len TSRMLS_DC)
 {
 	char *p;

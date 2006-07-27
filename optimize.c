@@ -1496,88 +1496,77 @@ jmp_2:
 }
 
 static int opt_get_constant(const char* name, int name_len, zend_constant** result TSRMLS_DC) {
-  if (!EAG(encoder) ||
-      (name_len == sizeof("false")-1 && strcmp(name,"false") == 0) ||
-      (name_len == sizeof("true")-1 && strcmp(name,"true") == 0)) {
-    union {
-      zend_constant *v;
-      void *ptr;
-    } c;
-    int retval;
-    char *lookup_name = do_alloca(name_len+1);
-    memcpy(lookup_name, name, name_len);
-    lookup_name[name_len] = '\0';
+  union {
+    zend_constant *v;
+    void *ptr;
+  } c;
+  int retval;
+  char *lookup_name = do_alloca(name_len+1);
+  memcpy(lookup_name, name, name_len);
+  lookup_name[name_len] = '\0';
+
+  if (zend_hash_find(EG(zend_constants), lookup_name, name_len+1, &c.ptr)==SUCCESS) {
+    *result = c.v;
+    retval=1;
+  } else {
+    zend_str_tolower(lookup_name, name_len);
 
     if (zend_hash_find(EG(zend_constants), lookup_name, name_len+1, &c.ptr)==SUCCESS) {
-      *result = c.v;
-      retval=1;
-    } else {
-      zend_str_tolower(lookup_name, name_len);
-
-      if (zend_hash_find(EG(zend_constants), lookup_name, name_len+1, &c.ptr)==SUCCESS) {
-        if ((c.v->flags & CONST_CS) && (memcmp(c.v->name, name, name_len)!=0)) {
-          retval=0;
-        } else {
-          *result = c.v;
-          retval=1;
-        }
-      } else {
+      if ((c.v->flags & CONST_CS) && (memcmp(c.v->name, name, name_len)!=0)) {
         retval=0;
+      } else {
+        *result = c.v;
+        retval=1;
       }
+    } else {
+      retval=0;
     }
-    free_alloca(lookup_name);
-    return retval;
-  } else {
-    return 0;
   }
+  free_alloca(lookup_name);
+  return retval;
 }
 
 static int opt_function_exists(const char* name, int name_len TSRMLS_DC) {
-  if (!EAG(encoder)) {
-    char *lcname;
-    char *lcfname;
-    Bucket *p;
+  char *lcname;
+  char *lcfname;
+  Bucket *p;
 
-    lcname = estrndup(name,name_len+1);
-    zend_str_tolower(lcname, name_len);
-    p = module_registry.pListHead;
-    while (p != NULL) {
-      zend_module_entry *m = (zend_module_entry*)p->pData;
-      if (m->type == MODULE_PERSISTENT) {
-        zend_function_entry* f = m->functions;
-        if (f != NULL) {
-          while (f->fname) {
-            lcfname = estrdup(f->fname);
-            zend_str_tolower(lcfname, strlen(lcfname));
-            if (strcmp(lcname,lcfname) == 0) {
-              efree(lcfname);
-              efree(lcname);
-              return 1;
-            }
-            efree(lcfname);
-            f++;
-          }
+  lcname = estrndup(name,name_len+1);
+  zend_str_tolower(lcname, name_len);
+  p = module_registry.pListHead;
+  while (p != NULL) {
+    zend_module_entry *m = (zend_module_entry*)p->pData;
+    if (m->type == MODULE_PERSISTENT) {
+      zend_function_entry* f = m->functions;
+      if (f != NULL) {
+        while (f->fname) {
+        lcfname = estrdup(f->fname);
+        zend_str_tolower(lcfname, strlen(lcfname));
+        if (strcmp(lcname,lcfname) == 0) {
+          efree(lcfname);
+          efree(lcname);
+          return 1;
+        }
+          efree(lcfname);
+          f++;
         }
       }
-      p = p->pListNext;
     }
-    efree(lcname);
+    p = p->pListNext;
   }
+  efree(lcname);
   return 0;
 }
 
 static int opt_extension_loaded(const char* name, int name_len TSRMLS_DC) {
-  if (!EAG(encoder)) {
-    Bucket *p = module_registry.pListHead;
-    while (p != NULL) {
-      zend_module_entry *m = (zend_module_entry*)p->pData;
-      if (m->type == MODULE_PERSISTENT && strcmp(m->name,name) == 0) {
-        return 1;
-      }
-      p = p->pListNext;
+  Bucket *p = module_registry.pListHead;
+  while (p != NULL) {
+    zend_module_entry *m = (zend_module_entry*)p->pData;
+    if (m->type == MODULE_PERSISTENT && strcmp(m->name,name) == 0) {
+      return 1;
     }
+    p = p->pListNext;
   }
-  return 0;
 }
 
 static int opt_result_is_numeric(zend_op* x) {
