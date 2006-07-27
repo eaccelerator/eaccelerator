@@ -4,6 +4,8 @@
         * Bumped up version to 0.9.6-dev
         * Killing the very broken encoder. Once when eAccelerator is in full
           shape an encoder may return.
+        * Some fixes to make eAccelerator compile with php 5.2, this fixes bug #150
+        * Restore __toString methods correctly with php 5.2
 
 2006-07-25  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 

@@ -772,6 +772,11 @@ void restore_class_methods(zend_class_entry * to TSRMLS_DC)
 			else if (fname_len == sizeof(ZEND_CALL_FUNC_NAME) - 1 &&
 					 memcmp(fname_lc, ZEND_CALL_FUNC_NAME, sizeof(ZEND_CALL_FUNC_NAME)) == 0)
 				to->__call = f;
+#  ifdef ZEND_ENGINE_2_2
+            else if (fname_len == sizeof(ZEND_TOSTRING_FUNC_NAME) - 1 &&
+                     memcmp(fname_lc, ZEND_TOSTRING_FUNC_NAME, sizeof(ZEND_TOSTRING_FUNC_NAME)) == 0)
+                to->__tostring = f;
+#  endif
 		}
 		if (to->parent) {
 			/* clear the child's prototype and IMPLEMENTED_ABSTRACT flag,

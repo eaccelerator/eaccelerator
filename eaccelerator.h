@@ -45,6 +45,10 @@
 #   define ZEND_ENGINE_2_1
 #endif
 
+#if PHP_MAJOR_VERSION == 5 && PHP_MINOR_VERSION >= 2
+#   define ZEND_ENGINE_2_2
+#endif
+
 /* fixes compile errors on php5.1 */
 #ifdef STR_EMPTY_ALLOC
 #define empty_string STR_EMPTY_ALLOC()
@@ -355,12 +359,20 @@ typedef enum _eaccelerator_cache_place {
 	eaccelerator_none			/* don't cache  */
 } eaccelerator_cache_place;
 
+#ifndef align_union
 typedef union align_union {
   double d;
   void *v;
   int (*func)(int);
   long l;
 } align_union;
+#endif
+
+typedef union _align_test {
+  void *ptr;
+  double dbl;
+  long lng;
+} align_test;
 
 /******************************************************************************/
 
