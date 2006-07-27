@@ -8,6 +8,10 @@
         * Restore __toString methods correctly with php 5.2
         * Fix bug #145, objects are serialized when they are stored in shared memory.
           Users don't have to do this in their code anymore.
+        * Wrong ifdef in compile fix for php 5.2
+        * Update config.w32, VC6 and VC2005 project files
+        * Fix debug build for win32, this fixes ticket #149
+        * Removed a debug statement and added return value in optimizer.c
 
 2006-07-25  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 

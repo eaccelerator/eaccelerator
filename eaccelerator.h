@@ -359,20 +359,20 @@ typedef enum _eaccelerator_cache_place {
 	eaccelerator_none			/* don't cache  */
 } eaccelerator_cache_place;
 
-#ifndef align_union
 typedef union align_union {
   double d;
   void *v;
   int (*func)(int);
   long l;
 } align_union;
-#endif
 
+#ifdef ZEND_ENGINE_2_2
 typedef union _align_test {
   void *ptr;
   double dbl;
   long lng;
 } align_test;
+#endif
 
 /******************************************************************************/
 

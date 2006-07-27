@@ -158,7 +158,6 @@ PHP_FUNCTION (eaccelerator_get)
                 zval_dtor(return_value);
                 php_error_docref(NULL TSRMLS_CC, E_NOTICE, "Error at offset %ld of %d bytes", 
                         (long)((char*)p - Z_STRVAL_P(value)), Z_STRLEN_P(value));
-                ea_debug_error("Error unserializing (%s) with length %d\n", Z_STRVAL_P(value), Z_STRLEN_P(value));
             }
             PHP_VAR_UNSERIALIZE_DESTROY(var_hash);
         }

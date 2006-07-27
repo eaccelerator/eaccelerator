@@ -1567,6 +1567,7 @@ static int opt_extension_loaded(const char* name, int name_len TSRMLS_DC) {
     }
     p = p->pListNext;
   }
+  return 0;
 }
 
 static int opt_result_is_numeric(zend_op* x) {

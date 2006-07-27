@@ -3,8 +3,6 @@ Microsoft Visual Studio Solution File, Format Version 9.00
 # Visual Studio 2005
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "eAccelerator", "eAccelerator.vcproj", "{F236792D-8DF1-49FA-9F36-2338F47C9DEB}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "eLoader", "eLoader.vcproj", "{945FEBD1-AA09-445B-8C31-11270D6B2464}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug PHP5|Win32 = Debug PHP5|Win32
@@ -21,14 +19,6 @@ Global
 		{F236792D-8DF1-49FA-9F36-2338F47C9DEB}.Release PHP5|Win32.Build.0 = Release PHP5|Win32
 		{F236792D-8DF1-49FA-9F36-2338F47C9DEB}.Release|Win32.ActiveCfg = Release|Win32
 		{F236792D-8DF1-49FA-9F36-2338F47C9DEB}.Release|Win32.Build.0 = Release|Win32
-		{945FEBD1-AA09-445B-8C31-11270D6B2464}.Debug PHP5|Win32.ActiveCfg = Debug PHP5|Win32
-		{945FEBD1-AA09-445B-8C31-11270D6B2464}.Debug PHP5|Win32.Build.0 = Debug PHP5|Win32
-		{945FEBD1-AA09-445B-8C31-11270D6B2464}.Debug|Win32.ActiveCfg = Debug|Win32
-		{945FEBD1-AA09-445B-8C31-11270D6B2464}.Debug|Win32.Build.0 = Debug|Win32
-		{945FEBD1-AA09-445B-8C31-11270D6B2464}.Release PHP5|Win32.ActiveCfg = Release PHP5|Win32
-		{945FEBD1-AA09-445B-8C31-11270D6B2464}.Release PHP5|Win32.Build.0 = Release PHP5|Win32
-		{945FEBD1-AA09-445B-8C31-11270D6B2464}.Release|Win32.ActiveCfg = Release|Win32
-		{945FEBD1-AA09-445B-8C31-11270D6B2464}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
