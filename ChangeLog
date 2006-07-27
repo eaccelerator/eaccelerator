@@ -1,3 +1,8 @@
+2006-07-27  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
+
+        * Branched 0.9.5, development for 0.9.6 will start in trunk
+        * Bumped up version to 0.9.6-dev
+
 2006-07-25  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
         * Fix restoring of opcode handler for php 5.0.5 when files are loaded
