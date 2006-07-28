@@ -1,3 +1,7 @@
+2006-07-28  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
+
+        * Restore the class entry of zend_property_info when using php 5.2, this fixes bug #151
+
 2006-07-27  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
         * Branched 0.9.5, development for 0.9.6 will start in trunk
