@@ -1053,17 +1053,6 @@ static int eaccelerator_ok_to_cache(char *realname TSRMLS_DC) {
   return ok;
 }
 
-#ifndef EACCELERATOR_USE_INODE
-static char* eaccelerator_realpath(const char* name, char* realname TSRMLS_DC) {
-/* ???TODO it is possibe to cache name->realname mapping to avoid lstat() calls */
-#if ZEND_MODULE_API_NO >= 20001222
-  return VCWD_REALPATH(name, realname);
-#else
-  return V_REALPATH(name, realname);
-#endif
-}
-#endif
-
 static int eaccelerator_stat(zend_file_handle *file_handle,
                         char* realname, struct stat* buf TSRMLS_DC) {
 #ifdef EACCELERATOR_USE_INODE
@@ -1178,7 +1167,7 @@ static int eaccelerator_stat(zend_file_handle *file_handle,
              file_handle->filename[0] == '.' ||
              IS_SLASH(file_handle->filename[0]) ||
              IS_ABSOLUTE_PATH(file_handle->filename,strlen(file_handle->filename))) {
-    if (eaccelerator_realpath(file_handle->filename, realname TSRMLS_CC)) {
+    if (VCWD_REALPATH(file_handle->filename, realname)) {
       if (!eaccelerator_check_mtime) {
         return 0;
       } else if (stat(realname, buf) == 0 &&
@@ -1209,7 +1198,7 @@ static int eaccelerator_stat(zend_file_handle *file_handle,
         tryname[len] = '/';
         memcpy(tryname+len+1, file_handle->filename, filename_len);
         tryname[len+filename_len+1] = '\0';
-        if (eaccelerator_realpath(tryname, realname TSRMLS_CC)) {
+        if (VCWD_REALPATH(tryname, realname)) {
 #ifdef ZEND_WIN32
           if (stat(realname, buf) == 0 &&
               S_ISREG(buf->st_mode)) {
