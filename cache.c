@@ -28,7 +28,7 @@
 #include "eaccelerator.h"
 #include "eaccelerator_version.h"
 
-#ifdef HAVE_EACCELERATOR
+#if defined(HAVE_EACCELERATOR) && (defined(WITH_EACCELERATOR_CONTENT_CACHING) || defined(WITH_EACCELERATOR_SESSIONS) || defined(WITH_EACCELERATOR_SHM))
 
 #include "zend.h"
 #include "zend_API.h"
@@ -248,7 +248,7 @@ int eaccelerator_put(const char *key, int key_len, zval * val, time_t ttl,
         q = (mm_user_cache_entry *) EAG(mem);
         q->size = size;
         EAG(mem) += offsetof(mm_user_cache_entry, key) + xlen + 1;
-        q->hv = hash_mm(xkey, xlen);
+        q->hv = zend_get_hash_value(xkey, xlen);
         memcpy(q->key, xkey, xlen + 1);
         memcpy(&q->value, val, sizeof(zval));
         q->ttl = ttl ? time(0) + ttl : 0;
@@ -335,7 +335,7 @@ int eaccelerator_get(const char *key, int key_len, zval * return_value,
     char *xkey;
 
     xkey = build_key(key, key_len, &xlen TSRMLS_CC);
-    hv = hash_mm(xkey, xlen);
+    hv = zend_get_hash_value(xkey, xlen);
     slot = hv & EA_USER_HASH_MAX;
 
     if (eaccelerator_mm_instance != NULL && (where == eaccelerator_shm_and_disk 
@@ -531,7 +531,7 @@ int eaccelerator_rm(const char *key, int key_len,
      */
     if (eaccelerator_mm_instance != NULL && (where == eaccelerator_shm_and_disk || 
                 where == eaccelerator_shm || where == eaccelerator_shm_only)) {
-        hv = hash_mm(xkey, xlen);
+        hv = zend_get_hash_value(xkey, xlen);
         slot = hv & EA_USER_HASH_MAX;
 
         EACCELERATOR_UNPROTECT();

@@ -399,9 +399,7 @@ int eaccelerator_unlock (const char *key, int key_len TSRMLS_DC);
 void *eaccelerator_malloc2 (size_t size TSRMLS_DC);
 
 unsigned int eaccelerator_crc32 (const char *p, size_t n);
-int eaccelerator_md5 (char *s, const char *prefix, const char *key TSRMLS_DC);
-
-unsigned int hash_mm(const char *data, int len); 
+int eaccelerator_md5 (char *s, const char *prefix, const char *key TSRMLS_DC); 
 
 #  ifdef WITH_EACCELERATOR_OPTIMIZER
 void eaccelerator_optimize (zend_op_array * op_array);

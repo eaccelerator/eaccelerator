@@ -120,16 +120,6 @@ ZEND_DLEXPORT zend_op_array* eaccelerator_compile_file(zend_file_handle *file_ha
 /* hash mm functions                                                          */
 /******************************************************************************/
 
-inline unsigned int hash_mm(const char *data, int len) {
-  unsigned int h;
-  const char *e = data + len;
-  for (h = 2166136261U; data < e; ) {
-    h *= 16777619;
-    h ^= *data++;
-  }
-  return h;
-}
-
 /* Find a script entry with the given hash key */
 static mm_cache_entry* hash_find_mm(const char  *key,
                                     struct stat *buf,
@@ -141,7 +131,7 @@ static mm_cache_entry* hash_find_mm(const char  *key,
 #ifdef EACCELERATOR_USE_INODE
   hv = buf->st_dev + buf->st_ino;
 #else
-  hv = hash_mm(key, strlen(key));
+  hv = zend_get_hash_value(key, strlen(key));
 #endif
   slot = hv & EA_HASH_MAX;
 
@@ -208,7 +198,7 @@ static void hash_add_mm(mm_cache_entry *x) {
 #ifdef EACCELERATOR_USE_INODE
   slot = (x->st_dev + x->st_ino) & EA_HASH_MAX;
 #else
-  x->hv = hash_mm(x->realfilename, strlen(x->realfilename));
+  x->hv = zend_get_hash_value(x->realfilename, strlen(x->realfilename));
   slot = x->hv & EA_HASH_MAX;
 #endif
 
