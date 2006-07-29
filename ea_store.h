@@ -34,8 +34,8 @@ void calc_op_array(zend_op_array *from TSRMLS_DC);
 void calc_class_entry(zend_class_entry *from TSRMLS_DC);
 
 void store_zval(zval *z TSRMLS_DC);
-eaccelerator_op_array *store_op_array(zend_op_array *from TSRMLS_DC);
-eaccelerator_class_entry *store_class_entry_ptr(zend_class_entry **from TSRMLS_DC);
-eaccelerator_class_entry *store_class_entry(zend_class_entry *from TSRMLS_DC);
+ea_op_array *store_op_array(zend_op_array *from TSRMLS_DC);
+ea_class_entry *store_class_entry_ptr(zend_class_entry **from TSRMLS_DC);
+ea_class_entry *store_class_entry(zend_class_entry *from TSRMLS_DC);
 
 #endif /* EA_STORE_H */

@@ -28,7 +28,7 @@
 #include "eaccelerator.h"
 #include "eaccelerator_version.h"
 
-#if defined(HAVE_EACCELERATOR) && (defined(WITH_EACCELERATOR_CONTENT_CACHING) || defined(WITH_EACCELERATOR_SESSIONS) || defined(WITH_EACCELERATOR_SHM))
+#ifdef HAVE_EACCELERATOR
 
 #include "zend.h"
 #include "zend_API.h"
@@ -43,11 +43,13 @@
 #endif
 
 /* variables needed from eaccelerator.c */
-extern long eaccelerator_shm_max;
+extern long ea_shm_max;
 extern eaccelerator_mm *eaccelerator_mm_instance;
 extern int binary_eaccelerator_version;
 extern int binary_php_version;
 extern int binary_zend_version;
+
+#if defined(WITH_EACCELERATOR_CONTENT_CACHING) || defined(WITH_EACCELERATOR_SESSIONS) || defined(WITH_EACCELERATOR_SHM)
 
 static char *build_key(const char *key, int key_len, int *xlen TSRMLS_DC)
 {
@@ -90,8 +92,8 @@ int eaccelerator_lock(const char *key, int key_len TSRMLS_DC)
 {
     int xlen;
     char *xkey;
-    mm_lock_entry *x;
-    mm_lock_entry **p;
+    ea_lock_entry *x;
+    ea_lock_entry **p;
     int ok = 0;
 
     if (eaccelerator_mm_instance == NULL)
@@ -99,7 +101,7 @@ int eaccelerator_lock(const char *key, int key_len TSRMLS_DC)
 
     xkey = build_key(key, key_len, &xlen TSRMLS_CC);
     EACCELERATOR_UNPROTECT();
-    x = eaccelerator_malloc(offsetof(mm_lock_entry, key) + xlen + 1);
+    x = eaccelerator_malloc(offsetof(ea_lock_entry, key) + xlen + 1);
     if (x == NULL) {
         EACCELERATOR_PROTECT();
         if (xlen != key_len)
@@ -160,7 +162,7 @@ int eaccelerator_unlock(const char *key, int key_len TSRMLS_DC)
 {
     int xlen;
     char *xkey;
-    mm_lock_entry **p;
+    ea_lock_entry **p;
 
     if (eaccelerator_mm_instance == NULL)
         return 0;
@@ -176,7 +178,7 @@ int eaccelerator_unlock(const char *key, int key_len TSRMLS_DC)
 #else
             if ((*p)->pid == getpid()) {
 #endif
-                mm_lock_entry *x = (*p);
+                ea_lock_entry *x = (*p);
                 *p = (*p)->next;
                 eaccelerator_free_nolock(x);
             } else {
@@ -200,10 +202,9 @@ int eaccelerator_unlock(const char *key, int key_len TSRMLS_DC)
 }
 
 /* put a key in the cache (shm or disk) */
-int eaccelerator_put(const char *key, int key_len, zval * val, time_t ttl,
-                      eaccelerator_cache_place where TSRMLS_DC)
+int eaccelerator_put(const char *key, int key_len, zval * val, time_t ttl, ea_cache_place where TSRMLS_DC)
 {
-    mm_user_cache_entry *p, *q;
+    ea_user_cache_entry *p, *q;
     unsigned int slot, hv;
     long size;
     int use_shm = 1;
@@ -217,17 +218,16 @@ int eaccelerator_put(const char *key, int key_len, zval * val, time_t ttl,
     EAG(mem) = NULL;
     zend_hash_init(&EAG(strings), 0, NULL, NULL, 0);
     EACCELERATOR_ALIGN(EAG(mem));
-    EAG(mem) += offsetof(mm_user_cache_entry, key) + xlen + 1;
+    EAG(mem) += offsetof(ea_user_cache_entry, key) + xlen + 1;
     calc_zval(val TSRMLS_CC);
     zend_hash_destroy(&EAG(strings));
 
     size = (long) EAG(mem);
 
     EAG(mem) = NULL;
-    if (eaccelerator_mm_instance != NULL && (where == eaccelerator_shm_and_disk || 
-                where == eaccelerator_shm || where == eaccelerator_shm_only)) {
+    if (eaccelerator_mm_instance != NULL && (where == ea_shm_and_disk || where == ea_shm || where == ea_shm_only)) {
         EACCELERATOR_UNPROTECT();
-        if (eaccelerator_shm_max == 0 || size <= eaccelerator_shm_max) {
+        if (ea_shm_max == 0 || size <= ea_shm_max) {
             EAG(mem) = eaccelerator_malloc(size);
             if (EAG(mem) == NULL) {
                 EAG(mem) = eaccelerator_malloc2(size TSRMLS_CC);
@@ -237,17 +237,16 @@ int eaccelerator_put(const char *key, int key_len, zval * val, time_t ttl,
             EACCELERATOR_PROTECT();
         }
     }
-    if (EAG(mem) == NULL && (where == eaccelerator_shm_and_disk || 
-                where == eaccelerator_shm || where == eaccelerator_disk_only)) {
+    if (EAG(mem) == NULL && (where == ea_shm_and_disk || where == ea_shm || where == ea_disk_only)) {
         use_shm = 0;
         EAG(mem) = emalloc(size);
     }
     if (EAG(mem)) {
         zend_hash_init(&EAG(strings), 0, NULL, NULL, 0);
         EACCELERATOR_ALIGN(EAG(mem));
-        q = (mm_user_cache_entry *) EAG(mem);
+        q = (ea_user_cache_entry *) EAG(mem);
         q->size = size;
-        EAG(mem) += offsetof(mm_user_cache_entry, key) + xlen + 1;
+        EAG(mem) += offsetof(ea_user_cache_entry, key) + xlen + 1;
         q->hv = zend_get_hash_value(xkey, xlen);
         memcpy(q->key, xkey, xlen + 1);
         memcpy(&q->value, val, sizeof(zval));
@@ -261,13 +260,13 @@ int eaccelerator_put(const char *key, int key_len, zval * val, time_t ttl,
         /*
          * storing to file 
          */
-        if ((where == eaccelerator_shm_and_disk || ((where == eaccelerator_shm) && !use_shm) || 
-                    where == eaccelerator_disk_only) && eaccelerator_md5(s, "/eaccelerator-user-", q->key TSRMLS_CC)) {
+        if ((where == ea_shm_and_disk || ((where == ea_shm) && !use_shm) || where == ea_disk_only) && 
+        		eaccelerator_md5(s, "/eaccelerator-user-", q->key TSRMLS_CC)) {
             int f;
             unlink(s);
             f = open(s, O_CREAT | O_WRONLY | O_EXCL | O_BINARY, S_IRUSR | S_IWUSR);
             if (f > 0) {
-                mm_file_header hdr;
+                ea_file_header hdr;
                 EACCELERATOR_FLOCK(f, LOCK_EX);
                 strncpy(hdr.magic, EA_MAGIC, 8);
                 hdr.eaccelerator_version = binary_eaccelerator_version;
@@ -293,7 +292,7 @@ int eaccelerator_put(const char *key, int key_len, zval * val, time_t ttl,
                 efree(q);
         }
 
-        if ((where == eaccelerator_shm_and_disk || where == eaccelerator_shm || where == eaccelerator_shm_only) && use_shm) {
+        if ((where == ea_shm_and_disk || where == ea_shm || where == ea_shm_only) && use_shm) {
             /*
              * storing to shared memory 
              */
@@ -326,8 +325,7 @@ int eaccelerator_put(const char *key, int key_len, zval * val, time_t ttl,
 }
 
 /* get a key from the cache */
-int eaccelerator_get(const char *key, int key_len, zval * return_value,
-                  eaccelerator_cache_place where TSRMLS_DC)
+int eaccelerator_get(const char *key, int key_len, zval * return_value, ea_cache_place where TSRMLS_DC)
 {
     unsigned int hv, slot;
     char s[MAXPATHLEN];
@@ -338,10 +336,9 @@ int eaccelerator_get(const char *key, int key_len, zval * return_value,
     hv = zend_get_hash_value(xkey, xlen);
     slot = hv & EA_USER_HASH_MAX;
 
-    if (eaccelerator_mm_instance != NULL && (where == eaccelerator_shm_and_disk 
-                || where == eaccelerator_shm || where == eaccelerator_shm_only)) {
-        mm_user_cache_entry *p, *q;
-        mm_user_cache_entry *x = NULL;
+    if (eaccelerator_mm_instance != NULL && (where == ea_shm_and_disk || where == ea_shm || where == ea_shm_only)) {
+        ea_user_cache_entry *p, *q;
+        ea_user_cache_entry *x = NULL;
         EACCELERATOR_UNPROTECT();
         EACCELERATOR_LOCK_RW();
         q = NULL;
@@ -379,8 +376,7 @@ int eaccelerator_get(const char *key, int key_len, zval * return_value,
     /*
      * key is not found in shared memory try to load it from file 
      */
-    if ((where == eaccelerator_shm_and_disk || where == eaccelerator_shm || 
-            where == eaccelerator_disk_only) && 
+    if ((where == ea_shm_and_disk || where == ea_shm || where == ea_disk_only) && 
             eaccelerator_md5(s, "/eaccelerator-user-", xkey TSRMLS_CC)) {
         time_t t = time(0);
         int use_shm = 1;
@@ -388,7 +384,7 @@ int eaccelerator_get(const char *key, int key_len, zval * return_value,
         int f;
 
         if ((f = open(s, O_RDONLY | O_BINARY)) > 0) {
-            mm_file_header hdr;
+            ea_file_header hdr;
 
             EACCELERATOR_FLOCK(f, LOCK_SH);
             if (read(f, &hdr, sizeof(hdr)) != sizeof(hdr) || strncmp(hdr.magic, EA_MAGIC, 8) != 0 || 
@@ -405,9 +401,9 @@ int eaccelerator_get(const char *key, int key_len, zval * return_value,
                 /*
                  * try to put it into shared memory 
                  */
-                mm_user_cache_entry *p = NULL;
-                if (eaccelerator_mm_instance != NULL && (where == eaccelerator_shm_and_disk || where == eaccelerator_shm)) {
-                    if (eaccelerator_shm_max == 0 || hdr.size <= eaccelerator_shm_max) {
+                ea_user_cache_entry *p = NULL;
+                if (eaccelerator_mm_instance != NULL && (where == ea_shm_and_disk || where == ea_shm)) {
+                    if (ea_shm_max == 0 || hdr.size <= ea_shm_max) {
                         EACCELERATOR_UNPROTECT();
                         p = eaccelerator_malloc(hdr.size);
                         if (p == NULL) {
@@ -452,7 +448,7 @@ int eaccelerator_get(const char *key, int key_len, zval * return_value,
                         ret = 1;
                         if (use_shm) {
                             /* put it into shared memory */
-                            mm_user_cache_entry *q, *prev;
+                            ea_user_cache_entry *q, *prev;
 
                             p->hv = hv;
                             EACCELERATOR_LOCK_RW();
@@ -508,11 +504,10 @@ int eaccelerator_get(const char *key, int key_len, zval * return_value,
 }
 
 /* remove a key from the cache */
-int eaccelerator_rm(const char *key, int key_len,
-                 eaccelerator_cache_place where TSRMLS_DC)
+int eaccelerator_rm(const char *key, int key_len, ea_cache_place where TSRMLS_DC)
 {
     unsigned int hv, slot;
-    mm_user_cache_entry *p, *q;
+    ea_user_cache_entry *p, *q;
     char s[MAXPATHLEN];
     int xlen;
     char *xkey;
@@ -521,16 +516,16 @@ int eaccelerator_rm(const char *key, int key_len,
     /*
      * removing file 
      */
-    if ((where == eaccelerator_shm_and_disk || where == eaccelerator_shm || 
-                where == eaccelerator_disk_only) && eaccelerator_md5(s, "/eaccelerator-user-", xkey TSRMLS_CC)) {
+    if ((where == ea_shm_and_disk || where == ea_shm || where == ea_disk_only) && 
+    		eaccelerator_md5(s, "/eaccelerator-user-", xkey TSRMLS_CC)) {
         unlink(s);
     }
 
     /*
      * removing from shared memory 
      */
-    if (eaccelerator_mm_instance != NULL && (where == eaccelerator_shm_and_disk || 
-                where == eaccelerator_shm || where == eaccelerator_shm_only)) {
+    if (eaccelerator_mm_instance != NULL && (where == ea_shm_and_disk || 
+                where == ea_shm || where == ea_shm_only)) {
         hv = zend_get_hash_value(xkey, xlen);
         slot = hv & EA_USER_HASH_MAX;
 
@@ -560,6 +555,7 @@ int eaccelerator_rm(const char *key, int key_len,
     }
     return 1;
 }
+#endif
 
 /* do garbage collection on the keys */
 size_t eaccelerator_gc(TSRMLS_D)
@@ -574,10 +570,10 @@ size_t eaccelerator_gc(TSRMLS_D)
     EACCELERATOR_UNPROTECT();
     EACCELERATOR_LOCK_RW();
     for (i = 0; i < EA_USER_HASH_SIZE; i++) {
-        mm_user_cache_entry **p = &eaccelerator_mm_instance->user_hash[i];
+        ea_user_cache_entry **p = &eaccelerator_mm_instance->user_hash[i];
         while (*p != NULL) {
             if ((*p)->ttl != 0 && (*p)->ttl < t) {
-                mm_user_cache_entry *r = *p;
+                ea_user_cache_entry *r = *p;
                 *p = (*p)->next;
                 eaccelerator_mm_instance->user_hash_cnt--;
                 size += r->size;
@@ -592,13 +588,14 @@ size_t eaccelerator_gc(TSRMLS_D)
     return size;
 }
 
+#ifdef WITH_EACCELERATOR_INFO
 /* get list of all keys stored in memory that matches hostname or namespace */
 int eaccelerator_list_keys(zval *return_value TSRMLS_DC) 
 {
     unsigned int i, xlen;
     zval *list;
     char *xkey = "";
-    mm_user_cache_entry *p;
+    ea_user_cache_entry *p;
     time_t t = time(0);
 
     // create key prefix for current host / namespace
@@ -653,6 +650,7 @@ int eaccelerator_list_keys(zval *return_value TSRMLS_DC)
         efree(xkey);
     return 1;
 }
+#endif /* WITH_EACCELERATOR_INFO */
 
 #endif /* HAVE_EACCELERATOR */
 

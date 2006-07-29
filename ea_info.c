@@ -141,7 +141,7 @@ static inline void clean_file(char *file, time_t t)
 	int f;
 
 	if ((f = open(file, O_RDONLY | O_BINARY)) > 0) {
-		mm_file_header hdr;
+		ea_file_header hdr;
 		EACCELERATOR_FLOCK (f, LOCK_SH);
 		if (read(f, &hdr, sizeof(hdr)) != sizeof(hdr) 
 				|| strncmp (hdr.magic, EA_MAGIC,	8) != 0 
@@ -292,7 +292,7 @@ PHP_FUNCTION(eaccelerator_clean)
 PHP_FUNCTION(eaccelerator_clear)
 {
 	unsigned int i;
-	mm_cache_entry *p;
+	ea_cache_entry *p;
 
     if (!isAdminAllowed(TSRMLS_C)) {
         zend_error(E_WARNING, NOT_ADMIN_WARNING);
@@ -304,7 +304,7 @@ PHP_FUNCTION(eaccelerator_clear)
 	for (i = 0; i < EA_HASH_SIZE; i++) {
 		p = eaccelerator_mm_instance->hash[i];
 		while (p != NULL) {
-			mm_cache_entry *r = p;
+			ea_cache_entry *r = p;
 			p = p->next;
 			eaccelerator_mm_instance->hash_cnt--;
 			if (r->use_cnt <= 0) {
@@ -319,9 +319,9 @@ PHP_FUNCTION(eaccelerator_clear)
 		eaccelerator_mm_instance->hash[i] = NULL;
 	}
 	for (i = 0; i < EA_USER_HASH_SIZE; i++) {
-		mm_user_cache_entry *p = eaccelerator_mm_instance->user_hash[i];
+		ea_user_cache_entry *p = eaccelerator_mm_instance->user_hash[i];
 		while (p != NULL) {
-			mm_user_cache_entry *r = p;
+			ea_user_cache_entry *r = p;
 			p = p->next;
 			eaccelerator_mm_instance->user_hash_cnt--;
 			eaccelerator_free_nolock (r);
@@ -347,7 +347,7 @@ PHP_FUNCTION(eaccelerator_purge)
     }
 
 	if (eaccelerator_mm_instance != NULL) {
-		mm_cache_entry *p, *q;
+		ea_cache_entry *p, *q;
 		EACCELERATOR_UNPROTECT();
 		EACCELERATOR_LOCK_RW();
 		p = eaccelerator_mm_instance->removed;
@@ -405,7 +405,7 @@ PHP_FUNCTION (eaccelerator_info)
 /* {{{ PHP_FUNCTION(eaccelerator_cached_scripts): Get an array with information about all cached scripts */
 PHP_FUNCTION(eaccelerator_cached_scripts)
 {
-    mm_cache_entry *p;
+    ea_cache_entry *p;
     int i;
 
     if (!isAdminAllowed(TSRMLS_C)) {
@@ -438,7 +438,7 @@ PHP_FUNCTION(eaccelerator_cached_scripts)
 /* {{{ PHP_FUNCTION(eaccelerator_removed_scripts): Get a list of removed scripts */
 PHP_FUNCTION(eaccelerator_removed_scripts)
 {
-    mm_cache_entry *p;
+    ea_cache_entry *p;
     zval *script;
 
     if (!isAdminAllowed(TSRMLS_C)) {

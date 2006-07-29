@@ -79,10 +79,10 @@
 ZEND_DECLARE_MODULE_GLOBALS(eaccelerator)
 
 /* Globals (common for each process/thread) */
-static long eaccelerator_shm_size = 0;
-long eaccelerator_shm_max = 0;
-static long eaccelerator_shm_ttl = 0;
-static long eaccelerator_shm_prune_period = 0;
+static long ea_shm_size = 0;
+long ea_shm_max = 0;
+static long ea_shm_ttl = 0;
+static long ea_shm_prune_period = 0;
 extern long eaccelerator_debug;
 static zend_bool eaccelerator_check_mtime = 1;
 zend_bool eaccelerator_scripts_shm_only = 0;
@@ -121,12 +121,12 @@ ZEND_DLEXPORT zend_op_array* eaccelerator_compile_file(zend_file_handle *file_ha
 /******************************************************************************/
 
 /* Find a script entry with the given hash key */
-static mm_cache_entry* hash_find_mm(const char  *key,
+static ea_cache_entry* hash_find_mm(const char  *key,
                                     struct stat *buf,
                                     int         *nreloads,
                                     time_t      ttl) {
   unsigned int hv, slot;
-  mm_cache_entry *p, *q;
+  ea_cache_entry *p, *q;
 
 #ifdef EACCELERATOR_USE_INODE
   hv = buf->st_dev + buf->st_ino;
@@ -192,8 +192,8 @@ static mm_cache_entry* hash_find_mm(const char  *key,
 }
 
 /* Add a new entry to the hashtable */
-static void hash_add_mm(mm_cache_entry *x) {
-  mm_cache_entry *p,*q;
+static void hash_add_mm(ea_cache_entry *x) {
+  ea_cache_entry *p,*q;
   unsigned int slot;
 #ifdef EACCELERATOR_USE_INODE
   slot = (x->st_dev + x->st_ino) & EA_HASH_MAX;
@@ -246,27 +246,26 @@ static int init_mm(TSRMLS_D) {
   size_t total;
   char   mm_path[MAXPATHLEN];
 
-/*  if (getppid() != 1) return SUCCESS; */ /*???*/
 #ifdef ZEND_WIN32
     snprintf(mm_path, MAXPATHLEN, "%s.%s", EACCELERATOR_MM_FILE, sapi_module.name);
 #else
-    snprintf(mm_path, MAXPATHLEN, "%s.%s%d", EACCELERATOR_MM_FILE, sapi_module.name, getpid());
+    snprintf(mm_path, MAXPATHLEN, "%s.%s%d", EACCELERATOR_MM_FILE, sapi_module.name, owner);
 #endif
 /*  snprintf(mm_path, MAXPATHLEN, "%s.%s%d", EACCELERATOR_MM_FILE, sapi_module.name, geteuid());*/
-  if ((eaccelerator_mm_instance = (eaccelerator_mm*)mm_attach(eaccelerator_shm_size*1024*1024, mm_path)) != NULL) {
+  if ((eaccelerator_mm_instance = (eaccelerator_mm*)mm_attach(ea_shm_size*1024*1024, mm_path)) != NULL) {
 #ifdef ZTS
     ea_mutex = tsrm_mutex_alloc();
 #endif
     return SUCCESS;
   }
-  mm = mm_create(eaccelerator_shm_size*1024*1024, mm_path);
+  mm = mm_create(ea_shm_size*1024*1024, mm_path);
   if (!mm) {
     return FAILURE;
   }
 #ifdef ZEND_WIN32
-  DBG(ea_debug_printf, (EA_DEBUG, "init_mm [%d]\n", getpid()));
+  DBG(ea_debug_printf, (EA_DEBUG, "init_mm [%d]\n", owner));
 #else
-  DBG(ea_debug_printf, (EA_DEBUG, "init_mm [%d,%d]\n", getpid(), getppid()));
+  DBG(ea_debug_printf, (EA_DEBUG, "init_mm [%d,%d]\n", owner, getppid()));
 #endif
 #ifdef ZTS
   ea_mutex = tsrm_mutex_alloc();
@@ -443,7 +442,7 @@ void eaccelerator_prune(time_t t) {
   EACCELERATOR_LOCK_RW();
   eaccelerator_mm_instance->last_prune = t;
   for (i = 0; i < EA_HASH_SIZE; i++) {
-    mm_cache_entry **p = &eaccelerator_mm_instance->hash[i];
+    ea_cache_entry **p = &eaccelerator_mm_instance->hash[i];
     while (*p != NULL) {
       struct stat buf;
       if (((*p)->ttl != 0 && (*p)->ttl < t && (*p)->use_cnt <= 0) ||
@@ -454,7 +453,7 @@ void eaccelerator_prune(time_t t) {
 #endif
           (*p)->mtime != buf.st_mtime ||
           (*p)->filesize != buf.st_size) {
-        mm_cache_entry *r = *p;
+        ea_cache_entry *r = *p;
         *p = (*p)->next;
         eaccelerator_mm_instance->hash_cnt--;
         eaccelerator_free_nolock(r);
@@ -477,9 +476,9 @@ void* eaccelerator_malloc2(size_t size TSRMLS_DC) {
       return p;
     }
   }
-  if (eaccelerator_shm_prune_period > 0) {
+  if (ea_shm_prune_period > 0) {
     t = time(0);
-    if (t - eaccelerator_mm_instance->last_prune > eaccelerator_shm_prune_period) {
+    if (t - eaccelerator_mm_instance->last_prune > ea_shm_prune_period) {
       eaccelerator_prune(t);
       p = eaccelerator_malloc(size);
     }
@@ -564,9 +563,9 @@ unsigned int eaccelerator_crc32(const char *p, size_t n) {
   return ~crc;
 }
 
-void eaccelerator_fixup (mm_cache_entry * p TSRMLS_DC)
+void eaccelerator_fixup (ea_cache_entry * p TSRMLS_DC)
 {
-  mm_fc_entry *q;
+  ea_fc_entry *q;
 
   EAG (mem) = (char *) ((long) p - (long) p->next);
   EAG (compress) = 1;
@@ -578,14 +577,14 @@ void eaccelerator_fixup (mm_cache_entry * p TSRMLS_DC)
   q = p->f_head;
   while (q != NULL) {
     FIXUP (q->fc);
-    fixup_op_array ((eaccelerator_op_array *) q->fc TSRMLS_CC);
+    fixup_op_array ((ea_op_array *) q->fc TSRMLS_CC);
     FIXUP (q->next);
     q = q->next;
   }
   q = p->c_head;
   while (q != NULL) {
     FIXUP (q->fc);
-    fixup_class_entry ((eaccelerator_class_entry *) q->fc TSRMLS_CC);
+    fixup_class_entry ((ea_class_entry *) q->fc TSRMLS_CC);
     FIXUP (q->next);
     q = q->next;
   }
@@ -596,12 +595,12 @@ void eaccelerator_fixup (mm_cache_entry * p TSRMLS_DC)
 /******************************************************************************/
 
 /* Retrieve a cache entry from the cache directory */
-static mm_cache_entry* hash_find_file(const char  *key,
+static ea_cache_entry* hash_find_file(const char  *key,
                                       struct stat *buf TSRMLS_DC) {
   int f;
   char s[MAXPATHLEN];
-  mm_file_header hdr;
-  mm_cache_entry *p;
+  ea_file_header hdr;
+  ea_cache_entry *p;
   int use_shm = 1;
 
 #ifdef EACCELERATOR_USE_INODE
@@ -685,8 +684,8 @@ static mm_cache_entry* hash_find_file(const char  *key,
       p->nreloads = 1;
       p->use_cnt  = 1;
       p->removed  = 0;
-      if (eaccelerator_shm_ttl > 0) {
-        p->ttl = time(0) + eaccelerator_shm_ttl;
+      if (ea_shm_ttl > 0) {
+        p->ttl = time(0) + ea_shm_ttl;
       } else {
         p->ttl = 0;
       }
@@ -701,11 +700,11 @@ static mm_cache_entry* hash_find_file(const char  *key,
 }
 
 /* Add a cache entry to the cache directory */
-static int hash_add_file(mm_cache_entry *p TSRMLS_DC) {
+static int hash_add_file(ea_cache_entry *p TSRMLS_DC) {
   int f;
   int ret = 0;
   char s[MAXPATHLEN];
-  mm_file_header hdr;
+  ea_file_header hdr;
 
 #ifdef EACCELERATOR_USE_INODE
   if (!eaccelerator_inode_key(s, p->st_dev, p->st_ino TSRMLS_CC)) {
@@ -741,12 +740,12 @@ static int hash_add_file(mm_cache_entry *p TSRMLS_DC) {
 
 /* Create a cache entry from the given op_array, functions and classes of a
    script */
-static mm_cache_entry *eaccelerator_store_int (char *key, int len, 
+static ea_cache_entry *eaccelerator_store_int (char *key, int len, 
         zend_op_array * op_array, Bucket * f, Bucket * c TSRMLS_DC)
 {
-  mm_cache_entry *p;
-  mm_fc_entry *fc;
-  mm_fc_entry *q;
+  ea_cache_entry *p;
+  ea_fc_entry *fc;
+  ea_fc_entry *q;
   char *x;
 
   DBG(ea_debug_pad, (EA_DEBUG TSRMLS_CC));
@@ -755,8 +754,8 @@ static mm_cache_entry *eaccelerator_store_int (char *key, int len,
 
   EAG (compress) = 1;
   zend_hash_init (&EAG (strings), 0, NULL, NULL, 0);
-  p = (mm_cache_entry *) EAG (mem);
-  EAG (mem) += offsetof (mm_cache_entry, realfilename) + len + 1;
+  p = (ea_cache_entry *) EAG (mem);
+  EAG (mem) += offsetof (ea_cache_entry, realfilename) + len + 1;
 
   p->nhits = 0;
   p->use_cnt = 0;
@@ -775,8 +774,8 @@ static mm_cache_entry *eaccelerator_store_int (char *key, int len,
     DBG(ea_debug_binary_print, (EA_DEBUG, c->arKey, c->nKeyLength));
 
     EACCELERATOR_ALIGN (EAG (mem));
-    fc = (mm_fc_entry *) EAG (mem);
-    EAG (mem) += offsetof (mm_fc_entry, htabkey) + c->nKeyLength;
+    fc = (ea_fc_entry *) EAG (mem);
+    EAG (mem) += offsetof (ea_fc_entry, htabkey) + c->nKeyLength;
     memcpy (fc->htabkey, c->arKey, c->nKeyLength);
     fc->htablen = c->nKeyLength;
     fc->next = NULL;
@@ -804,8 +803,8 @@ static mm_cache_entry *eaccelerator_store_int (char *key, int len,
               "[%d] eaccelerator_store_int:     function hashkey='%s'\n", getpid (), f->arKey));
 
       EACCELERATOR_ALIGN (EAG (mem));
-      fc = (mm_fc_entry *) EAG (mem);
-      EAG (mem) += offsetof (mm_fc_entry, htabkey) + f->nKeyLength;
+      fc = (ea_fc_entry *) EAG (mem);
+      EAG (mem) += offsetof (ea_fc_entry, htabkey) + f->nKeyLength;
       memcpy (fc->htabkey, f->arKey, f->nKeyLength);
       fc->htablen = f->nKeyLength;
       fc->next = NULL;
@@ -844,7 +843,7 @@ static mm_cache_entry *eaccelerator_store_int (char *key, int len,
 static int eaccelerator_store(char* key, struct stat *buf, int nreloads,
                          zend_op_array* op_array,
                          Bucket* f, Bucket *c TSRMLS_DC) {
-  mm_cache_entry *p;
+  ea_cache_entry *p;
   int len = strlen(key);
   int use_shm = 1;
   int ret = 0;
@@ -881,8 +880,8 @@ static int eaccelerator_store(char* key, struct stat *buf, int nreloads,
     p->st_ino   = buf->st_ino;
 #endif
     if (use_shm) {
-      if (eaccelerator_shm_ttl > 0) {
-        p->ttl = time(0) + eaccelerator_shm_ttl;
+      if (ea_shm_ttl > 0) {
+        p->ttl = time(0) + ea_shm_ttl;
       } else {
         p->ttl = 0;
       }
@@ -904,12 +903,12 @@ static int eaccelerator_store(char* key, struct stat *buf, int nreloads,
    the disk cache is checked */
 static zend_op_array* eaccelerator_restore(char *realname, struct stat *buf,
                                       int *nreloads, time_t compile_time TSRMLS_DC) {
-  mm_cache_entry *p;
+  ea_cache_entry *p;
   zend_op_array *op_array = NULL;
 
   *nreloads = 1;
   EACCELERATOR_UNPROTECT();
-  p = hash_find_mm(realname, buf, nreloads, ((eaccelerator_shm_ttl > 0)?(compile_time + eaccelerator_shm_ttl):0));
+  p = hash_find_mm(realname, buf, nreloads, ((ea_shm_ttl > 0)?(compile_time + ea_shm_ttl):0));
   if (p == NULL && !eaccelerator_scripts_shm_only) {
     p = hash_find_file(realname, buf TSRMLS_CC);
   }
@@ -918,10 +917,10 @@ static zend_op_array* eaccelerator_restore(char *realname, struct stat *buf,
     EAG(class_entry) = NULL;
     op_array = restore_op_array(NULL, p->op_array TSRMLS_CC);
     if (op_array != NULL) {
-      mm_fc_entry *e;
-      mm_used_entry *used = emalloc(sizeof(mm_used_entry));
+      ea_fc_entry *e;
+      ea_used_entry *used = emalloc(sizeof(ea_used_entry));
       used->entry  = p;
-      used->next   = (mm_used_entry*)EAG(used_entries);
+      used->next   = (ea_used_entry*)EAG(used_entries);
       EAG(used_entries) = (void*)used;
       EAG(mem) = op_array->filename;
 	    /* only restore the classes and functions when we restore this script 
@@ -1017,7 +1016,7 @@ static int match(const char* name, const char* pat) {
 
 /* Check if the file is ok to cache */
 static int eaccelerator_ok_to_cache(char *realname TSRMLS_DC) {
-  mm_cond_entry *p;
+  ea_cond_entry *p;
   int ok;
   if (EAG(cond_list) == NULL) {
     return 1;
@@ -1589,7 +1588,7 @@ PHP_MINFO_FUNCTION(eaccelerator) {
  *  - zend extension.
  */
 PHP_INI_MH(eaccelerator_filter) {
-  mm_cond_entry *p, *q;
+  ea_cond_entry *p, *q;
   char *s = new_value;
   char *ss;
   int  not;
@@ -1616,7 +1615,7 @@ PHP_INI_MH(eaccelerator_filter) {
     for (; *s && *s != ' ' && *s != '\t'; s++)
       ;
     if ((s > ss) && *ss) {
-      p = (mm_cond_entry *)malloc(sizeof(mm_cond_entry));
+      p = (ea_cond_entry *)malloc(sizeof(ea_cond_entry));
       if (p == NULL)
         break;
       p->not = not;
@@ -1656,10 +1655,10 @@ STD_PHP_INI_ENTRY("eaccelerator.enable",         "1", PHP_INI_ALL, OnUpdateBool,
 STD_PHP_INI_ENTRY("eaccelerator.optimizer",      "1", PHP_INI_ALL, OnUpdateBool, optimizer_enabled, zend_eaccelerator_globals, eaccelerator_globals)
 STD_PHP_INI_ENTRY("eaccelerator.compress",       "1", PHP_INI_ALL, OnUpdateBool, compression_enabled, zend_eaccelerator_globals, eaccelerator_globals)
 STD_PHP_INI_ENTRY("eaccelerator.compress_level", "9", PHP_INI_ALL, OnUpdateLong, compress_level, zend_eaccelerator_globals, eaccelerator_globals)                  
-ZEND_INI_ENTRY1("eaccelerator.shm_size",        "0", PHP_INI_SYSTEM, eaccelerator_OnUpdateLong, &eaccelerator_shm_size)
-ZEND_INI_ENTRY1("eaccelerator.shm_max",         "0", PHP_INI_SYSTEM, eaccelerator_OnUpdateLong, &eaccelerator_shm_max)
-ZEND_INI_ENTRY1("eaccelerator.shm_ttl",         "0", PHP_INI_SYSTEM, eaccelerator_OnUpdateLong, &eaccelerator_shm_ttl)
-ZEND_INI_ENTRY1("eaccelerator.shm_prune_period", "0", PHP_INI_SYSTEM, eaccelerator_OnUpdateLong, &eaccelerator_shm_prune_period)
+ZEND_INI_ENTRY1("eaccelerator.shm_size",        "0", PHP_INI_SYSTEM, eaccelerator_OnUpdateLong, &ea_shm_size)
+ZEND_INI_ENTRY1("eaccelerator.shm_max",         "0", PHP_INI_SYSTEM, eaccelerator_OnUpdateLong, &ea_shm_max)
+ZEND_INI_ENTRY1("eaccelerator.shm_ttl",         "0", PHP_INI_SYSTEM, eaccelerator_OnUpdateLong, &ea_shm_ttl)
+ZEND_INI_ENTRY1("eaccelerator.shm_prune_period", "0", PHP_INI_SYSTEM, eaccelerator_OnUpdateLong, &ea_shm_prune_period)
 ZEND_INI_ENTRY1("eaccelerator.debug",           "1", PHP_INI_SYSTEM, eaccelerator_OnUpdateLong, &eaccelerator_debug)
 STD_PHP_INI_ENTRY("eaccelerator.log_file",      "", PHP_INI_SYSTEM, OnUpdateString, eaccelerator_log_file, zend_eaccelerator_globals, eaccelerator_globals)
 ZEND_INI_ENTRY1("eaccelerator.check_mtime",     "1", PHP_INI_SYSTEM, eaccelerator_OnUpdateBool, &eaccelerator_check_mtime)
@@ -1682,7 +1681,7 @@ STD_PHP_INI_ENTRY("eaccelerator.name_space",      "", PHP_INI_SYSTEM, OnUpdateSt
 PHP_INI_END()
 
 static void eaccelerator_clean_request(TSRMLS_D) {
-  mm_used_entry  *p = (mm_used_entry*)EAG(used_entries);
+  ea_used_entry  *p = (ea_used_entry*)EAG(used_entries);
   if (eaccelerator_mm_instance != NULL) {
     EACCELERATOR_UNPROTECT();
     mm_unlock(eaccelerator_mm_instance->mm);
@@ -1697,7 +1696,7 @@ static void eaccelerator_clean_request(TSRMLS_D) {
             eaccelerator_free_nolock(p->entry);
             p->entry = NULL;
           } else {
-            mm_cache_entry *q = eaccelerator_mm_instance->removed;
+            ea_cache_entry *q = eaccelerator_mm_instance->removed;
             while (q != NULL && q->next != p->entry) {
               q = q->next;
             }
@@ -1716,14 +1715,14 @@ static void eaccelerator_clean_request(TSRMLS_D) {
 #ifdef ZTS
         THREAD_T thread = tsrm_thread_id();
 #endif
-        mm_lock_entry** p = &eaccelerator_mm_instance->locks;
+        ea_lock_entry** p = &eaccelerator_mm_instance->locks;
         while ((*p) != NULL) {
 #ifdef ZTS
           if ((*p)->pid == pid && (*p)->thread == thread) {
 #else
           if ((*p)->pid == pid) {
 #endif
-            mm_lock_entry* x = *p;
+            ea_lock_entry* x = *p;
             *p = (*p)->next;
             eaccelerator_free_nolock(x);
           } else {
@@ -1734,9 +1733,9 @@ static void eaccelerator_clean_request(TSRMLS_D) {
       EACCELERATOR_UNLOCK_RW();
     }
     EACCELERATOR_PROTECT();
-    p = (mm_used_entry*)EAG(used_entries);
+    p = (ea_used_entry*)EAG(used_entries);
     while (p != NULL) {
-      mm_used_entry* r = p;
+      ea_used_entry* r = p;
       p = p->next;
       if (r->entry != NULL && r->entry->use_cnt < 0) {
         efree(r->entry);
@@ -1855,7 +1854,7 @@ static void eaccelerator_init_globals(zend_eaccelerator_globals *eaccelerator_gl
 
 static void eaccelerator_globals_dtor(zend_eaccelerator_globals *eaccelerator_globals)
 {
-  mm_cond_entry *p, *q;
+  ea_cond_entry *p, *q;
 
   for (p = eaccelerator_globals->cond_list; p != NULL; p = q) {
     q = p->next;
@@ -1926,11 +1925,11 @@ PHP_MINIT_FUNCTION(eaccelerator) {
   ZEND_INIT_MODULE_GLOBALS(eaccelerator, eaccelerator_init_globals, NULL);
   REGISTER_INI_ENTRIES();
   REGISTER_STRING_CONSTANT("EACCELERATOR_VERSION", EACCELERATOR_VERSION, CONST_CS | CONST_PERSISTENT);
-  REGISTER_LONG_CONSTANT("EACCELERATOR_SHM_AND_DISK", eaccelerator_shm_and_disk, CONST_CS | CONST_PERSISTENT);
-  REGISTER_LONG_CONSTANT("EACCELERATOR_SHM", eaccelerator_shm, CONST_CS | CONST_PERSISTENT);
-  REGISTER_LONG_CONSTANT("EACCELERATOR_SHM_ONLY", eaccelerator_shm_only, CONST_CS | CONST_PERSISTENT);
-  REGISTER_LONG_CONSTANT("EACCELERATOR_DISK_ONLY", eaccelerator_disk_only, CONST_CS | CONST_PERSISTENT);
-  REGISTER_LONG_CONSTANT("EACCELERATOR_NONE", eaccelerator_none, CONST_CS | CONST_PERSISTENT);
+  REGISTER_LONG_CONSTANT("EACCELERATOR_SHM_AND_DISK", ea_shm_and_disk, CONST_CS | CONST_PERSISTENT);
+  REGISTER_LONG_CONSTANT("EACCELERATOR_SHM", ea_shm, CONST_CS | CONST_PERSISTENT);
+  REGISTER_LONG_CONSTANT("EACCELERATOR_SHM_ONLY", ea_shm_only, CONST_CS | CONST_PERSISTENT);
+  REGISTER_LONG_CONSTANT("EACCELERATOR_DISK_ONLY", ea_disk_only, CONST_CS | CONST_PERSISTENT);
+  REGISTER_LONG_CONSTANT("EACCELERATOR_NONE", ea_none, CONST_CS | CONST_PERSISTENT);
   binary_eaccelerator_version = encode_version(EACCELERATOR_VERSION);
   binary_php_version = encode_version(PHP_VERSION);
   binary_zend_version = encode_version(ZEND_VERSION);

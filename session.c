@@ -42,24 +42,23 @@
 #	include "ext/standard/php_lcg.h"
 #endif
 
-eaccelerator_cache_place eaccelerator_sessions_cache_place =
-	eaccelerator_shm_and_disk;
+ea_cache_place eaccelerator_sessions_cache_place = ea_shm_and_disk;
 int eaccelerator_sessions_registered = 0;
 extern eaccelerator_mm *eaccelerator_mm_instance;
 
 /* set the updated ini value of the cache place */
 PHP_INI_MH(eaccelerator_OnUpdateSessionCachePlace)
 {
-	if (strncasecmp("shm_and_disk", new_value, sizeof ("shm_and_disk")) == 0) {
-		eaccelerator_sessions_cache_place = eaccelerator_shm_and_disk;
+	if (strncasecmp("shm_and_disk", new_value, sizeof("shm_and_disk")) == 0) {
+		eaccelerator_sessions_cache_place = ea_shm_and_disk;
 	} else if (strncasecmp("shm", new_value, sizeof ("shm")) == 0) {
-		eaccelerator_sessions_cache_place = eaccelerator_shm;
+		eaccelerator_sessions_cache_place = ea_shm;
 	} else if (strncasecmp("shm_only", new_value, sizeof ("shm_only")) == 0) {
-		eaccelerator_sessions_cache_place = eaccelerator_shm_only;
+		eaccelerator_sessions_cache_place = ea_shm_only;
 	} else if (strncasecmp("disk_only", new_value, sizeof ("disk_only")) == 0) {
-		eaccelerator_sessions_cache_place = eaccelerator_disk_only;
+		eaccelerator_sessions_cache_place = ea_disk_only;
 	} else if (strncasecmp("none", new_value, sizeof ("none")) == 0) {
-		eaccelerator_sessions_cache_place = eaccelerator_none;
+		eaccelerator_sessions_cache_place = ea_none;
 	}
 	return SUCCESS;
 }
@@ -380,8 +379,7 @@ ps_module ps_mod_eaccelerator = {
 /* is the eA registered as session handler */
 int eaccelerator_session_registered()
 {
-	return !(eaccelerator_sessions_cache_place != eaccelerator_none &&
-			 eaccelerator_sessions_registered == 0);
+	return !(eaccelerator_sessions_cache_place != ea_none && eaccelerator_sessions_registered == 0);
 }
 
 /* register ea as session handler */
@@ -400,12 +398,8 @@ int eaccelerator_set_session_handlers(TSRMLS_D)
 #ifdef HAVE_PHP_SESSIONS_SUPPORT	// do it with the session api
 	zval param;
 	zval *params[1];
-/*
-  if (php_session_register_module(&ps_mod_eaccelerator) != 0) {
-    return 0;
-  }
-*/
-	if (eaccelerator_sessions_cache_place == eaccelerator_none) {
+
+	if (eaccelerator_sessions_cache_place == ea_none) {
 		return 0;
 	}
 	ZVAL_STRING(&func, "session_module_name", 0);

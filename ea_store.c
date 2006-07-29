@@ -145,7 +145,7 @@ void calc_op_array(zend_op_array * from TSRMLS_DC)
 		EAG(mem) += sizeof(zend_internal_function);
 	} else if (from->type == ZEND_USER_FUNCTION) {
 		EACCELERATOR_ALIGN(EAG(mem));
-		EAG(mem) += sizeof(eaccelerator_op_array);
+		EAG(mem) += sizeof(ea_op_array);
 	} else {
 		DBG(ea_debug_error, ("[%d] EACCELERATOR can't cache function \"%s\"\n", getpid(), from->function_name));
 		zend_bailout();
@@ -240,7 +240,7 @@ void calc_class_entry(zend_class_entry * from TSRMLS_DC)
 		zend_bailout();
 	}
 	EACCELERATOR_ALIGN(EAG(mem));
-	EAG(mem) += sizeof(eaccelerator_class_entry);
+	EAG(mem) += sizeof(ea_class_entry);
 
 	if (from->name != NULL)
 		calc_string(from->name, from->name_length + 1 TSRMLS_CC);
@@ -283,12 +283,12 @@ int calc_size(char *key, zend_op_array * op_array,
 	EAG(mem) = NULL;
 
 	zend_hash_init(&EAG(strings), 0, NULL, NULL, 0);
-	EAG(mem) += offsetof(mm_cache_entry, realfilename) + len + 1;
+	EAG(mem) += offsetof(ea_cache_entry, realfilename) + len + 1;
 	zend_hash_add(&EAG(strings), key, len + 1, &key, sizeof(char *), NULL);
 	b = c;
 	while (b != NULL) {
 		EACCELERATOR_ALIGN(EAG(mem));
-		EAG(mem) += offsetof(mm_fc_entry, htabkey) + b->nKeyLength;
+		EAG(mem) += offsetof(ea_fc_entry, htabkey) + b->nKeyLength;
 		x = b->arKey;
 		zend_hash_add(&EAG(strings), b->arKey, b->nKeyLength, &x, sizeof(char *), NULL);
 		b = b->pListNext;
@@ -296,7 +296,7 @@ int calc_size(char *key, zend_op_array * op_array,
 	b = f;
 	while (b != NULL) {
 		EACCELERATOR_ALIGN(EAG(mem));
-		EAG(mem) += offsetof(mm_fc_entry, htabkey) + b->nKeyLength;
+		EAG(mem) += offsetof(ea_fc_entry, htabkey) + b->nKeyLength;
 		x = b->arKey;
 		zend_hash_add(&EAG(strings), b->arKey, b->nKeyLength, &x, sizeof(char *), NULL);
 		b = b->pListNext;
@@ -472,9 +472,9 @@ void store_zval(zval * zv TSRMLS_DC)
 	}
 }
 
-eaccelerator_op_array *store_op_array(zend_op_array * from TSRMLS_DC)
+ea_op_array *store_op_array(zend_op_array * from TSRMLS_DC)
 {
-	eaccelerator_op_array *to;
+	ea_op_array *to;
 	zend_op *opline;
 	zend_op *end;
 
@@ -495,12 +495,12 @@ eaccelerator_op_array *store_op_array(zend_op_array * from TSRMLS_DC)
 
 	if (from->type == ZEND_INTERNAL_FUNCTION) {
 		EACCELERATOR_ALIGN(EAG(mem));
-		to = (eaccelerator_op_array *) EAG(mem);
-		EAG(mem) += offsetof(eaccelerator_op_array, opcodes);
+		to = (ea_op_array *) EAG(mem);
+		EAG(mem) += offsetof(ea_op_array, opcodes);
 	} else if (from->type == ZEND_USER_FUNCTION) {
 		EACCELERATOR_ALIGN(EAG(mem));
-		to = (eaccelerator_op_array *) EAG(mem);
-		EAG(mem) += sizeof(eaccelerator_op_array);
+		to = (ea_op_array *) EAG(mem);
+		EAG(mem) += sizeof(ea_op_array);
 	} else {
 		return NULL;
 	}
@@ -784,14 +784,14 @@ static int store_function_inheritance_check(Bucket * p, zend_class_entry * from_
 }
 #endif
 
-eaccelerator_class_entry *store_class_entry(zend_class_entry * from TSRMLS_DC)
+ea_class_entry *store_class_entry(zend_class_entry * from TSRMLS_DC)
 {
-	eaccelerator_class_entry *to;
+	ea_class_entry *to;
 	unsigned int i;
 
 	EACCELERATOR_ALIGN(EAG(mem));
-	to = (eaccelerator_class_entry *) EAG(mem);
-	EAG(mem) += sizeof(eaccelerator_class_entry);
+	to = (ea_class_entry *) EAG(mem);
+	EAG(mem) += sizeof(ea_class_entry);
 	to->type = from->type;
 	to->name = NULL;
 	to->name_length = from->name_length;

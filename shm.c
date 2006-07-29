@@ -40,26 +40,25 @@
 #include "standard/php_var.h"
 
 /* where to cache the keys */
-eaccelerator_cache_place eaccelerator_keys_cache_place =
-	eaccelerator_shm_and_disk;
+ea_cache_place eaccelerator_keys_cache_place = ea_shm_and_disk;
 
 /* set the eaccelerator_keys_cache_place */
-PHP_INI_MH (eaccelerator_OnUpdateKeysCachePlace)
+PHP_INI_MH(eaccelerator_OnUpdateKeysCachePlace)
 {
-	if (strncasecmp ("shm_and_disk", new_value, sizeof ("shm_and_disk")) == 0)
-		eaccelerator_keys_cache_place = eaccelerator_shm_and_disk;
+	if (strncasecmp("shm_and_disk", new_value, sizeof("shm_and_disk")) == 0)
+		eaccelerator_keys_cache_place = ea_shm_and_disk;
 
-	else if (strncasecmp ("shm", new_value, sizeof ("shm")) == 0)
-		eaccelerator_keys_cache_place = eaccelerator_shm;
+	else if (strncasecmp("shm", new_value, sizeof("shm")) == 0)
+		eaccelerator_keys_cache_place = ea_shm;
 
-	else if (strncasecmp ("shm_only", new_value, sizeof ("shm_only")) == 0)
-		eaccelerator_keys_cache_place = eaccelerator_shm_only;
+	else if (strncasecmp("shm_only", new_value, sizeof ("shm_only")) == 0)
+		eaccelerator_keys_cache_place = ea_shm_only;
 
-	else if (strncasecmp ("disk_only", new_value, sizeof ("disk_only")) == 0)
-		eaccelerator_keys_cache_place = eaccelerator_disk_only;
+	else if (strncasecmp("disk_only", new_value, sizeof("disk_only")) == 0)
+		eaccelerator_keys_cache_place = ea_disk_only;
 
-	else if (strncasecmp ("none", new_value, sizeof ("none")) == 0)
-		eaccelerator_keys_cache_place = eaccelerator_none;
+	else if (strncasecmp("none", new_value, sizeof("none")) == 0)
+		eaccelerator_keys_cache_place = ea_none;
 
 	return SUCCESS;
 }

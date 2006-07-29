@@ -196,7 +196,7 @@ static char *get_zval(zval *v)
  *      }
  * }
  */
-static zval *get_op_array(eaccelerator_op_array *op_array TSRMLS_DC) 
+static zval *get_op_array(ea_op_array *op_array TSRMLS_DC) 
 {
     zval *return_value;
     MAKE_STD_ZVAL(return_value);
@@ -504,10 +504,10 @@ cont_failed:
 /* }}} */
 
 /* {{{ get_cache_entry: get the cache_entry for the given file */
-static mm_cache_entry *get_cache_entry(const char *file) {
+static ea_cache_entry *get_cache_entry(const char *file) {
     unsigned int slot;
-    mm_cache_entry *p;
-    mm_cache_entry *result = NULL;
+    ea_cache_entry *p;
+    ea_cache_entry *result = NULL;
     
    	if (file != NULL) {
 		EACCELERATOR_UNPROTECT();
@@ -547,8 +547,8 @@ PHP_FUNCTION(eaccelerator_dasm_file)
 {
     const char *file;
     int file_len;
-	mm_cache_entry *p;
-    mm_fc_entry *fc;
+	ea_cache_entry *p;
+    ea_fc_entry *fc;
     zval *functions;
     zval *classes;
 
@@ -574,7 +574,7 @@ PHP_FUNCTION(eaccelerator_dasm_file)
     MAKE_STD_ZVAL(functions);
     array_init(functions);
 	while (fc != NULL) {
-        add_assoc_zval(functions, fc->htabkey, get_op_array((eaccelerator_op_array *)fc->fc TSRMLS_CC));
+        add_assoc_zval(functions, fc->htabkey, get_op_array((ea_op_array *)fc->fc TSRMLS_CC));
 		fc = fc->next;
 	}
     add_assoc_zval(return_value, "functions", functions);
@@ -585,7 +585,7 @@ PHP_FUNCTION(eaccelerator_dasm_file)
     array_init(classes);
 	if (fc != NULL) {
 		while (fc != NULL) {
-			eaccelerator_class_entry *c = (eaccelerator_class_entry *) fc->fc;
+			ea_class_entry *c = (ea_class_entry *) fc->fc;
             if (c->type == ZEND_USER_CLASS) { /* get methods */
                 zval *methods;
                 Bucket *q;
@@ -594,7 +594,7 @@ PHP_FUNCTION(eaccelerator_dasm_file)
                 array_init(methods);
                 q = c->function_table.pListHead;
                 while (q) {
-                    eaccelerator_op_array *func = (eaccelerator_op_array *) q->pData;
+                    ea_op_array *func = (ea_op_array *) q->pData;
                     if (func->type == ZEND_USER_FUNCTION) {
                         add_assoc_zval(methods, func->function_name, get_op_array(func TSRMLS_CC));
                     }

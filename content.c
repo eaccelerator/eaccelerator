@@ -36,36 +36,22 @@
 
 #define EACCELERATOR_COMPRESS_MIN 128
 
-eaccelerator_cache_place eaccelerator_content_cache_place = eaccelerator_shm_and_disk;
+ea_cache_place eaccelerator_content_cache_place = ea_shm_and_disk;
 
 static int (*eaccelerator_old_header_handler)(sapi_header_struct *sapi_header, sapi_headers_struct *sapi_headers TSRMLS_DC);
 
-PHP_INI_MH (eaccelerator_OnUpdateContentCachePlace)
+PHP_INI_MH(eaccelerator_OnUpdateContentCachePlace)
 {
-	if (strncasecmp ("shm_and_disk", new_value, 
-		sizeof ("shm_and_disk")) == 0)
-	{
-		eaccelerator_content_cache_place = eaccelerator_shm_and_disk;
-	}
-	else if (strncasecmp ("shm", new_value, 
-		sizeof ("shm")) == 0)
-	{
-		eaccelerator_content_cache_place = eaccelerator_shm;
-	}
-	else if (strncasecmp ("shm_only", new_value, 
-		sizeof ("shm_only")) == 0)
-	{
-		eaccelerator_content_cache_place = eaccelerator_shm_only;
-	}
-	else if (strncasecmp ("disk_only", new_value, 
-		sizeof ("disk_only")) == 0)
-	{
-		eaccelerator_content_cache_place = eaccelerator_disk_only;
-	}
-	else if (strncasecmp ("none", new_value, 
-		sizeof ("none")) == 0)
-	{
-		eaccelerator_content_cache_place = eaccelerator_none;
+	if (strncasecmp("shm_and_disk", new_value, sizeof("shm_and_disk")) == 0) {
+		eaccelerator_content_cache_place = ea_shm_and_disk;
+	} else if (strncasecmp("shm", new_value, sizeof("shm")) == 0) {
+		eaccelerator_content_cache_place = ea_shm;
+	} else if (strncasecmp("shm_only", new_value, sizeof("shm_only")) == 0) {
+		eaccelerator_content_cache_place = ea_shm_only;
+	} else if (strncasecmp("disk_only", new_value, sizeof("disk_only")) == 0) {
+		eaccelerator_content_cache_place = ea_disk_only;
+	} else if (strncasecmp("none", new_value, sizeof("none")) == 0) {
+		eaccelerator_content_cache_place = ea_none;
 	}
 	return SUCCESS;
 }
@@ -107,14 +93,14 @@ static int eaccelerator_header_handler(sapi_header_struct *sapi_header, sapi_hea
 }
 
 void eaccelerator_content_cache_startup() {
-  if (eaccelerator_content_cache_place != eaccelerator_none) {
+  if (eaccelerator_content_cache_place != ea_none) {
     eaccelerator_old_header_handler = sapi_module.header_handler;
     sapi_module.header_handler = eaccelerator_header_handler;
   }
 }
 
 void eaccelerator_content_cache_shutdown() {
-  if (eaccelerator_content_cache_place != eaccelerator_none) {
+  if (eaccelerator_content_cache_place != ea_none) {
     sapi_module.header_handler = eaccelerator_old_header_handler;
   }
 }
@@ -396,7 +382,7 @@ PHP_FUNCTION(eaccelerator_cache_page) {
                           "s|l", &key, &key_len, &ttl) == FAILURE) {
     RETURN_FALSE;
   }
-  if (eaccelerator_content_cache_place == eaccelerator_none) {
+  if (eaccelerator_content_cache_place == ea_none) {
     RETURN_FALSE;
   }
   if (EAG(content_headers) != NULL) {
@@ -511,7 +497,7 @@ PHP_FUNCTION(eaccelerator_rm_page) {
                           "s", &key, &key_len) == FAILURE) {
     return;
   }
-  if (eaccelerator_content_cache_place == eaccelerator_none) {
+  if (eaccelerator_content_cache_place == ea_none) {
     RETURN_NULL();
   }
   zkey = do_alloca(key_len+16);
@@ -540,7 +526,7 @@ PHP_FUNCTION(eaccelerator_cache_output) {
                           "ss|l", &key, &key_len, &code, &code_len, &ttl) == FAILURE) {
     return;
   }
-  if (eaccelerator_content_cache_place == eaccelerator_none) {
+  if (eaccelerator_content_cache_place == ea_none) {
     eval_name = zend_make_compiled_string_description("eval()'d code" TSRMLS_CC);
     zend_eval_string(code, NULL, eval_name TSRMLS_CC);
     efree(eval_name);
@@ -592,7 +578,7 @@ PHP_FUNCTION(eaccelerator_cache_result) {
                           "ss|l", &key, &key_len, &code, &code_len, &ttl) == FAILURE) {
     return;
   }
-  if ((eaccelerator_content_cache_place != eaccelerator_none) &&
+  if ((eaccelerator_content_cache_place != ea_none) &&
       eaccelerator_get(key, key_len, return_value, eaccelerator_content_cache_place TSRMLS_CC)) {
     /*  Return value is cached. Return it. */
     return;
@@ -600,7 +586,7 @@ PHP_FUNCTION(eaccelerator_cache_result) {
     /* Return value is not cached. Generate it and return. */
     eval_name = zend_make_compiled_string_description("eval()'d code" TSRMLS_CC);
     if (zend_eval_string(code, return_value, eval_name TSRMLS_CC) == SUCCESS &&
-        eaccelerator_content_cache_place != eaccelerator_none) {
+        eaccelerator_content_cache_place != ea_none) {
 
 #ifndef ZEND_ENGINE_2_1
 /* Doesn't work with php >= 5.1.0 */

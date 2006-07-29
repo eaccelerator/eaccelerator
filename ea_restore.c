@@ -157,7 +157,7 @@ void fixup_zval(zval * zv TSRMLS_DC)
 	}
 }
 
-void fixup_op_array(eaccelerator_op_array * from TSRMLS_DC)
+void fixup_op_array(ea_op_array * from TSRMLS_DC)
 {
 	zend_op *opline;
 	zend_op *end;
@@ -241,7 +241,7 @@ void fixup_op_array(eaccelerator_op_array * from TSRMLS_DC)
 	FIXUP(from->filename);
 }
 
-void fixup_class_entry(eaccelerator_class_entry * from TSRMLS_DC)
+void fixup_class_entry(ea_class_entry * from TSRMLS_DC)
 {
 	FIXUP(from->name);
 	FIXUP(from->parent);
@@ -392,8 +392,7 @@ static void call_op_array_ctor_handler(zend_extension * extension,
 	}
 }
 
-zend_op_array *restore_op_array(zend_op_array * to,
-								eaccelerator_op_array * from TSRMLS_DC)
+zend_op_array *restore_op_array(zend_op_array * to, ea_op_array * from TSRMLS_DC)
 {
     union {
     	zend_function *v;
@@ -617,8 +616,7 @@ zend_op_array *restore_op_array(zend_op_array * to,
 	return to;
 }
 
-static zend_op_array *restore_op_array_ptr(eaccelerator_op_array *
-										   from TSRMLS_DC)
+static zend_op_array *restore_op_array_ptr(ea_op_array *from TSRMLS_DC)
 {
 	return restore_op_array(NULL, from TSRMLS_CC);
 }
@@ -734,8 +732,7 @@ void restore_class_methods(zend_class_entry * to TSRMLS_DC)
 }
 #endif
 
-zend_class_entry *restore_class_entry(zend_class_entry * to,
-									  eaccelerator_class_entry * from TSRMLS_DC)
+zend_class_entry *restore_class_entry(zend_class_entry * to, ea_class_entry * from TSRMLS_DC)
 {
 	zend_class_entry *old;
 
@@ -843,8 +840,7 @@ zend_class_entry *restore_class_entry(zend_class_entry * to,
 		to->parent = NULL;
 	}
 
-	restore_hash(&to->function_table, &from->function_table,
-				 (restore_bucket_t) restore_op_array_ptr TSRMLS_CC);
+	restore_hash(&to->function_table, &from->function_table, (restore_bucket_t)restore_op_array_ptr TSRMLS_CC);
 	to->function_table.pDestructor = ZEND_FUNCTION_DTOR;
 
 #ifdef ZEND_ENGINE_2
@@ -860,14 +856,14 @@ zend_class_entry *restore_class_entry(zend_class_entry * to,
 	return to;
 }
 
-void restore_function(mm_fc_entry * p TSRMLS_DC)
+void restore_function(ea_fc_entry * p TSRMLS_DC)
 {
 	zend_op_array op_array;
 
 	if ((p->htabkey[0] == '\000') && zend_hash_exists(CG(function_table), p->htabkey, p->htablen)) {
 		return;
 	}
-	if (restore_op_array(&op_array, (eaccelerator_op_array *) p->fc TSRMLS_CC) != NULL) {
+	if (restore_op_array(&op_array, (ea_op_array *) p->fc TSRMLS_CC) != NULL) {
 		if (zend_hash_add(CG(function_table), p->htabkey, p->htablen, &op_array, sizeof(zend_op_array), NULL) == FAILURE) {
 			CG(in_compilation) = 1;
 			CG(compiled_filename) = EAG(mem);
@@ -884,7 +880,7 @@ void restore_function(mm_fc_entry * p TSRMLS_DC)
 /*
  * Class handling.
  */
-void restore_class(mm_fc_entry * p TSRMLS_DC)
+void restore_class(ea_fc_entry * p TSRMLS_DC)
 {
 #ifdef ZEND_ENGINE_2
 	zend_class_entry *ce;
@@ -896,10 +892,10 @@ void restore_class(mm_fc_entry * p TSRMLS_DC)
 		return;
 	}
 #ifdef ZEND_ENGINE_2
-	ce = restore_class_entry(NULL, (eaccelerator_class_entry *) p->fc TSRMLS_CC);
+	ce = restore_class_entry(NULL, (ea_class_entry *) p->fc TSRMLS_CC);
 	if (ce != NULL)
 #else
-	if (restore_class_entry(&ce, (eaccelerator_class_entry *) p->fc TSRMLS_CC) != NULL)
+	if (restore_class_entry(&ce, (ea_class_entry *) p->fc TSRMLS_CC) != NULL)
 #endif
 	{
 #ifdef ZEND_ENGINE_2

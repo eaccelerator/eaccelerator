@@ -51,7 +51,7 @@
 
 /* fixes compile errors on php5.1 */
 #ifdef STR_EMPTY_ALLOC
-#define empty_string STR_EMPTY_ALLOC()
+#	define empty_string STR_EMPTY_ALLOC()
 #endif
 
 #if !defined(ZEND_WIN32) && defined(WITH_EACCELERATOR_USE_INODE)
@@ -225,7 +225,7 @@ typedef struct _eaccelerator_op_array {
 	zend_uint line_start;
 	zend_uint line_end;
 #endif
-} eaccelerator_op_array;
+} ea_op_array;
 
 typedef struct _eaccelerator_class_entry {
 	char type;
@@ -248,17 +248,17 @@ typedef struct _eaccelerator_class_entry {
 	zend_uint line_start;
 	zend_uint line_end;
 #endif
-} eaccelerator_class_entry;
+} ea_class_entry;
 
 /*
  * To cache functions and classes.
  */
-typedef struct _mm_fc_entry {
+typedef struct _ea_fc_entry {
 	void *fc;
-	struct _mm_fc_entry *next;
+	struct _ea_fc_entry *next;
 	int htablen;
 	char htabkey[1];			/* must be last element */
-} mm_fc_entry;
+} ea_fc_entry;
 
 
 /*
@@ -266,8 +266,8 @@ typedef struct _mm_fc_entry {
  * Nested  functions and classes which defined in the file goes
  * into the list of mm_fc_entry.
  */
-typedef struct _mm_cache_entry {
-	struct _mm_cache_entry *next;
+typedef struct _ea_cache_entry {
+	struct _ea_cache_entry *next;
 #ifdef EACCELERATOR_USE_INODE
 	dev_t st_dev;				/* file's device                     */
 	ino_t st_ino;				/* file's inode                      */
@@ -281,47 +281,47 @@ typedef struct _mm_cache_entry {
 	int nhits;					/* hits count                        */
 	int nreloads;				/* count of reloads                  */
 	int use_cnt;				/* how many processes uses the entry */
-	eaccelerator_op_array *op_array;	/* script's global scope code        */
-	mm_fc_entry *f_head;		/* list of nested functions          */
-	mm_fc_entry *c_head;		/* list of nested classes            */
+	ea_op_array *op_array;	/* script's global scope code        */
+	ea_fc_entry *f_head;		/* list of nested functions          */
+	ea_fc_entry *c_head;		/* list of nested classes            */
 	zend_bool removed;			/* the entry is scheduled to remove  */
 	char realfilename[1];		/* real file name (must be last el.) */
-} mm_cache_entry;
+} ea_cache_entry;
 
 /*
  * bucket for user's cache
  */
-typedef struct _mm_user_cache_entry {
-	struct _mm_user_cache_entry *next;
+typedef struct _ea_user_cache_entry {
+	struct _ea_user_cache_entry *next;
 	unsigned int hv;			/* hash value                  */
 	long ttl;					/* expiration time             */
 	long create;
 	int size;
 	zval value;					/* value                       */
 	char key[1];				/* key value (must be last el) */
-} mm_user_cache_entry;
+} ea_user_cache_entry;
 
 /*
  * Linked list of mm_cache_entry which are used by process/thread
  */
-typedef struct _mm_used_entry {
-	struct _mm_used_entry *next;
-	mm_cache_entry *entry;
-} mm_used_entry;
+typedef struct _ea_used_entry {
+	struct _ea_used_entry *next;
+	ea_cache_entry *entry;
+} ea_used_entry;
 
 /*
  * Linked list of locks
  */
-typedef struct _mm_lock_entry {
-	struct _mm_lock_entry *next;
+typedef struct _ea_lock_entry {
+	struct _ea_lock_entry *next;
 	pid_t pid;
 #ifdef ZTS
 	THREAD_T thread;
 #endif
 	char key[1];
-} mm_lock_entry;
+} ea_lock_entry;
 
-typedef struct _mm_file_header {
+typedef struct _ea_file_header {
 	char magic[8];				/* "EACCELERATOR" */
 	int eaccelerator_version;
 	int zend_version;
@@ -329,7 +329,7 @@ typedef struct _mm_file_header {
 	int size;
 	time_t mtime;
 	unsigned int crc32;
-} mm_file_header;
+} ea_file_header;
 
 typedef struct {
 	MM *mm;
@@ -341,23 +341,23 @@ typedef struct {
 	zend_bool optimizer_enabled;
 	unsigned int rem_cnt;
 	time_t last_prune;
-	mm_cache_entry *removed;
-	mm_lock_entry *locks;
+	ea_cache_entry *removed;
+	ea_lock_entry *locks;
 
-	mm_cache_entry *hash[EA_HASH_SIZE];
-	mm_user_cache_entry *user_hash[EA_USER_HASH_SIZE];
+	ea_cache_entry *hash[EA_HASH_SIZE];
+	ea_user_cache_entry *user_hash[EA_USER_HASH_SIZE];
 } eaccelerator_mm;
 
 /*
  * Where to cache
  */
-typedef enum _eaccelerator_cache_place {
-	eaccelerator_shm_and_disk,	/* in shm and in disk */
-	eaccelerator_shm,			/* in shm, but if it is not possible then on disk */
-	eaccelerator_shm_only,		/* in shm only  */
-	eaccelerator_disk_only,		/* on disk only */
-	eaccelerator_none			/* don't cache  */
-} eaccelerator_cache_place;
+typedef enum _ea_cache_place {
+	ea_shm_and_disk,	/* in shm and in disk */
+	ea_shm,				/* in shm, but if it is not possible then on disk */
+	ea_shm_only,		/* in shm only  */
+	ea_disk_only,		/* on disk only */
+	ea_none				/* don't cache  */
+} ea_cache_place;
 
 typedef union align_union {
   double d;
@@ -414,12 +414,12 @@ void eaccelerator_optimize (zend_op_array * op_array);
 /*
  * conditional filter
  */
-typedef struct _mm_cond_entry {
+typedef struct _ea_cond_entry {
 	char *str;
 	int len;
 	zend_bool not;
-	struct _mm_cond_entry *next;
-} mm_cond_entry;
+	struct _ea_cond_entry *next;
+} ea_cond_entry;
 
 /*
  * Globals (different for each process/thread)
@@ -444,7 +444,7 @@ char *allowed_admin_path;
 HashTable strings;
 HashTable restored;
 zend_class_entry *class_entry;
-mm_cond_entry *cond_list;
+ea_cond_entry *cond_list;
 zend_uint refcount_helper;
 char hostname[32];
 #ifdef WITH_EACCELERATOR_CRASH_DETECTION

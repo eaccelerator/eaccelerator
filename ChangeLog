@@ -3,6 +3,7 @@
         * Don't use our own hash function, the one from the ZE is extremely much
           faster and provides a much better distribution.
         * Don't compile the user cache code one no feature is being compiled.
+        * A big cleanup in struct naming
 
 2006-07-29  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 

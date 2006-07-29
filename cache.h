@@ -34,14 +34,16 @@
 #include "zend_API.h"
 #include "zend_extensions.h"
 
-int eaccelerator_put (const char *key, int key_len, zval * val, time_t ttl,
-					  eaccelerator_cache_place where TSRMLS_DC);
-int eaccelerator_get (const char *key, int key_len, zval * return_value,
-					  eaccelerator_cache_place where TSRMLS_DC);
-int eaccelerator_rm (const char *key, int key_len,
-					 eaccelerator_cache_place where TSRMLS_DC);
+#if defined(WITH_EACCELERATOR_CONTENT_CACHING) || defined(WITH_EACCELERATOR_SESSIONS) || defined(WITH_EACCELERATOR_SHM)
+int eaccelerator_put (const char *key, int key_len, zval * val, time_t ttl, ea_cache_place where TSRMLS_DC);
+int eaccelerator_get (const char *key, int key_len, zval * return_value, ea_cache_place where TSRMLS_DC);
+int eaccelerator_rm (const char *key, int key_len, ea_cache_place where TSRMLS_DC);
+#endif
 size_t eaccelerator_gc (TSRMLS_D);
 
+
+#ifdef WITH_EACCELERATOR_INFO
 int eaccelerator_list_keys(zval *return_value TSRMLS_DC);
+#endif
 
 #endif							/* INCLUDED_CACHE_H */
