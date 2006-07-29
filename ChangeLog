@@ -6,7 +6,9 @@
         * A big cleanup in struct naming
         * Move some functions around to make more of them static, this reduces
           the binary size and load times.
-
+		* Remove some leftovers from restoring encoded scripts which only create
+		  overhead without the loader.
+		  
 2006-07-29  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
         * Use php realpath directly without wrapper, TSRM implements the realpath cache

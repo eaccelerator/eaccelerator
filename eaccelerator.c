@@ -3,7 +3,7 @@
    | eAccelerator project                                                 |
    +----------------------------------------------------------------------+
    | Copyright (c) 2004 - 2006 eAccelerator                               |
-   | http://eaccelerator.net											                        |
+   | http://eaccelerator.net											  |
    +----------------------------------------------------------------------+
    | This program is free software; you can redistribute it and/or        |
    | modify it under the terms of the GNU General Public License          |
@@ -919,27 +919,24 @@ static int eaccelerator_stat(zend_file_handle *file_handle,
 #ifdef EACCELERATOR_USE_INODE
 #ifndef ZEND_WIN32
   if (file_handle->type == ZEND_HANDLE_FP && file_handle->handle.fp != NULL) {
-    if (fstat(fileno(file_handle->handle.fp), buf) == 0 &&
-       S_ISREG(buf->st_mode)) {
+    if (fstat(fileno(file_handle->handle.fp), buf) == 0 && S_ISREG(buf->st_mode)) {
       if (file_handle->opened_path != NULL) {
-        strcpy(realname,file_handle->opened_path);
+        strcpy(realname, file_handle->opened_path);
       }
       return 0;
     }
   } else
 #endif
   if (file_handle->opened_path != NULL) {
-    if (stat(file_handle->opened_path, buf) == 0 &&
-        S_ISREG(buf->st_mode)) {
+    if (stat(file_handle->opened_path, buf) == 0 && S_ISREG(buf->st_mode)) {
        strcpy(realname,file_handle->opened_path);
        return 0;
     }
-  } else if (PG(include_path) == NULL ||
-             file_handle->filename[0] == '.' ||
+  } else if (PG(include_path) == NULL || 
+  			 file_handle->filename[0] == '.' ||
              IS_SLASH(file_handle->filename[0]) ||
              IS_ABSOLUTE_PATH(file_handle->filename,strlen(file_handle->filename))) {
-    if (stat(file_handle->filename, buf) == 0 &&
-        S_ISREG(buf->st_mode)) {
+    if (stat(file_handle->filename, buf) == 0 && S_ISREG(buf->st_mode)) {
        return 0;
     }
   } else {
@@ -952,19 +949,18 @@ static int eaccelerator_stat(zend_file_handle *file_handle,
     while (ptr && *ptr) {
       end = strchr(ptr, DEFAULT_DIR_SEPARATOR);
       if (end != NULL) {
-        len = end-ptr;
+        len = end - ptr;
         end++;
       } else {
         len = strlen(ptr);
-        end = ptr+len;
+        end = ptr + len;
       }
-      if (len+filename_len+2 < MAXPATHLEN) {
+      if (len + filename_len + 2 < MAXPATHLEN) {
         memcpy(tryname, ptr, len);
         tryname[len] = '/';
-        memcpy(tryname+len+1, file_handle->filename, filename_len);
-        tryname[len+filename_len+1] = '\0';
-        if (stat(tryname, buf) == 0 &&
-            S_ISREG(buf->st_mode)) {
+        memcpy(tryname + len + 1, file_handle->filename, filename_len);
+        tryname[len + filename_len + 1] = '\0';
+        if (stat(tryname, buf) == 0 && S_ISREG(buf->st_mode)) {
           return 0;
         }
       }
@@ -977,14 +973,16 @@ static int eaccelerator_stat(zend_file_handle *file_handle,
 		tryname[MAXPATHLEN - 1] = 0;
 		tryname_length = strlen(tryname);
 
-		while (tryname_length >= 0 && !IS_SLASH(tryname[tryname_length]))
+		while (tryname_length >= 0 && !IS_SLASH(tryname[tryname_length])) {
 			tryname_length--;
+		}
 		if (tryname_length > 0 && tryname[0] != '[' // [no active file]
 			&& tryname_length + filename_len + 1 < MAXPATHLEN)
 		{
 			strncpy(tryname + tryname_length + 1, file_handle->filename, filename_len + 1);
-			if (stat(tryname, buf) == 0 && S_ISREG(buf->st_mode))
+			if (stat(tryname, buf) == 0 && S_ISREG(buf->st_mode)) {
 				return 0;
+			}
 		}
 	}
   }
@@ -996,8 +994,7 @@ static int eaccelerator_stat(zend_file_handle *file_handle,
     if (file_handle->type == ZEND_HANDLE_FP && file_handle->handle.fp != NULL) {
       if (!eaccelerator_check_mtime) {
         return 0;
-      } else if (fstat(fileno(file_handle->handle.fp), buf) == 0 &&
-                 S_ISREG(buf->st_mode)) {
+      } else if (fstat(fileno(file_handle->handle.fp), buf) == 0 && S_ISREG(buf->st_mode)) {
         return 0;
       } else {
         return -1;
@@ -1005,8 +1002,7 @@ static int eaccelerator_stat(zend_file_handle *file_handle,
     } else {
       if (!eaccelerator_check_mtime) {
         return 0;
-      } else if (stat(realname, buf) == 0 &&
-                 S_ISREG(buf->st_mode)) {
+      } else if (stat(realname, buf) == 0 && S_ISREG(buf->st_mode)) {
         return 0;
       } else {
         return -1;
@@ -1015,8 +1011,7 @@ static int eaccelerator_stat(zend_file_handle *file_handle,
 #else
     if (!eaccelerator_check_mtime) {
       return 0;
-    } else if (stat(realname, buf) == 0 &&
-               S_ISREG(buf->st_mode)) {
+    } else if (stat(realname, buf) == 0 && S_ISREG(buf->st_mode)) {
       return 0;
     } else {
       return -1;
@@ -1024,15 +1019,14 @@ static int eaccelerator_stat(zend_file_handle *file_handle,
 #endif
   } else if (file_handle->filename == NULL) {
     return -1;
-  } else if (PG(include_path) == NULL ||
+  } else if (PG(include_path) == NULL || 
              file_handle->filename[0] == '.' ||
              IS_SLASH(file_handle->filename[0]) ||
              IS_ABSOLUTE_PATH(file_handle->filename,strlen(file_handle->filename))) {
     if (VCWD_REALPATH(file_handle->filename, realname)) {
       if (!eaccelerator_check_mtime) {
         return 0;
-      } else if (stat(realname, buf) == 0 &&
-                 S_ISREG(buf->st_mode)) {
+      } else if (stat(realname, buf) == 0 && S_ISREG(buf->st_mode)) {
         return 0;
       } else {
         return -1;
@@ -1048,28 +1042,26 @@ static int eaccelerator_stat(zend_file_handle *file_handle,
     while (ptr && *ptr) {
       end = strchr(ptr, DEFAULT_DIR_SEPARATOR);
       if (end != NULL) {
-        len = end-ptr;
+        len = end - ptr;
         end++;
       } else {
         len = strlen(ptr);
-        end = ptr+len;
+        end = ptr + len;
       }
       if (len+filename_len+2 < MAXPATHLEN) {
         memcpy(tryname, ptr, len);
         tryname[len] = '/';
-        memcpy(tryname+len+1, file_handle->filename, filename_len);
-        tryname[len+filename_len+1] = '\0';
+        memcpy(tryname + len + 1, file_handle->filename, filename_len);
+        tryname[len + filename_len + 1] = '\0';
         if (VCWD_REALPATH(tryname, realname)) {
 #ifdef ZEND_WIN32
-          if (stat(realname, buf) == 0 &&
-              S_ISREG(buf->st_mode)) {
+          if (stat(realname, buf) == 0 && S_ISREG(buf->st_mode)) {
             return 0;
           }
 #else
           if (!eaccelerator_check_mtime) {
             return 0;
-          } else if (stat(realname, buf) == 0 &&
-                     S_ISREG(buf->st_mode)) {
+          } else if (stat(realname, buf) == 0 && S_ISREG(buf->st_mode)) {
             return 0;
           } else {
             return -1;
@@ -1106,6 +1098,7 @@ ZEND_DLEXPORT zend_op_array* eaccelerator_compile_file(zend_file_handle *file_ha
 #ifdef EACCELERATOR_USE_INODE
   realname[0] = '\000';
 #endif
+
   DBG(ea_debug_start_time, (&tv_start));
   DBG(ea_debug_printf, (EA_DEBUG, "[%d] Enter COMPILE\n",getpid()));
   DBG(ea_debug_printf, (EA_DEBUG, "[%d] compile_file: \"%s\"\n",getpid(), file_handle->filename));
@@ -1194,53 +1187,33 @@ ZEND_DLEXPORT zend_op_array* eaccelerator_compile_file(zend_file_handle *file_ha
     zend_class_entry tmp_class;
     int ea_bailout;
 
-    DBG(ea_debug_printf, (EA_DEBUG, "\t[%d] compile_file: marking\n", getpid()));
+#ifdef DEBUG
+    ea_debug_printf(EA_DEBUG, "\t[%d] compile_file: marking\n", getpid());
     if (CG(class_table) != EG(class_table)) {
-      DBG(ea_debug_printf, (EA_DEBUG, "\t[%d] oops, CG(class_table)[%08x] != EG(class_table)[%08x]\n", 
-						getpid(), CG(class_table), EG(class_table)));
-      DBG(ea_debug_log_hashkeys, ("CG(class_table)\n", CG(class_table)));
-      DBG(ea_debug_log_hashkeys, ("EG(class_table)\n", EG(class_table)));
+      ea_debug_printf(EA_DEBUG, "\t[%d] oops, CG(class_table)[%08x] != EG(class_table)[%08x]\n", getpid(), CG(class_table), EG(class_table));
+      ea_debug_log_hashkeys("CG(class_table)\n", CG(class_table));
+      ea_debug_log_hashkeys("EG(class_table)\n", EG(class_table));
     } else {
-      DBG(ea_debug_printf, (EA_DEBUG, "\t[%d] OKAY. That what I thought, CG(class_table)[%08x] == EG(class_table)[%08x]\n", 
-						getpid(), CG(class_table), EG(class_table)));
-      DBG(ea_debug_log_hashkeys, ("CG(class_table)\n", CG(class_table)));
+      ea_debug_printf(EA_DEBUG, "\t[%d] OKAY. That what I thought, CG(class_table)[%08x] == EG(class_table)[%08x]\n", getpid(), CG(class_table), EG(class_table));
+      ea_debug_log_hashkeys("CG(class_table)\n", CG(class_table));
     }
-
-    zend_hash_init_ex(&tmp_function_table, 100, NULL, ZEND_FUNCTION_DTOR, 1, 0);
-    zend_hash_copy(&tmp_function_table, &eaccelerator_global_function_table, NULL, &tmp_func, sizeof(zend_function));
-    orig_function_table = CG(function_table);
-    CG(function_table) = &tmp_function_table;
-
-    zend_hash_init_ex(&tmp_class_table, 10, NULL, ZEND_CLASS_DTOR, 1, 0);
-    zend_hash_copy(&tmp_class_table, &eaccelerator_global_class_table, NULL, &tmp_class, sizeof(zend_class_entry));
-
-    orig_class_table = CG(class_table);;
-    CG(class_table) = &tmp_class_table;
-#ifdef ZEND_ENGINE_2
-    orig_eg_class_table = EG(class_table);;
-    EG(class_table) = &tmp_class_table;
 #endif
 
     /* Storing global pre-compiled functions and classes */
     function_table_tail = CG(function_table)->pListTail;
     class_table_tail = CG(class_table)->pListTail;
 
-    DBG(ea_debug_printf, (EA_TEST_PERFORMANCE, "\t[%d] compile_file: compiling (%ld)\n",getpid(),ea_debug_elapsed_time(&tv_start)));
-    DBG(ea_debug_printf, (EA_DEBUG, "\t[%d] compile_file: compiling tmp_class_table=%d class_table=%d\n", 
-          getpid(), tmp_class_table.nNumOfElements, orig_class_table->nNumOfElements));
+    DBG(ea_debug_printf, (EA_TEST_PERFORMANCE, "\t[%d] compile_file: compiling (%ld)\n", getpid(), ea_debug_elapsed_time(&tv_start)));
+    
     if (EAG(optimizer_enabled) && eaccelerator_mm_instance->optimizer_enabled) {
       EAG(compiler) = 1;
     }
 
+	/* try to compile the script */
     ea_bailout = 0;
     zend_try {
       t = mm_saved_zend_compile_file(file_handle, type TSRMLS_CC);
     } zend_catch {
-      CG(function_table) = orig_function_table;
-      CG(class_table) = orig_class_table;
-#ifdef ZEND_ENGINE_2
-      EG(class_table) = orig_eg_class_table;
-#endif
       ea_bailout = 1;
     } zend_end_try();
     if (ea_bailout) {
@@ -1248,18 +1221,13 @@ ZEND_DLEXPORT zend_op_array* eaccelerator_compile_file(zend_file_handle *file_ha
     }
     DBG(ea_debug_log_hashkeys, ("class_table\n", CG(class_table)));
 
-/*???
-    if (file_handle->opened_path == NULL && t != NULL) {
-      file_handle->opened_path = t->filename;
-    }
-*/
     EAG(compiler) = 0;
     if (t != NULL && file_handle->opened_path != NULL && (eaccelerator_check_mtime ||
          ((stat(file_handle->opened_path, &buf) == 0) && S_ISREG(buf.st_mode)))) {
       DBG(ea_debug_printf, (EA_TEST_PERFORMANCE, "\t[%d] compile_file: storing in cache (%ld)\n", getpid(), ea_debug_elapsed_time(&tv_start)));
       DBG(ea_debug_printf, (EA_DEBUG, "\t[%d] compile_file: storing in cache\n", getpid()));
-      function_table_tail = function_table_tail?function_table_tail->pListNext:CG(function_table)->pListHead;
-      class_table_tail = class_table_tail?class_table_tail->pListNext:CG(class_table)->pListHead;
+      function_table_tail = function_table_tail ? function_table_tail->pListNext : CG(function_table)->pListHead;
+      class_table_tail = class_table_tail ? class_table_tail->pListNext : CG(class_table)->pListHead;
       if (eaccelerator_store(file_handle->opened_path, &buf, nreloads, t, function_table_tail, class_table_tail TSRMLS_CC)) {
 #ifdef DEBUG
         ea_debug_log("[%d] EACCELERATOR %s: \"%s\"\n", getpid(), (nreloads == 1) ? "cached" : "re-cached", file_handle->opened_path);
@@ -1274,65 +1242,9 @@ ZEND_DLEXPORT zend_op_array* eaccelerator_compile_file(zend_file_handle *file_ha
 #endif
       }
     } else {
-      function_table_tail = function_table_tail?function_table_tail->pListNext:CG(function_table)->pListHead;
-      class_table_tail = class_table_tail?class_table_tail->pListNext:CG(class_table)->pListHead;
+      function_table_tail = function_table_tail ? function_table_tail->pListNext : CG(function_table)->pListHead;
+      class_table_tail = class_table_tail ? class_table_tail->pListNext : CG(class_table)->pListHead;
     }
-    CG(function_table) = orig_function_table;
-    CG(class_table) = orig_class_table;
-#ifdef ZEND_ENGINE_2
-    EG(class_table) = orig_eg_class_table;
-    DBG(ea_debug_printf, (EA_DEBUG, "\t[%d] restoring CG(class_table)[%08x] != EG(class_table)[%08x]\n", 
-                getpid(), CG(class_table), EG(class_table)));
-#endif
-    while (function_table_tail != NULL) {
-      zend_op_array *op_array = (zend_op_array*)function_table_tail->pData;
-      if (op_array->type == ZEND_USER_FUNCTION) {
-        if (zend_hash_add(CG(function_table), function_table_tail->arKey, function_table_tail->nKeyLength, op_array, 
-                    sizeof(zend_op_array), NULL) == FAILURE && function_table_tail->arKey[0] != '\000') {
-          CG(in_compilation) = 1;
-          CG(compiled_filename) = file_handle->opened_path;
-#ifdef ZEND_ENGINE_2
-          CG(zend_lineno) = op_array->line_start;
-#else
-          CG(zend_lineno) = op_array->opcodes[0].lineno;
-#endif
-          zend_error(E_ERROR, "Cannot redeclare %s()", function_table_tail->arKey);
-        }
-      }
-      function_table_tail = function_table_tail->pListNext;
-    }
-    while (class_table_tail != NULL) {
-#ifdef ZEND_ENGINE_2
-      zend_class_entry **ce = (zend_class_entry**)class_table_tail->pData;
-      if ((*ce)->type == ZEND_USER_CLASS) {
-        if (zend_hash_add(CG(class_table), class_table_tail->arKey, class_table_tail->nKeyLength, 
-                    ce, sizeof(zend_class_entry*), NULL) == FAILURE && class_table_tail->arKey[0] != '\000') {
-          CG(in_compilation) = 1;
-          CG(compiled_filename) = file_handle->opened_path;
-          CG(zend_lineno) = (*ce)->line_start;
-#else
-      zend_class_entry *ce = (zend_class_entry*)class_table_tail->pData;
-      if (ce->type == ZEND_USER_CLASS) {
-        if (ce->parent != NULL) {
-          if (zend_hash_find(CG(class_table), (void*)ce->parent->name, ce->parent->name_length+1, (void **)&ce->parent) != SUCCESS) {
-            ce->parent = NULL;
-          }
-        }
-        if (zend_hash_add(CG(class_table), class_table_tail->arKey, class_table_tail->nKeyLength, ce, 
-                    sizeof(zend_class_entry), NULL) == FAILURE && class_table_tail->arKey[0] != '\000') {
-          CG(in_compilation) = 1;
-          CG(compiled_filename) = file_handle->opened_path;
-          CG(zend_lineno) = 0;
-#endif
-          zend_error(E_ERROR, "Cannot redeclare class %s", class_table_tail->arKey);
-        }
-      }
-      class_table_tail = class_table_tail->pListNext;
-    }
-    tmp_function_table.pDestructor = NULL;
-    tmp_class_table.pDestructor = NULL;
-    zend_hash_destroy(&tmp_function_table);
-    zend_hash_destroy(&tmp_class_table);
   }
   DBG(ea_debug_printf, (EA_TEST_PERFORMANCE, "\t[%d] compile_file: end (%ld)\n", getpid(), ea_debug_elapsed_time(&tv_start)));
   DBG(ea_debug_printf, (EA_DEBUG, "\t[%d] compile_file: end\n", getpid()));
