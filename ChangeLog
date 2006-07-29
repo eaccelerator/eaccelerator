@@ -4,6 +4,8 @@
           faster and provides a much better distribution.
         * Don't compile the user cache code one no feature is being compiled.
         * A big cleanup in struct naming
+        * Move some functions around to make more of them static, this reduces
+          the binary size and load times.
 
 2006-07-29  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 

@@ -29,19 +29,13 @@
 #define EA_RESTORE_H
 
 #define FIXUP(x) if((x)!=NULL) {(x) = (void*)(((char*)(x)) + ((long)(EAG(mem))));}
-void fixup_op_array(ea_op_array *from TSRMLS_DC);
-void fixup_class_entry(ea_class_entry *from TSRMLS_DC);
 void fixup_zval(zval *z TSRMLS_DC);
+void eaccelerator_fixup (ea_cache_entry * p TSRMLS_DC);
 
 void restore_zval(zval *zv TSRMLS_DC);
 void restore_class(ea_fc_entry *p TSRMLS_DC);
 void restore_function(ea_fc_entry *p TSRMLS_DC);
 zend_op_array* restore_op_array(zend_op_array *to, ea_op_array *from TSRMLS_DC);
-zend_class_entry *restore_class_entry(zend_class_entry *to, ea_class_entry *from TSRMLS_DC);
-void restore_class_parent(char *parent, int len, zend_class_entry *to TSRMLS_DC);
-#ifdef ZEND_ENGINE_2
-void restore_class_methods(zend_class_entry *to TSRMLS_DC);
-#endif
 
 dtor_func_t get_zend_destroy_property_info(TSRMLS_D);
 

@@ -563,40 +563,12 @@ unsigned int eaccelerator_crc32(const char *p, size_t n) {
   return ~crc;
 }
 
-void eaccelerator_fixup (ea_cache_entry * p TSRMLS_DC)
-{
-  ea_fc_entry *q;
-
-  EAG (mem) = (char *) ((long) p - (long) p->next);
-  EAG (compress) = 1;
-  p->next = NULL;
-  FIXUP (p->op_array);
-  FIXUP (p->f_head);
-  FIXUP (p->c_head);
-  fixup_op_array (p->op_array TSRMLS_CC);
-  q = p->f_head;
-  while (q != NULL) {
-    FIXUP (q->fc);
-    fixup_op_array ((ea_op_array *) q->fc TSRMLS_CC);
-    FIXUP (q->next);
-    q = q->next;
-  }
-  q = p->c_head;
-  while (q != NULL) {
-    FIXUP (q->fc);
-    fixup_class_entry ((ea_class_entry *) q->fc TSRMLS_CC);
-    FIXUP (q->next);
-    q = q->next;
-  }
-}
-
 /******************************************************************************/
-/* Cache file functions.														*/
+/* Cache file functions.													  */
 /******************************************************************************/
 
 /* Retrieve a cache entry from the cache directory */
-static ea_cache_entry* hash_find_file(const char  *key,
-                                      struct stat *buf TSRMLS_DC) {
+static ea_cache_entry* hash_find_file(const char  *key, struct stat *buf TSRMLS_DC) {
   int f;
   char s[MAXPATHLEN];
   ea_file_header hdr;
@@ -736,106 +708,6 @@ static int hash_add_file(ea_cache_entry *p TSRMLS_DC) {
     ea_debug_log("EACCELERATOR: Open for write failed for \"%s\": %s\n", s, strerror(errno));
   }
   return ret;
-}
-
-/* Create a cache entry from the given op_array, functions and classes of a
-   script */
-static ea_cache_entry *eaccelerator_store_int (char *key, int len, 
-        zend_op_array * op_array, Bucket * f, Bucket * c TSRMLS_DC)
-{
-  ea_cache_entry *p;
-  ea_fc_entry *fc;
-  ea_fc_entry *q;
-  char *x;
-
-  DBG(ea_debug_pad, (EA_DEBUG TSRMLS_CC));
-  DBG(ea_debug_printf, (EA_DEBUG, "[%d] eaccelerator_store_int: key='%s'\n", 
-          getpid (), key));
-
-  EAG (compress) = 1;
-  zend_hash_init (&EAG (strings), 0, NULL, NULL, 0);
-  p = (ea_cache_entry *) EAG (mem);
-  EAG (mem) += offsetof (ea_cache_entry, realfilename) + len + 1;
-
-  p->nhits = 0;
-  p->use_cnt = 0;
-  p->removed = 0;
-  p->f_head = NULL;
-  p->c_head = NULL;
-  memcpy (p->realfilename, key, len + 1);
-  x = p->realfilename;
-  zend_hash_add (&EAG (strings), key, len + 1, &x, sizeof (char *), NULL);
-
-  q = NULL;
-  while (c != NULL) {
-    DBG(ea_debug_pad, (EA_DEBUG TSRMLS_CC));
-    DBG(ea_debug_printf, (EA_DEBUG, 
-            "[%d] eaccelerator_store_int:     class hashkey=", getpid ()));
-    DBG(ea_debug_binary_print, (EA_DEBUG, c->arKey, c->nKeyLength));
-
-    EACCELERATOR_ALIGN (EAG (mem));
-    fc = (ea_fc_entry *) EAG (mem);
-    EAG (mem) += offsetof (ea_fc_entry, htabkey) + c->nKeyLength;
-    memcpy (fc->htabkey, c->arKey, c->nKeyLength);
-    fc->htablen = c->nKeyLength;
-    fc->next = NULL;
-#ifdef ZEND_ENGINE_2
-    fc->fc = *(zend_class_entry **) c->pData;
-#else
-    fc->fc = c->pData;
-#endif
-    c = c->pListNext;
-    x = fc->htabkey;
-    zend_hash_add (&EAG (strings), fc->htabkey, fc->htablen, &x, 
-            sizeof (char *), NULL);
-    if (q == NULL) {
-      p->c_head = fc;
-    } else {
-      q->next = fc;
-    }
-    q = fc;
-  }
-
-  q = NULL;
-  while (f != NULL) {
-      DBG(ea_debug_pad, (EA_DEBUG TSRMLS_CC));
-      DBG(ea_debug_printf, (EA_DEBUG, 
-              "[%d] eaccelerator_store_int:     function hashkey='%s'\n", getpid (), f->arKey));
-
-      EACCELERATOR_ALIGN (EAG (mem));
-      fc = (ea_fc_entry *) EAG (mem);
-      EAG (mem) += offsetof (ea_fc_entry, htabkey) + f->nKeyLength;
-      memcpy (fc->htabkey, f->arKey, f->nKeyLength);
-      fc->htablen = f->nKeyLength;
-      fc->next = NULL;
-      fc->fc = f->pData;
-      f = f->pListNext;
-      x = fc->htabkey;
-      zend_hash_add (&EAG (strings), fc->htabkey, fc->htablen, &x,
-              sizeof (char *), NULL);
-      if (q == NULL) {
-          p->f_head = fc;
-      } else {
-          q->next = fc;
-      }
-      q = fc;
-  }
-
-  q = p->c_head;
-  while (q != NULL) {
-      q->fc = store_class_entry ((zend_class_entry *) q->fc TSRMLS_CC);
-      q = q->next;
-  }
-
-  q = p->f_head;
-  while (q != NULL) {
-      q->fc = store_op_array ((zend_op_array *) q->fc TSRMLS_CC);
-      q = q->next;
-  }
-  p->op_array = store_op_array (op_array TSRMLS_CC);
-
-  zend_hash_destroy (&EAG (strings));
-  return p;
 }
 
 /* called after succesful compilation, from eaccelerator_compile file */

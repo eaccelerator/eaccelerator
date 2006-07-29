@@ -157,7 +157,7 @@ void fixup_zval(zval * zv TSRMLS_DC)
 	}
 }
 
-void fixup_op_array(ea_op_array * from TSRMLS_DC)
+static void fixup_op_array(ea_op_array * from TSRMLS_DC)
 {
 	zend_op *opline;
 	zend_op *end;
@@ -241,7 +241,7 @@ void fixup_op_array(ea_op_array * from TSRMLS_DC)
 	FIXUP(from->filename);
 }
 
-void fixup_class_entry(ea_class_entry * from TSRMLS_DC)
+static void fixup_class_entry(ea_class_entry *from TSRMLS_DC)
 {
 	FIXUP(from->name);
 	FIXUP(from->parent);
@@ -270,6 +270,33 @@ void fixup_class_entry(ea_class_entry * from TSRMLS_DC)
 #endif
 	fixup_hash(&from->function_table,
 			   (fixup_bucket_t) fixup_op_array TSRMLS_CC);
+}
+
+void eaccelerator_fixup (ea_cache_entry *p TSRMLS_DC)
+{
+  	ea_fc_entry *q;
+
+  	EAG (mem) = (char *) ((long) p - (long) p->next);
+  	EAG (compress) = 1;
+  	p->next = NULL;
+  	FIXUP (p->op_array);
+  	FIXUP (p->f_head);
+  	FIXUP (p->c_head);
+  	fixup_op_array (p->op_array TSRMLS_CC);
+  	q = p->f_head;
+  	while (q != NULL) {
+	    FIXUP (q->fc);
+	    fixup_op_array ((ea_op_array *) q->fc TSRMLS_CC);
+	    FIXUP (q->next);
+	    q = q->next;
+  	}
+  	q = p->c_head;
+  	while (q != NULL) {
+	    FIXUP (q->fc);
+	    fixup_class_entry ((ea_class_entry *) q->fc TSRMLS_CC);
+	    FIXUP (q->next);
+	    q = q->next;
+  	}
 }
 
 /******************************************************************************/
@@ -641,8 +668,7 @@ static zend_property_info *restore_property_info(zend_property_info *
 #endif
 
 /* restore the parent class with the given name for the given class */
-void restore_class_parent(char *parent, int len,
-						  zend_class_entry * to TSRMLS_DC)
+static void restore_class_parent(char *parent, int len, zend_class_entry * to TSRMLS_DC)
 {
 #ifdef ZEND_ENGINE_2
 	zend_class_entry** parent_ptr = NULL;
@@ -670,7 +696,7 @@ void restore_class_parent(char *parent, int len,
 }
 
 #ifdef ZEND_ENGINE_2
-void restore_class_methods(zend_class_entry * to TSRMLS_DC)
+static void restore_class_methods(zend_class_entry * to TSRMLS_DC)
 {
 	int cname_len = to->name_length;
 	char *cname_lc = zend_str_tolower_dup(to->name, cname_len);
@@ -732,7 +758,7 @@ void restore_class_methods(zend_class_entry * to TSRMLS_DC)
 }
 #endif
 
-zend_class_entry *restore_class_entry(zend_class_entry * to, ea_class_entry * from TSRMLS_DC)
+static zend_class_entry *restore_class_entry(zend_class_entry * to, ea_class_entry * from TSRMLS_DC)
 {
 	zend_class_entry *old;
 

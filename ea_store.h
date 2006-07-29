@@ -30,12 +30,8 @@
 
 void calc_zval(zval *z TSRMLS_DC);
 int calc_size(char *key, zend_op_array *op_array, Bucket *f, Bucket *c TSRMLS_DC);
-void calc_op_array(zend_op_array *from TSRMLS_DC);
-void calc_class_entry(zend_class_entry *from TSRMLS_DC);
 
 void store_zval(zval *z TSRMLS_DC);
-ea_op_array *store_op_array(zend_op_array *from TSRMLS_DC);
-ea_class_entry *store_class_entry_ptr(zend_class_entry **from TSRMLS_DC);
-ea_class_entry *store_class_entry(zend_class_entry *from TSRMLS_DC);
+ea_cache_entry *eaccelerator_store_int (char *key, int len, zend_op_array *op_array, Bucket *f, Bucket *c TSRMLS_DC);
 
 #endif /* EA_STORE_H */
