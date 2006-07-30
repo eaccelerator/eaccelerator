@@ -8,6 +8,7 @@
           the binary size and load times.
 		* Remove some leftovers from restoring encoded scripts which only create
 		  overhead without the loader.
+        * Clean up the session handler, removed old code for php < 4.3. 
 		  
 2006-07-29  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 

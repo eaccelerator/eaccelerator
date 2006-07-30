@@ -106,9 +106,6 @@ if test "$PHP_EACCELERATOR" != "no"; then
   if test "$eaccelerator_info" = "yes"; then
     AC_DEFINE(WITH_EACCELERATOR_INFO, 1, [Define if you want the information functions])
   fi
-  if test "$eaccelerator_sessions" = "yes"; then
-    AC_DEFINE(WITH_EACCELERATOR_SESSIONS, 1, [Define if you like to use eAccelerator session handlers to store session's information in shared memory])
-  fi
   if test "$eaccelerator_content_caching" = "yes"; then
     AC_DEFINE(WITH_EACCELERATOR_CONTENT_CACHING, 1, [Define if you like to use eAccelerator content cachin API])
     AC_DEFINE(WITH_EACCELERATOR_SHM, 1, [Define if you like to use the eAccelerator functions to store keys in shared memory])
@@ -137,6 +134,22 @@ if test "$PHP_EACCELERATOR" != "no"; then
 #include <sys/stat.h>
 #include <sys/types.h>],msg=yes,msg=no)
   AC_MSG_RESULT([$msg])
+
+  old_cppflags="$CPPFLAGS"
+  CPPFLAGS="$CPPFLAGS $INCLUDES -I$abs_srcdir"
+  AC_MSG_CHECKING(for ext/session/php_session.h)
+  AC_TRY_CPP([#include "ext/session/php_session.h"],msg="yes",msg="no")
+  if test "$msg" = "yes"; then
+    AC_DEFINE(HAVE_EXT_SESSION_PHP_SESSION_H, 1, [Define if you have the <ext/session/php_session.h> header file.])
+  fi
+  AC_MSG_RESULT([$msg])
+  CPPFLAGS="$old_cppflags"
+  if test "$msg" = "yes" && test "$eaccelerator_sessions" = "yes"; then
+    AC_DEFINE(WITH_EACCELERATOR_SESSIONS, 1, [Define if you like to use eAccelerator session handlers to store session's information in shared memory])
+  elif test "$eaccelerator_sessions" = "yes"; then
+    AC_MSG_ERROR("Can't compile eAccelerator with session support if php isn't compiled with session support!")
+  fi
+
 
   AC_MSG_CHECKING(whether union semun is defined in sys/sem.h)
   AC_TRY_COMPILE([
@@ -325,15 +338,4 @@ if test "$PHP_EACCELERATOR" != "no"; then
   AC_CHECK_FUNC(mprotect,[
       AC_DEFINE(HAVE_MPROTECT, 1, [Define if ou have mprotect function])
     ])
-
-  old_cppflags="$CPPFLAGS"
-  CPPFLAGS="$CPPFLAGS $INCLUDES -I$abs_srcdir"
-  AC_MSG_CHECKING(for ext/session/php_session.h)
-  AC_TRY_CPP([#include "ext/session/php_session.h"],msg="yes",msg="no")
-  if test "$msg" = "yes"; then
-    AC_DEFINE(HAVE_EXT_SESSION_PHP_SESSION_H, 1, [Define if you have the <ext/session/php_session.h> header file.])
-  fi
-  AC_MSG_RESULT([$msg])
-  CPPFLAGS="$old_cppflags"
-
 fi

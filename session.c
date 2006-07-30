@@ -32,14 +32,11 @@
 
 #include "cache.h"
 #include "ext/standard/md5.h"
+#include "ext/standard/php_lcg.h"
 #include <fcntl.h>
 
 #ifdef WIN32
 #	include "win32/time.h"
-#endif
-
-#if defined(HAVE_PHP_SESSIONS_SUPPORT) && defined(PS_CREATE_SID_ARGS)
-#	include "ext/standard/php_lcg.h"
 #endif
 
 ea_cache_place eaccelerator_sessions_cache_place = ea_shm_and_disk;
@@ -92,11 +89,9 @@ static int do_session_lock(const char *sess_name TSRMLS_DC)
 	}
 }
 
-#ifdef HAVE_PHP_SESSIONS_SUPPORT	/* PHP_SESSION_API >= 20020306 */
 /******************************************************************************/
 /* Session api functions 													  */
 /******************************************************************************/
-
 PS_OPEN_FUNC(eaccelerator)
 {
 	if (eaccelerator_mm_instance == NULL) {
@@ -198,7 +193,6 @@ PS_GC_FUNC(eaccelerator)
 	return SUCCESS;
 }
 
-#ifdef PS_CREATE_SID_ARGS
 PS_CREATE_SID_FUNC(eaccelerator)
 {
 	static char hexconvtab[] = "0123456789abcdef";
@@ -261,200 +255,20 @@ PS_CREATE_SID_FUNC(eaccelerator)
 		*newlen = j;
 	return estrdup (buf);
 }
-#endif
-
-#else
-/******************************************************************************/
-/* PHP function to register as user session handlers when the session api 	  */
-/* available.																  */
-/******************************************************************************/
-
-PHP_FUNCTION(_eaccelerator_session_open)
-{
-	if (eaccelerator_mm_instance == NULL) {
-		RETURN_FALSE;
-	}
-	RETURN_TRUE;
-}
-
-PHP_FUNCTION(_eaccelerator_session_close)
-{
-	if (eaccelerator_mm_instance == NULL) {
-		RETURN_FALSE;
-	}
-	do_session_unlock(TSRMLS_C);
-	RETURN_TRUE;
-}
-
-PHP_FUNCTION(_eaccelerator_session_read)
-{
-	zval **arg_key;
-	char *key;
-	int len;
-
-	if (ZEND_NUM_ARGS() != 1 || zend_get_parameters_ex(1, &arg_key) == FAILURE) {
-		WRONG_PARAM_COUNT;
-	}
-	len = sizeof("sess_") + Z_STRLEN_PP(arg_key);
-	key = do_alloca(len + 1);
-	strcpy(key, "sess_");
-	strcat(key, Z_STRVAL_PP(arg_key));
-	do_session_lock(key TSRMLS_CC);
-	if (eaccelerator_get(key, len, return_value, eaccelerator_sessions_cache_place TSRMLS_CC)) {
-		free_alloca(key);
-		return;
-	} else {
-		free_alloca(key);
-		RETURN_EMPTY_STRIN ();
-	}
-}
-
-PHP_FUNCTION(_eaccelerator_session_write)
-{
-	zval **arg_key, **arg_val;
-	char *key;
-	int len;
-	time_t ttl;
-
-	if (ZEND_NUM_ARGS() != 2 || zend_get_parameters_ex(2, &arg_key, &arg_val) == FAILURE) {
-		WRONG_PARAM_COUNT;
-	}
-	len = sizeof("sess_") + Z_STRLEN_PP(arg_key);
-	key = do_alloca(len + 1);
-	strcpy(key, "sess_");
-	strcat(key, Z_STRVAL_PP(arg_key));
-	ttl = PS(gc_maxlifetime);
-	if (ttl < 0)
-		ttl = 1440;
-	do_session_lock(key TSRMLS_CC);
-	if (eaccelerator_put(key, len, *arg_val, ttl, eaccelerator_sessions_cache_place TSRMLS_CC)) {
-		free_alloca(key);
-		RETURN_TRUE;
-	} else {
-		free_alloca(key);
-		RETURN_FALSE;
-	}
-}
-
-PHP_FUNCTIO (_eaccelerator_session_destroy)
-{
-	zval **arg_key;
-	char *key;
-	int len;
-
-	if (ZEND_NUM_ARGS() != 1 || zend_get_parameters_ex (1, &arg_key) == FAILURE) {
-		WRONG_PARAM_COUNT;
-	}
-	len = sizeof("sess_") + Z_STRLEN_PP(arg_key);
-	key = do_alloca(len + 1);
-	strcpy(key, "sess_");
-	strcat(key, Z_STRVAL_PP(arg_key));
-	if (eaccelerator_rm(key, len, eaccelerator_sessions_cache_place TSRMLS_CC)) {
-		free_alloca(key);
-		RETURN_TRUE;
-	} else {
-		free_alloca(key);
-		RETURN_FALSE;
-	}
-}
-
-PHP_FUNCTION(_eaccelerator_session_gc)
-{
-	if (eaccelerator_mm_instance == NULL) {
-		RETURN_FALSE;
-	}
-	eaccelerator_gc(TSRMLS_C);
-	RETURN_TRUE;
-}
-#endif /* ELSE HAVE_PHP_SESSIONS_SUPPORT */
 
 ps_module ps_mod_eaccelerator = {
-#ifdef PS_CREATE_SID_ARGS
-	PS_MOD_SID (eaccelerator)
-#else
-	PS_MOD (eaccelerator)
-#endif
+	PS_MOD_SID(eaccelerator)
 };
-
-/* is the eA registered as session handler */
-int eaccelerator_session_registered()
-{
-	return !(eaccelerator_sessions_cache_place != ea_none && eaccelerator_sessions_registered == 0);
-}
 
 /* register ea as session handler */
 void eaccelerator_register_session()
 {
-	php_session_register_module(&ps_mod_eaccelerator);
-	eaccelerator_sessions_registered = 1;
-}
-
-/* register ea as the custom session handler */
-int eaccelerator_set_session_handlers(TSRMLS_D)
-{
-	zval func;
-	zval retval;
-	int ret = 1;
-#ifdef HAVE_PHP_SESSIONS_SUPPORT	// do it with the session api
-	zval param;
-	zval *params[1];
-
-	if (eaccelerator_sessions_cache_place == ea_none) {
-		return 0;
-	}
-	ZVAL_STRING(&func, "session_module_name", 0);
-	INIT_ZVAL(param);
-	params[0] = &param;
-	ZVAL_STRING(params[0], "eaccelerator", 0);
-	if (call_user_function(EG (function_table), NULL, &func, &retval, 1, params TSRMLS_CC) == FAILURE) {
-		ret = 0;
-	}
-	zval_dtor(&retval);
-	return ret;
-#else // register the functions as custom user functions
-	zval *params[6];
-	int i;
-
-	if (eaccelerator_sessions_cache_place == eaccelerator_none) {
-		return 0;
-	}
-	if (eaccelerator_mm_instance == NULL) {
-		return 0;
-	}
-	if (!zend_hash_exists(EG (function_table), "session_set_save_handler", sizeof("session_set_save_handler"))) {
-		return 0;
-	}
-
-	ZVAL_STRING(&func, "session_set_save_handler", 0);
-	MAKE_STD_ZVAL(params[0]);
-	ZVAL_STRING(params[0], "_eaccelerator_session_open", 1);
-	MAKE_STD_ZVAL(params[1]);
-	ZVAL_STRING(params[1], "_eaccelerator_session_close", 1);
-	MAKE_STD_ZVAL(params[2]);
-	ZVAL_STRING(params[2], "_eaccelerator_session_read", 1);
-	MAKE_STD_ZVAL(params[3]);
-	ZVAL_STRING(params[3], "_eaccelerator_session_write", 1);
-	MAKE_STD_ZVAL(params[4]);
-	ZVAL_STRING(params[4], "_eaccelerator_session_destroy", 1);
-	MAKE_STD_ZVAL(params[5]);
-	ZVAL_STRING(params[5], "_eaccelerator_session_gc", 1);
-	if (call_user_function(EG (function_table), NULL, &func, &retval, 6, params TSRMLS_CC) == FAILURE) {
-		ret = 0;
-	}
-	zval_dtor (&retval);
-	for (i = 0; i < 6; i++)
-		zval_ptr_dtor(&params[i]);
-	return ret;
-#endif
-}
-
-/* function to call from a php script to register ea as session handler */
-PHP_FUNCTION(eaccelerator_set_session_handlers)
-{
-	if (eaccelerator_set_session_handlers(TSRMLS_C)) {
-		RETURN_TRUE;
-	} else {
-		RETURN_FALSE;
+	if (eaccelerator_sessions_cache_place != ea_none && eaccelerator_sessions_registered == 0) {
+		if (php_session_register_module(&ps_mod_eaccelerator) != 0) {
+			zend_error(E_CORE_ERROR, "Could not register eAccelerator session handler!");	
+		}
+		eaccelerator_sessions_registered = 1;
+		return;
 	}
 }
 

@@ -1745,10 +1745,9 @@ PHP_MINIT_FUNCTION(eaccelerator) {
     zend_compile_file = eaccelerator_compile_file;
 #endif
   }
-#if defined(WITH_EACCELERATOR_SESSIONS) && defined(HAVE_PHP_SESSIONS_SUPPORT)
-  if (!eaccelerator_session_registered()) {
-    eaccelerator_register_session();
-  }
+  
+#ifdef WITH_EACCELERATOR_SESSIONS
+  eaccelerator_register_session();
 #endif
 #ifdef WITH_EACCELERATOR_CONTENT_CACHING
   eaccelerator_content_cache_startup();
@@ -1756,6 +1755,7 @@ PHP_MINIT_FUNCTION(eaccelerator) {
   if (!eaccelerator_is_zend_extension) {
     register_eaccelerator_as_zend_extension();
   }
+  
 #ifdef ZEND_ENGINE_2
   /* cache the properties_info destructor */
   properties_info_dtor = get_zend_destroy_property_info(TSRMLS_C);
@@ -1945,17 +1945,6 @@ function_entry eaccelerator_functions[] = {
   PHP_FE(eaccelerator_cached_scripts, NULL)
   PHP_FE(eaccelerator_removed_scripts, NULL)
   PHP_FE(eaccelerator_list_keys, NULL)
-#endif
-#ifdef WITH_EACCELERATOR_SESSIONS
-#ifndef HAVE_PHP_SESSIONS_SUPPORT
-  PHP_FE(_eaccelerator_session_open, NULL)
-  PHP_FE(_eaccelerator_session_close, NULL)
-  PHP_FE(_eaccelerator_session_read, NULL)
-  PHP_FE(_eaccelerator_session_write, NULL)
-  PHP_FE(_eaccelerator_session_destroy, NULL)
-  PHP_FE(_eaccelerator_session_gc, NULL)
-#endif
-  PHP_FE(eaccelerator_set_session_handlers, NULL)
 #endif
 #ifdef WITH_EACCELERATOR_CONTENT_CACHING
   PHP_FE(_eaccelerator_output_handler, NULL)

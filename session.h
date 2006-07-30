@@ -30,32 +30,13 @@
 
 #include "php_ini.h"
 
-/* check if php is compiled with session support */
-#undef HAVE_PHP_SESSIONS_SUPPORT
-#if defined(HAVE_EXT_SESSION_PHP_SESSION_H)
-#	include "ext/session/php_session.h"
-#	if defined(PHP_SESSION_API) && PHP_SESSION_API >= 20020306
-#   	define HAVE_PHP_SESSIONS_SUPPORT
-#	endif
-#else // no session support in php, undef eA session support
-#	undef WITH_EACCELERATOR_SESSIONS
-#endif
-
 #ifdef WITH_EACCELERATOR_SESSIONS
 
-int eaccelerator_set_session_handlers();
+#include "ext/session/php_session.h"
+
 int eaccelerator_session_registered();
 void eaccelerator_register_session();
 
-#ifdef HAVE_PHP_SESSIONS_SUPPORT
-PHP_FUNCTION(_eaccelerator_session_open);
-PHP_FUNCTION(_eaccelerator_session_close);
-PHP_FUNCTION(_eaccelerator_session_read);
-PHP_FUNCTION(_eaccelerator_session_write);
-PHP_FUNCTION(_eaccelerator_session_destroy);
-PHP_FUNCTION(_eaccelerator_session_gc);
-#endif
-PHP_FUNCTION(eaccelerator_set_session_handlers);
 PHP_INI_MH(eaccelerator_OnUpdateSessionCachePlace);
 
 #endif
