@@ -10,6 +10,9 @@ AC_DEFUN([EA_REMOVE_IPC_TEST], [
   fi
 ])
 
+dnl 
+dnl configure options for eAccelerator
+dnl 
 AC_ARG_WITH(eaccelerator,[],[enable_eaccelerator=$withval])
 
 PHP_ARG_ENABLE(eaccelerator, whether to enable eaccelerator support,
@@ -122,6 +125,10 @@ if test "$PHP_EACCELERATOR" != "no"; then
 
   AC_REQUIRE_CPP()
 
+dnl
+dnl Do some tests for OS support
+dnl
+
   AC_HAVE_HEADERS(unistd.h limits.h sys/param.h sched.h)
 
   AC_MSG_CHECKING(mandatory system headers)
@@ -151,6 +158,7 @@ if test "$PHP_EACCELERATOR" != "no"; then
   fi
 
 
+dnl Test for union semun
   AC_MSG_CHECKING(whether union semun is defined in sys/sem.h)
   AC_TRY_COMPILE([
   #include <sys/types.h>
@@ -170,6 +178,7 @@ if test "$PHP_EACCELERATOR" != "no"; then
   mm_shm_mmap_file=no
   mm_shm_mmap_posix=no
 
+dnl sysvipc shared memory
   AC_MSG_CHECKING(for sysvipc shared memory support)
   AC_TRY_RUN([#define MM_SEM_NONE
 #define MM_SHM_IPC
@@ -181,6 +190,7 @@ if test "$PHP_EACCELERATOR" != "no"; then
   AC_MSG_RESULT([$msg])
   EA_REMOVE_IPC_TEST()
 
+dnl mmap shared memory
   AC_MSG_CHECKING(for mmap shared memory support)
   AC_TRY_RUN([#define MM_SEM_NONE
 #define MM_SHM_MMAP_FILE
@@ -191,6 +201,7 @@ if test "$PHP_EACCELERATOR" != "no"; then
     msg=yes,msg=no,msg=no)
   AC_MSG_RESULT([$msg])
 
+dnl mmap zero shared memory
   AC_MSG_CHECKING(for mmap on /dev/zero shared memory support)
   AC_TRY_RUN([#define MM_SEM_NONE
 #define MM_SHM_MMAP_ZERO
@@ -201,6 +212,7 @@ if test "$PHP_EACCELERATOR" != "no"; then
     msg=yes,msg=no,msg=no)
   AC_MSG_RESULT([$msg])
 
+dnl mmap anonymous shared memory
   AC_MSG_CHECKING(for anonymous mmap shared memory support)
   AC_TRY_RUN([#define MM_SEM_NONE
 #define MM_SHM_MMAP_ANON
@@ -211,6 +223,7 @@ if test "$PHP_EACCELERATOR" != "no"; then
     msg=yes,msg=no,msg=no)
   AC_MSG_RESULT([$msg])
 
+dnl posix mmap shared memory support
   AC_MSG_CHECKING(for posix mmap shared memory support)
   AC_TRY_RUN([#define MM_SEM_NONE
 #define MM_SHM_MMAP_POSIX
@@ -221,6 +234,7 @@ if test "$PHP_EACCELERATOR" != "no"; then
     msg=yes,msg=no,msg=no)
   AC_MSG_RESULT([$msg])
 
+dnl determine the best type
   AC_MSG_CHECKING(for best shared memory type)
   if test "$mm_shm_ipc" = "yes"; then
     AC_DEFINE(MM_SHM_IPC, 1, [Define if you like to use sysvipc based shared memory])
@@ -242,9 +256,13 @@ if test "$PHP_EACCELERATOR" != "no"; then
   fi
   AC_MSG_RESULT([$msg])
   if test "$msg" = "no" ; then
-    AC_MSG_WARN([eaccelerator cannot detect shared memory type, which is required])
+    AC_MSG_ERROR([eaccelerator couldn't detect the shared memory type])
   fi
 
+dnl
+dnl
+
+dnl spinlock test
   AC_MSG_CHECKING(for spinlock semaphores support)
   AC_TRY_RUN([#define MM_SEM_SPINLOCK
 #define MM_TEST_SEM
@@ -254,6 +272,9 @@ if test "$PHP_EACCELERATOR" != "no"; then
     msg=yes,msg=no,msg=no)
   AC_MSG_RESULT([$msg])
 
+oldLIBS="$LIBS"
+LIBS="-lpthread"
+dnl pthread support
   AC_MSG_CHECKING(for pthread semaphores support)
   AC_TRY_RUN([#define MM_SEM_PTHREAD
 #define MM_TEST_SEM
@@ -263,6 +284,7 @@ if test "$PHP_EACCELERATOR" != "no"; then
     msg=yes,msg=no,msg=no)
   AC_MSG_RESULT([$msg])
 
+dnl posix semaphore support
   AC_MSG_CHECKING(for posix semaphores support)
   AC_TRY_RUN([#define MM_SEM_POSIX
 #define MM_TEST_SEM
@@ -272,6 +294,8 @@ if test "$PHP_EACCELERATOR" != "no"; then
     msg=yes,msg=no,msg=no)
   AC_MSG_RESULT([$msg])
 
+LIBS="$oldLIBS"
+dnl sysvipc semaphore support
   AC_MSG_CHECKING(for sysvipc semaphores support)
   AC_TRY_RUN([#define MM_SEM_IPC
 #define MM_TEST_SEM
@@ -282,6 +306,7 @@ if test "$PHP_EACCELERATOR" != "no"; then
   AC_MSG_RESULT([$msg])
   EA_REMOVE_IPC_TEST()
 
+dnl fnctl semaphore support
   AC_MSG_CHECKING(for fcntl semaphores support)
   AC_TRY_RUN([#define MM_SEM_FCNTL
 #define MM_TEST_SEM
@@ -291,6 +316,7 @@ if test "$PHP_EACCELERATOR" != "no"; then
     msg=yes,msg=no,msg=no)
   AC_MSG_RESULT([$msg])
 
+dnl flock semaphore support
   AC_MSG_CHECKING(for flock semaphores support)
   AC_TRY_RUN([#define MM_SEM_FLOCK
 #define MM_TEST_SEM
@@ -300,6 +326,7 @@ if test "$PHP_EACCELERATOR" != "no"; then
     msg=yes,msg=no,msg=no)
   AC_MSG_RESULT([$msg])
 
+dnl Determine the best type
   AC_MSG_CHECKING(for best semaphores type)
   if test "$mm_sem_spinlock" = "yes"; then
     AC_DEFINE(MM_SEM_SPINLOCK, 1, [Define if you like to use spinlock based semaphores])
@@ -328,7 +355,7 @@ if test "$PHP_EACCELERATOR" != "no"; then
   fi
   AC_MSG_RESULT([$msg])
   if test "$msg" = "no" ; then
-    AC_MSG_WARN([eaccelerator cannot semaphores type, which is required])
+    AC_MSG_ERROR([eaccelerator cannot semaphores type, which is required])
   fi
 
   AC_CHECK_FUNC(sched_yield,[

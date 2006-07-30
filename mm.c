@@ -193,12 +193,6 @@ typedef struct mm_mutex {
   spinlock_t spinlock;
 } mm_mutex;
 
-/* not used 
-static int mm_attach_lock(const char* key, mm_mutex* lock) {
-  return 1;
-}
-*/
-
 static int mm_init_lock(const char* key, mm_mutex* lock) {
   spinlock_init(&lock->spinlock);
   return 1;
@@ -265,7 +259,7 @@ static void mm_destroy_lock(mm_mutex* lock) {
 
 #elif defined(MM_SEM_POSIX)
 
-/* not tested */
+/* this one doesn't work! */
 
 #define MM_SEM_TYPE "posix"
 
@@ -274,19 +268,24 @@ typedef struct mm_mutex {
 } mm_mutex;
 
 static int mm_init_lock(const char* key, mm_mutex* lock) {
+  int fd;
 #ifdef SEM_NAME_LEN
   char s[SEM_NAME_LEN];
 
-  strncpy(s,key,SEM_NAME_LEN-1);
-  strxcat(s,".sem.XXXXXX",SEM_NAME_LEN);
+  strncpy(s, key, SEM_NAME_LEN - 1);
+  strxcat(s, ".sem.XXXXXX", SEM_NAME_LEN);
 #else
   char s[MAXPATHLEN];
 
-  strncpy(s,key,MAXPATHLEN-1);
-  strxcat(s,".sem.XXXXXX",MAXPATHLEN);
+  strncpy(s, key, MAXPATHLEN - 1);
+  strxcat(s, ".sem.XXXXXX", MAXPATHLEN);
 #endif
-  if (mktemp(s) == NULL) return 0;
+  if (mkstemp(s) == NULL) {
+    perror(s);
+    return 0;
+  }
   if ((lock->sem = sem_open(s, O_CREAT, S_IRUSR | S_IWUSR, 1)) == (sem_t*)SEM_FAILED) {
+    perror(s);
     return 0;
   }
   sem_unlink(s);
@@ -706,13 +705,17 @@ static MM* mm_create_shm(const char* key, size_t size) {
     }
     while ((fd = shmget(IPC_PRIVATE, seg_size, (IPC_CREAT | SHM_R | SHM_W))) == -1) {
       if (seg_size <= 1024*1024) {
+#if !defined(MM_TEST_SEM) && !defined(MM_TEST_SHM)
         ea_debug_error("eAccelerator: shmmax should be at least 2MB");
+#endif
         return (MM*)-1;
       }
       seg_size /= 2;
     }
+#if !defined(MM_TEST_SEM) && !defined(MM_TEST_SHM)
     ea_debug_error("eAccelerator: Could not allocate %d bytes, the maximum size the kernel allows is %d bytes. "
             "Lower the amount of memory request or increase the limit in /proc/sys/kernel/shmmax.\n", size, seg_size);
+#endif
 
     /* bart: Removed the code that tried to allocate more then one segment 
      * because it didn't work, this part needs a redesign of the mm code to 
@@ -798,7 +801,7 @@ static MM* mm_create_shm(const char* key, size_t size) {
 
   strncpy(s,key,MAXPATHLEN-1);
   strxcat(s,".shm.XXXXXX",MAXPATHLEN);
-  if (mktemp(s) == NULL) {
+  if (mkstemp(s) == -1) {
     return (MM*)-1;
   }
   if ((fd = shm_open(s, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR)) == -1) {
