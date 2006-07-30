@@ -706,13 +706,17 @@ static MM* mm_create_shm(const char* key, size_t size) {
     }
     while ((fd = shmget(IPC_PRIVATE, seg_size, (IPC_CREAT | SHM_R | SHM_W))) == -1) {
       if (seg_size <= 1024*1024) {
+#if !defined(MM_TEST_SEM) && !defined(MM_TEST_SHM)
         ea_debug_error("eAccelerator: shmmax should be at least 2MB");
+#endif
         return (MM*)-1;
       }
       seg_size /= 2;
     }
+#if !defined(MM_TEST_SEM) && !defined(MM_TEST_SHM)
     ea_debug_error("eAccelerator: Could not allocate %d bytes, the maximum size the kernel allows is %d bytes. "
             "Lower the amount of memory request or increase the limit in /proc/sys/kernel/shmmax.\n", size, seg_size);
+#endif
 
     /* bart: Removed the code that tried to allocate more then one segment 
      * because it didn't work, this part needs a redesign of the mm code to 

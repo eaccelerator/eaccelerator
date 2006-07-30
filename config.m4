@@ -229,12 +229,12 @@ if test "$PHP_EACCELERATOR" != "no"; then
   AC_MSG_RESULT([$msg])
 
   AC_MSG_CHECKING(for best shared memory type)
-  if test "$mm_shm_ipc" = "yes"; then
-    AC_DEFINE(MM_SHM_IPC, 1, [Define if you like to use sysvipc based shared memory])
-    msg="sysvipc"
-  elif test "$mm_shm_mmap_anon" = "yes"; then
+  if test "$mm_shm_mmap_anon" = "yes"; then
     AC_DEFINE(MM_SHM_MMAP_ANON, 1, [Define if you like to use anonymous mmap based shared memory])
     msg="anonymous mmap"
+  elif test "$mm_shm_ipc" = "yes"; then
+    AC_DEFINE(MM_SHM_IPC, 1, [Define if you like to use sysvipc based shared memory])
+    msg="sysvipc"
   elif test "$mm_shm_mmap_zero" = "yes"; then
     AC_DEFINE(MM_SHM_MMAP_ZERO, 1, [Define if you like to use mmap on /dev/zero based shared memory])
     msg="mmap on /dev/zero"
