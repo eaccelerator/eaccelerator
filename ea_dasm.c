@@ -555,10 +555,10 @@ PHP_FUNCTION(eaccelerator_dasm_file)
     if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &file, &file_len) == FAILURE)
 		return;
 
-	if (php_check_open_basedir(file TSRMLS_CC)) {
+	if (eaccelerator_mm_instance == NULL || php_check_open_basedir(file TSRMLS_CC)) {
 		RETURN_NULL();
 	}
-    
+
     p = get_cache_entry(file);
     if (p == NULL) {
         RETURN_NULL();

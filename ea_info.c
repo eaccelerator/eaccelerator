@@ -219,7 +219,11 @@ static void clean_filecache(const char* dir, time_t t)
 PHP_FUNCTION(eaccelerator_caching) 
 {
     zend_bool enable;
-    
+
+	if (eaccelerator_mm_instance == NULL) {
+		RETURN_NULL();
+	}
+
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "b", &enable) == FAILURE)
 		return;
 
@@ -245,6 +249,10 @@ PHP_FUNCTION(eaccelerator_optimizer)
 {
     zend_bool enable;
     
+	if (eaccelerator_mm_instance == NULL) {
+		RETURN_NULL();
+	}
+
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "b", &enable) == FAILURE)
 		return;
 
@@ -270,6 +278,10 @@ PHP_FUNCTION(eaccelerator_clean)
 {
 	time_t t;
 
+	if (eaccelerator_mm_instance == NULL) {
+		RETURN_NULL();
+	}
+
     if (!isAdminAllowed(TSRMLS_C)) {
         zend_error(E_WARNING, NOT_ADMIN_WARNING);
         RETURN_NULL();
@@ -293,6 +305,10 @@ PHP_FUNCTION(eaccelerator_clear)
 {
 	unsigned int i;
 	mm_cache_entry *p;
+
+	if (eaccelerator_mm_instance == NULL) {
+		RETURN_NULL();
+	}
 
     if (!isAdminAllowed(TSRMLS_C)) {
         zend_error(E_WARNING, NOT_ADMIN_WARNING);
@@ -375,6 +391,11 @@ PHP_FUNCTION (eaccelerator_info)
 
     shm = (char *)mm_shm_type();
     sem = (char *)mm_sem_type();
+
+	if (eaccelerator_mm_instance == NULL) {
+		RETURN_NULL();
+	}
+
 	available = mm_available (eaccelerator_mm_instance->mm);
 
 	// init return table
@@ -408,7 +429,11 @@ PHP_FUNCTION(eaccelerator_cached_scripts)
     mm_cache_entry *p;
     int i;
 
-    if (!isAdminAllowed(TSRMLS_C)) {
+ 	if (eaccelerator_mm_instance == NULL) {
+		RETURN_NULL();
+	}
+
+	if (!isAdminAllowed(TSRMLS_C)) {
         zend_error(E_WARNING, NOT_ADMIN_WARNING);
         RETURN_NULL();
     }
@@ -441,6 +466,10 @@ PHP_FUNCTION(eaccelerator_removed_scripts)
     mm_cache_entry *p;
     zval *script;
 
+	if (eaccelerator_mm_instance == NULL) {
+		RETURN_NULL();
+	}
+
     if (!isAdminAllowed(TSRMLS_C)) {
         zend_error(E_WARNING, NOT_ADMIN_WARNING);
         RETURN_NULL();
@@ -468,7 +497,7 @@ PHP_FUNCTION(eaccelerator_removed_scripts)
 /* {{{ PHP_FUNCTION(eaccelerator_list_keys): returns list of keys in shared memory that matches actual hostname or namespace */
 PHP_FUNCTION(eaccelerator_list_keys)
 {
-	if (eaccelerator_list_keys(return_value TSRMLS_CC)) {
+	if (eaccelerator_mm_instance == NULL && eaccelerator_list_keys(return_value TSRMLS_CC)) {
 		return;
 	} else {
     	RETURN_NULL ();
