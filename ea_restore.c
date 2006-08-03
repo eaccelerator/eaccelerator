@@ -873,7 +873,11 @@ static zend_class_entry *restore_class_entry(zend_class_entry * to, ea_class_ent
 	restore_class_methods(to TSRMLS_CC);
 #endif
 	if (to->parent)
+#ifdef ZEND_ENGINE_2
 		zend_do_inheritance(to, to->parent TSRMLS_CC);
+#else
+        zend_do_inheritance(to, to->parent);
+#endif
 	EAG(class_entry) = old;
 
 #ifdef DEBUG

@@ -1,3 +1,10 @@
+2006-08-03  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
+
+        * zend_do_inheritance can't be called with TSRMLS_CC when using 
+          php 4, this also means that eAccelerator won't work with threading!
+        * ea_info and ea_dasm: if eaccelerator_mm_instance is NULL, just return
+          null and don't do something.
+
 2006-07-30  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
         * Don't use our own hash function, the one from the ZE is extremely much
