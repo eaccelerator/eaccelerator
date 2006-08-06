@@ -1,3 +1,8 @@
+2006-08-06  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
+
+        * Fix stupid bug (#159)
+        * Handle returning null instead of array (#156)
+
 2006-08-03  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
         * zend_do_inheritance can't be called with TSRMLS_CC when using 

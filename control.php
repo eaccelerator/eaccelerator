@@ -58,6 +58,9 @@ if (isset($_POST['caching'])) {
     eaccelerator_purge();
 }
 $info = eaccelerator_info();
+if (!is_array($info)) {
+	die('An error occured getting eAccelerator information, this is caused if eAccelerator isn\'t initalised properly');
+}
 /* }}} */
 
 function compare($x, $y)
