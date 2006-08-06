@@ -497,7 +497,7 @@ PHP_FUNCTION(eaccelerator_removed_scripts)
 /* {{{ PHP_FUNCTION(eaccelerator_list_keys): returns list of keys in shared memory that matches actual hostname or namespace */
 PHP_FUNCTION(eaccelerator_list_keys)
 {
-	if (eaccelerator_mm_instance == NULL && eaccelerator_list_keys(return_value TSRMLS_CC)) {
+	if (eaccelerator_mm_instance != NULL && eaccelerator_list_keys(return_value TSRMLS_CC)) {
 		return;
 	} else {
     	RETURN_NULL ();
