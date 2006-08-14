@@ -22,7 +22,7 @@
    |                                                                      |
    | A copy is availble at http://www.gnu.org/copyleft/gpl.txt            |
    +----------------------------------------------------------------------+
-   $Id: shm.c 178 2006-03-06 09:08:40Z bart $
+   $Id$
 */
 
 #include "eaccelerator.h"

@@ -22,7 +22,7 @@
    |                                                                      |
    | A copy is availble at http://www.gnu.org/copyleft/gpl.txt            |
    +----------------------------------------------------------------------+
-   $Id: optimize.c 176 2006-03-05 12:18:54Z bart $
+   $Id$
 */
 
 #include "eaccelerator.h"

@@ -22,7 +22,7 @@
    |                                                                      |
    | A copy is availble at http://www.gnu.org/copyleft/gpl.txt            |
    +----------------------------------------------------------------------+
-   $Id: mm.h 176 2006-03-05 12:18:54Z bart $
+   $Id$
 */
 
 /* libmm replacement */

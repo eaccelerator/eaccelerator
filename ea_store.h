@@ -22,7 +22,7 @@
    |                                                                      |
    | A copy is availble at http://www.gnu.org/copyleft/gpl.txt            |
    +----------------------------------------------------------------------+
-   $Id: ea_store.h 176 2006-03-05 12:18:54Z bart $
+   $Id$
 */
 
 #ifndef EA_STORE_H
