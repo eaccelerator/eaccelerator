@@ -2831,6 +2831,7 @@ static int build_cfg(zend_op_array *op_array, BB* bb)
 					op->opcode = ZEND_JMP;
 					op->op1.u.opline_num = jmp_to->brk;
 					op->op2.op_type = IS_UNUSED;
+					op->extended_value = ZEND_BRK; /* Mark the opcode as former ZEND_BRK */
 					bb[op->op1.u.opline_num].start = &op_array->opcodes[jmp_to->brk];
 				}
 				else
@@ -2870,6 +2871,7 @@ brk_failed:
 				op->opcode = ZEND_JMP;
 				op->op1.u.opline_num = jmp_to->cont;
 				op->op2.op_type = IS_UNUSED;
+				op->extended_value = ZEND_CONT; /* Mark the opcode as former ZEND_CONT */
 				bb[op->op1.u.opline_num].start = &op_array->opcodes[jmp_to->cont];
 				}
 				else
@@ -2971,6 +2973,16 @@ cont_failed:
 			{
 				case ZEND_JMP:
 					p->jmp_1 = &bb[op->op1.u.opline_num];
+#ifdef ZEND_ENGINE_2
+					if (op->extended_value == ZEND_BRK || op->extended_value == ZEND_CONT)
+					{
+						/* This was a ZEND_BRK or ZEND_CONT opcode changed into a ZEND_JMP in an earlier stage.
+						   see comment above ZEND_BRK/ZEND_CONT below */
+						p->follow = (innermost_ketchup > 0) ? &bb[innermost_ketchup] : &bb[len-1];
+						/* clear extended_value again just for tidyness :) */
+						op->extended_value = 0;
+					}
+#endif
 					break;
 				case ZEND_JMPZNZ:
 					p->jmp_2 = &bb[op->op2.u.opline_num];

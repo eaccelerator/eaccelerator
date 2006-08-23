@@ -107,6 +107,11 @@
 	#define _INTPTR_T_DEFINED
 #endif
 
+#if !defined(ssize_t) && ZEND_WIN32
+	/* define ssize_t for Win32. */
+	#define ssize_t int
+#endif
+
 #ifdef HAVE_EACCELERATOR
 #ifndef HAVE_EACCELERATOR_STANDALONE_LOADER 
 
