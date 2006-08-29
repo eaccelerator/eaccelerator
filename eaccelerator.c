@@ -2015,8 +2015,10 @@ PHP_MINIT_FUNCTION(eaccelerator) {
 
   ea_debug_init(TSRMLS_C);
 
-  snprintf(fullpath, MAXPATHLEN-1, "%s/", EAG(cache_dir));
-  make_hash_dirs(fullpath, EACCELERATOR_HASH_LEVEL);
+  if(!eaccelerator_scripts_shm_only) {
+    snprintf(fullpath, MAXPATHLEN-1, "%s/", EAG(cache_dir));
+    make_hash_dirs(fullpath, EACCELERATOR_HASH_LEVEL);
+  }
 
   if (type == MODULE_PERSISTENT &&
       strcmp(sapi_module.name, "cgi") != 0 &&

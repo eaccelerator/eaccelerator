@@ -45,6 +45,9 @@
 
 extern eaccelerator_mm *eaccelerator_mm_instance;
 
+/* for checking if shm_only storage */
+extern zend_bool eaccelerator_scripts_shm_only;
+
 /* {{{ isAdminAllowed(): check if the admin functions are allowed for the calling script */
 static int isAdminAllowed(TSRMLS_D) {
     const char *filename = zend_get_executed_filename(TSRMLS_C);
@@ -282,10 +285,10 @@ PHP_FUNCTION(eaccelerator_clean)
 		RETURN_NULL();
 	}
 
-    if (!isAdminAllowed(TSRMLS_C)) {
-        zend_error(E_WARNING, NOT_ADMIN_WARNING);
-        RETURN_NULL();
-    }
+	if (!isAdminAllowed(TSRMLS_C)) {
+		zend_error(E_WARNING, NOT_ADMIN_WARNING);
+		RETURN_NULL();
+	}
 
 	t = time (0);
 
@@ -293,7 +296,9 @@ PHP_FUNCTION(eaccelerator_clean)
 	eaccelerator_prune (t);
 
 	/* Remove expired keys (session data, content) from disk cache */
-	clean_filecache(EAG(cache_dir), t);
+	if(!eaccelerator_scripts_shm_only) {
+		clean_filecache(EAG(cache_dir), t);
+        }
 
 	/* Remove expired keys (session data, content) from shared memory */
 	eaccelerator_gc (TSRMLS_C);
@@ -347,8 +352,10 @@ PHP_FUNCTION(eaccelerator_clear)
 	EACCELERATOR_UNLOCK_RW ();
 	EACCELERATOR_PROTECT ();
 
-	clear_filecache(EAG(cache_dir));
-	
+	if(!eaccelerator_scripts_shm_only) {
+		clear_filecache(EAG(cache_dir));
+        }
+
     RETURN_NULL();
 }
 /* }}} */
