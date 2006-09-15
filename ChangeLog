@@ -6,6 +6,9 @@
         * Restore __toString methods correctly with php 5.2
         * only put the function that has the same name as the class as contructor 
           if there isn't a __construct function. This fixes ticket #172
+        * Don't free memory with efree that has been allocated from the eA shm cache.
+          This should fix A LOT of bugreports in Trac and on SF. It fixes #171 but 
+          I think also some other bugs.
 
 2006-08-29  Hans Rakers <hans at parse dot nl>
 

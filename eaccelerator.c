@@ -1806,7 +1806,7 @@ static void eaccelerator_clean_request(TSRMLS_D) {
       mm_used_entry* r = p;
       p = p->next;
       if (r->entry != NULL && r->entry->use_cnt < 0) {
-        efree(r->entry);
+        eaccelerator_free(r->entry);
       }
       efree(r);
     }
