@@ -88,6 +88,13 @@ AC_ARG_WITH(eaccelerator-userid,
   ea_userid=0
 ])
 
+AC_ARG_WITH(eaccelerator-doc-comment-inclusion,
+[  --with-eaccelerator-doc-comment-inclusion  If you want eAccelerator to retain doc-comments in  internal php structures.],[
+    enable_doc_comment_inclusion=$withval
+],[
+    enable_doc_comment_inclusion=no
+])
+
 dnl PHP_BUILD_SHARED
 if test "$PHP_EACCELERATOR" != "no"; then
   PHP_EXTENSION(eaccelerator, $ext_shared)
@@ -96,7 +103,10 @@ if test "$PHP_EACCELERATOR" != "no"; then
   AC_DEFINE(WITH_EACCELERATOR_INFO, 1, [Define to be able to get information about eAccelerator])
 
   AC_DEFINE_UNQUOTED(EA_USERID, $ea_userid, [The userid eAccelerator will be running under.]) 
-    
+
+  if test "$enable_doc_comment_inclusion" = "yes"; then
+    AC_DEFINE(INCLUDE_DOC_COMMENTS, 1, [If you want eAccelerator to retain doc-comments in internal php structures (meta-programming)])
+  fi
   if test "$eaccelerator_crash_detection" = "yes"; then
     AC_DEFINE(WITH_EACCELERATOR_CRASH_DETECTION, 1, [Define if you like to release eAccelerator resources on PHP crash])
   fi

@@ -1,11 +1,16 @@
+2006-09-15  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
+
+        * Reverse changeset 205 (doc-comment exclusion) from Tom Regner 
+          <t.regner at librics.de>. 
+
 2006-08-29  Hans Rakers <hans at parse dot nl>
 
-	* Skip disk cache creation and clean/clear actions when operating in
-	  shm_only mode. This fixes ticket #165
+        * Skip disk cache creation and clean/clear actions when operating in
+          shm_only mode. This fixes ticket #165
 
 2006-08-23  Hans Rakers <hans at parse dot nl>
 
-	* Fixes for tickets #157 and #164
+        * Fixes for tickets #157 and #164
 
 2006-08-06  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
@@ -78,8 +83,8 @@
         * Add a config.w32 file for static building of eAccelerator
 
 2006-07-24  Hans Rakers <hans at parse dot nl>
-	    * Fix for ticket #47 and #63, related to problems restoring empty
-	      strings and empty string array keys from the disk cache.
+        * Fix for ticket #47 and #63, related to problems restoring empty
+          strings and empty string array keys from the disk cache.
 
 2006-07-23  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
@@ -116,13 +121,13 @@
 
 2006-06-30  Hans Rakers <hans at parse dot nl>
 
-	    * Added ability to sort table columns by clicking on the table
-	      headings in the control panel
-	    * Quick & dirty fix for eaccelerator_clear to work with the new
-	      cache dir hashing. This still needs to be done for win32.
+        * Added ability to sort table columns by clicking on the table
+          headings in the control panel
+        * Quick & dirty fix for eaccelerator_clear to work with the new
+          cache dir hashing. This still needs to be done for win32.
 
-	      eaccelerator_clean still needs some fixing to work with the
-	      dir hashing.
+          eaccelerator_clean still needs some fixing to work with the
+          dir hashing.
 
 2006-06-27  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 

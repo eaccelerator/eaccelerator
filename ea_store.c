@@ -77,6 +77,13 @@ static void calc_property_info(zend_property_info * from TSRMLS_DC)
 	EACCELERATOR_ALIGN(EAG(mem));
 	EAG(mem) += sizeof(zend_property_info);
 	calc_string(from->name, from->name_length + 1 TSRMLS_CC);
+#ifdef INCLUDE_DOC_COMMENTS
+#ifdef ZEND_ENGINE_2_1
+     if (from->doc_comment != NULL) {
+        calc_string(from->doc_comment, from->doc_comment_len + 1 TSRMLS_CC);
+     }
+#endif
+#endif
 }
 #endif
 
@@ -221,6 +228,12 @@ static void calc_op_array(zend_op_array * from TSRMLS_DC)
 #endif
 	if (from->filename != NULL)
 		calc_string(from->filename, strlen(from->filename) + 1 TSRMLS_CC);
+#ifdef INCLUDE_DOC_COMMENTS
+#ifdef ZEND_ENGINE_2
+    if (from->doc_comment != NULL)
+        calc_string(from->doc_comment, from->doc_comment_len + 1 TSRMLS_CC);
+#endif
+#endif
 }
 
 /* Calculate the size of a class entry */
@@ -240,6 +253,10 @@ static void calc_class_entry(zend_class_entry * from TSRMLS_DC)
 #ifdef ZEND_ENGINE_2
 	if (from->filename != NULL)
 		calc_string(from->filename, strlen(from->filename) + 1 TSRMLS_CC);
+#ifdef INCLUDE_DOC_COMMENTS
+     if (from->doc_comment != NULL) 
+        calc_string(from->doc_comment, from->doc_comment_len + 1 TSRMLS_CC);
+#endif
 	
     calc_zval_hash(&from->constants_table);
 	calc_zval_hash(&from->default_properties);
@@ -661,6 +678,11 @@ static ea_op_array *store_op_array(zend_op_array * from TSRMLS_DC)
 #ifdef ZEND_ENGINE_2
 	to->line_start = from->line_start;
 	to->line_end = from->line_end;
+#ifdef INCLUDE_DOC_COMMENTS
+    to->doc_comment_len = from->doc_comment_len;
+    if (from->doc_comment != NULL)
+        to->doc_comment = store_string(from->doc_comment, from->doc_comment_len + 1 TSRMLS_CC);
+#endif
 #endif
 	return to;
 }
@@ -675,8 +697,15 @@ static zend_property_info *store_property_info(zend_property_info * from TSRMLS_
 	memcpy(to, from, sizeof(zend_property_info));
 	to->name = store_string(from->name, from->name_length + 1 TSRMLS_CC);
 #ifdef ZEND_ENGINE_2_1
+#ifdef INCLUDE_DOC_COMMENTS
+to->doc_comment_len = from->doc_comment_len; 
+if (from->doc_comment != NULL) { 
+       to->doc_comment = store_string(from->doc_comment, from->doc_comment_len + 1 TSRMLS_CC);
+}
+#else
 	to->doc_comment_len = 0;
 	to->doc_comment = NULL;
+#endif
 #endif
 	return to;
 }
@@ -824,9 +853,16 @@ static ea_class_entry *store_class_entry(zend_class_entry * from TSRMLS_DC)
 #ifdef ZEND_ENGINE_2
 	to->line_start = from->line_start;
 	to->line_end = from->line_end;
+#ifdef INCLUDE_DOC_COMMENTS
+    to->doc_comment_len = from->doc_comment_len;
+#endif
 
 	if (from->filename != NULL)
 		to->filename = store_string(from->filename, strlen(from->filename) + 1 TSRMLS_CC);
+#ifdef INCLUDE_DOC_COMMENTS
+    if (from->doc_comment != NULL)
+        to->doc_comment = store_string(from->doc_comment, from->doc_comment_len + 1 TSRMLS_CC);
+#endif
 
 	store_zval_hash(&to->constants_table, &from->constants_table);
 	store_zval_hash(&to->default_properties, &from->default_properties);
