@@ -227,6 +227,10 @@ typedef struct _eaccelerator_op_array {
 #ifdef ZEND_ENGINE_2
 	zend_uint line_start;
 	zend_uint line_end;
+#ifdef INCLUDE_DOC_COMMENTS
+    char *doc_comment;
+    zend_uint doc_comment_len;
+#endif
 #endif
 } eaccelerator_op_array;
 
@@ -250,6 +254,10 @@ typedef struct _eaccelerator_class_entry {
 	char *filename;
 	zend_uint line_start;
 	zend_uint line_end;
+#ifdef INCLUDE_DOC_COMMENTS
+    char *doc_comment;
+    zend_uint doc_comment_len;
+#endif
 #endif
 } eaccelerator_class_entry;
 
