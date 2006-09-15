@@ -758,12 +758,16 @@ void restore_class_methods(zend_class_entry * to TSRMLS_DC)
 	zend_function *f = NULL;
 	Bucket *p = to->function_table.pListHead;
 
+    to->constructor = NULL;
+
 	while (p != NULL) {
 		f = p->pData;
 		fname_len = strlen(f->common.function_name);
 		fname_lc = zend_str_tolower_dup(f->common.function_name, fname_len);
 		
-		if (fname_len == cname_len && !memcmp(fname_lc, cname_lc, fname_len) && f->common.scope != to->parent) {
+        /* only put the function that has the same name as the class as contructor if there isn't a __construct function */
+		if (fname_len == cname_len && !memcmp(fname_lc, cname_lc, fname_len) && f->common.scope != to->parent
+                && to->constructor == NULL) {
 			to->constructor = f;
 		} else if (fname_lc[0] == '_' && fname_lc[1] == '_' && f->common.scope != to->parent) {
 			if (fname_len == sizeof(ZEND_CONSTRUCTOR_FUNC_NAME) - 1 && 

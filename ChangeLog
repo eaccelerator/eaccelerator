@@ -4,6 +4,8 @@
           <t.regner at librics.de>. 
         * Some fixes to make eAccelerator compile with php 5.2, this fixes bug #150
         * Restore __toString methods correctly with php 5.2
+        * only put the function that has the same name as the class as contructor 
+          if there isn't a __construct function. This fixes ticket #172
 
 2006-08-29  Hans Rakers <hans at parse dot nl>
 
