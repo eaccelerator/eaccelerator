@@ -2,6 +2,8 @@
 
         * Reverse changeset 205 (doc-comment exclusion) from Tom Regner 
           <t.regner at librics.de>. 
+        * only put the function that has the same name as the class as contructor 
+          if there isn't a __construct function. This fixes ticket #172
 
 2006-08-29  Hans Rakers <hans at parse dot nl>
 
