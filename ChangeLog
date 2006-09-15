@@ -2,6 +2,8 @@
 
         * Reverse changeset 205 (doc-comment exclusion) from Tom Regner 
           <t.regner at librics.de>. 
+        * Some fixes to make eAccelerator compile with php 5.2, this fixes bug #150
+        * Restore __toString methods correctly with php 5.2
 
 2006-08-29  Hans Rakers <hans at parse dot nl>
 

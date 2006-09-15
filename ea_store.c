@@ -807,7 +807,11 @@ static int store_static_member_access_check(Bucket * p, zend_class_entry * from_
 	/* Check if this is a parent class. If so, copy unconditionally */
 	if (parent) {
 		/* unpack the \0classname\0membername\0 style property name to seperate vars */
+#ifdef ZEND_ENGINE_2_2
+		zend_unmangle_property_name(p->arKey, p->nKeyLength, &cname, &mname);
+#else
 		zend_unmangle_property_name(p->arKey, &cname, &mname);
+#endif
 	
 		/* lookup the member's info in parent and child */
 		if((zend_hash_find(&parent->properties_info, mname, strlen(mname)+1, &pinfo.ptr) == SUCCESS) &&
