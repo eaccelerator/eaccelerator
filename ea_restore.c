@@ -666,19 +666,20 @@ static zend_property_info *restore_property_info(zend_property_info *
 	memcpy(to, from, sizeof(zend_property_info));
 	to->name = emalloc(from->name_length + 1);
 	memcpy(to->name, from->name, from->name_length + 1);
-#ifdef ZEND_ENGINE_2_1
-#ifdef INCLUDE_DOC_COMMENTS
-     if (from->doc_comment != NULL) {
-     to->doc_comment = emalloc(from->doc_comment_len + 1);
-     memcpy(to->doc_comment, from->doc_comment, from->doc_comment_len + 1);
-     }
-#else
-    to->doc_comment_len = 0;
-    to->doc_comment = NULL;
-#endif
-#ifdef ZEND_ENGINE_2_2
-    to->ce = EAG(class_entry);
-#endif
+#  ifdef ZEND_ENGINE_2_1
+#    ifdef INCLUDE_DOC_COMMENTS
+	if (from->doc_comment != NULL) {
+		to->doc_comment = emalloc(from->doc_comment_len + 1);
+ 		memcpy(to->doc_comment, from->doc_comment, from->doc_comment_len + 1);
+	}
+#    else
+	to->doc_comment_len = 0;
+	to->doc_comment = NULL;
+#    endif
+#    ifdef ZEND_ENGINE_2_2
+	to->ce = EAG(class_entry);
+#    endif
+#  endif
 	return to;
 }
 #endif
