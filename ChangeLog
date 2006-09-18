@@ -1,3 +1,7 @@
+2006-09-18  Hans Rakers <hans at parse dot nl>
+	* Fixed unbalanced ifdef in eaccelerator.h introduced in rev [269].
+	  This fixes ticket #177
+
 2006-09-15  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
         * Reverse changeset 205 (doc-comment exclusion) from Tom Regner 
