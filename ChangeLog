@@ -1,4 +1,12 @@
+2006-09-19  Hans Rakers <hans at parse dot nl>
+
+	* Get session config variables from local values instead of global
+	  values. This enables altering of session-related settings like
+	  gc_maxlifetime, entropy_file and entropy_length through ini_set().
+	  This fixes ticket #166
+
 2006-09-18  Hans Rakers <hans at parse dot nl>
+
 	* Fixed unbalanced ifdef in eaccelerator.h introduced in rev [269].
 	  This fixes ticket #177
 

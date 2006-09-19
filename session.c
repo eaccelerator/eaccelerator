@@ -139,18 +139,15 @@ PS_WRITE_FUNC(eaccelerator)
 {
 	char *skey;
 	int len;
-	time_t ttl;
+	time_t ttl = INI_INT("session.gc_maxlifetime");
 	zval sval;
-	char *tmp;
 
 	len = sizeof("sess_") + strlen(key);
 	skey = do_alloca(len + 1);
 	strcpy(skey, "sess_");
 	strcat(skey, key);
-	if (cfg_get_string("session.gc_maxlifetime", &tmp) == FAILURE) {
+	if (!ttl) {
 		ttl = 1440;
-	} else {
-		ttl = atoi(tmp);
 	}
 	Z_TYPE(sval) = IS_STRING;
 	Z_STRVAL(sval) = (char *) val;
@@ -204,15 +201,13 @@ PS_CREATE_SID_FUNC(eaccelerator)
 	int j = 0;
 	unsigned char c;
 
-	long entropy_length;
-	char *entropy_file;
+	long entropy_length = INI_INT("session.entropy_length");
+	char *entropy_file = INI_STR("session.entropy_file");
 
-	if (cfg_get_string("session.entropy_length", &entropy_file) == FAILURE) {
+	if (!entropy_length) {
 		entropy_length = 0;
-	} else {
-		entropy_length = atoi(entropy_file);
 	}
-	if (cfg_get_string("session.entropy_file", &entropy_file) == FAILURE) {
+	if (!entropy_file) {
 		entropy_file = empty_string;
 	}
 
