@@ -1,6 +1,7 @@
 2006-10-10  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
         * Fix a bug in the ttl of the cache. see ticket #182
+        * Release version 0.9.5
 
 2006-09-19  Hans Rakers <hans at parse dot nl>
 
