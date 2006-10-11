@@ -633,7 +633,7 @@ int eaccelerator_list_keys(zval *return_value TSRMLS_DC)
                 
                 if (p->ttl) {
                     if (p->ttl < t) {
-                        add_assoc_long(list, "ttl", (p->ttl -t)); // ttl
+                        add_assoc_long(list, "ttl", p->ttl); // ttl
                     } else {
                         add_assoc_long(list, "ttl", -1); // expired
                     }

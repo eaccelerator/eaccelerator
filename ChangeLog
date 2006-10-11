@@ -1,9 +1,13 @@
+2006-10-10  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
+
+        * Fix a bug in the ttl of the cache. see ticket #182
+
 2006-09-19  Hans Rakers <hans at parse dot nl>
 
-	* Get session config variables from local values instead of global
-	  values. This enables altering of session-related settings like
-	  gc_maxlifetime, entropy_file and entropy_length through ini_set().
-	  This fixes ticket #166
+        * Get session config variables from local values instead of global
+          values. This enables altering of session-related settings like
+          gc_maxlifetime, entropy_file and entropy_length through ini_set().
+          This fixes ticket #166
 
 2006-09-15  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
