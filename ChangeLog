@@ -1,3 +1,9 @@
+2006-10-19  Hans Rakers <hans at parse dot nl>
+
+	* Replaced short php opening tags in control.php
+	* Fixed typo in NEWS file
+	* Fix for ticket #170 (handling of multi-dim globals by the optimizer)
+
 2006-10-10  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
         * Fix a bug in the ttl of the cache. see ticket #182

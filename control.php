@@ -115,11 +115,11 @@ function create_script_table($list) {
 ?>
     <table>
         <tr>
-            <th><a href="<?=$_SERVER['PHP_SELF']?>?sort=file&order=<?=($order == "asc" ? "desc" : "asc")?>">Filename</a>&nbsp;<? if($sortby == "file") echo ($order == "asc" ? "&darr;" : "&uarr;")?></th>
-            <th><a href="<?=$_SERVER['PHP_SELF']?>?sort=mtime&order=<?=($order == "asc" ? "desc" : "asc")?>">MTime</a>&nbsp;<? if($sortby == "mtime") echo ($order == "asc" ? "&darr;" : "&uarr;")?></th>
-            <th><a href="<?=$_SERVER['PHP_SELF']?>?sort=size&order=<?=($order == "asc" ? "desc" : "asc")?>">Size</a>&nbsp;<? if($sortby == "size") echo ($order == "asc" ? "&darr;" : "&uarr;")?></th>
-            <th><a href="<?=$_SERVER['PHP_SELF']?>?sort=reloads&order=<?=($order == "asc" ? "desc" : "asc")?>">Reloads</a>&nbsp;<? if($sortby == "reloads") echo ($order == "asc" ? "&darr;" : "&uarr;")?></th>
-            <th><a href="<?=$_SERVER['PHP_SELF']?>?sort=hits&order=<?=($order == "asc" ? "desc" : "asc")?>">Hits</a>&nbsp;<? if($sortby == "hits") echo ($order == "asc" ? "&darr;" : "&uarr;")?></th>
+            <th><a href="<?php echo $_SERVER['PHP_SELF']?>?sort=file&order=<?php echo($order == "asc" ? "desc" : "asc")?>">Filename</a>&nbsp;<?php if($sortby == "file") echo ($order == "asc" ? "&darr;" : "&uarr;")?></th>
+            <th><a href="<?php echo $_SERVER['PHP_SELF']?>?sort=mtime&order=<?php echo ($order == "asc" ? "desc" : "asc")?>">MTime</a>&nbsp;<?php if($sortby == "mtime") echo ($order == "asc" ? "&darr;" : "&uarr;")?></th>
+            <th><a href="<?php echo $_SERVER['PHP_SELF']?>?sort=size&order=<?php echo ($order == "asc" ? "desc" : "asc")?>">Size</a>&nbsp;<?php if($sortby == "size") echo ($order == "asc" ? "&darr;" : "&uarr;")?></th>
+            <th><a href="<?php echo $_SERVER['PHP_SELF']?>?sort=reloads&order=<?php echo ($order == "asc" ? "desc" : "asc")?>">Reloads</a>&nbsp;<?php if($sortby == "reloads") echo ($order == "asc" ? "&darr;" : "&uarr;")?></th>
+            <th><a href="<?php echo $_SERVER['PHP_SELF']?>?sort=hits&order=<?php echo ($order == "asc" ? "desc" : "asc")?>">Hits</a>&nbsp;<?php if($sortby == "hits") echo ($order == "asc" ? "&darr;" : "&uarr;")?></th>
         </tr>
     <?php
           switch ($sortby) {

@@ -2118,21 +2118,24 @@ static void optimize_bb(BB* bb, zend_op_array* op_array, char* global, int pass 
                 DEFINED_OP(op->op1)->op1.u.constant.type == IS_STRING &&
                 DEFINED_OP(op->op1)->op1.u.constant.value.str.len == (sizeof("GLOBALS")-1) &&
                 memcmp(DEFINED_OP(op->op1)->op1.u.constant.value.str.val, "GLOBALS", sizeof("GLOBALS")-1) == 0) {
-      zend_op *x = DEFINED_OP(op->op1);
-      SET_UNDEFINED(op->op1);
-      STR_FREE(x->op1.u.constant.value.str.val);
-      FETCH_TYPE(x) = ZEND_FETCH_GLOBAL;
-      memcpy(&x->op1,&op->op2,sizeof(znode));
-      memcpy(&x->result,&op->result,sizeof(znode));
-      SET_DEFINED(x);
-      SET_TO_NOP(op);
+      zend_op *x = op+1;
+      if (x->opcode != op->opcode) {
+        x = DEFINED_OP(op->op1);
+        SET_UNDEFINED(op->op1);
+        STR_FREE(x->op1.u.constant.value.str.val);
+        FETCH_TYPE(x) = ZEND_FETCH_GLOBAL;
+        memcpy(&x->op1,&op->op2,sizeof(znode));
+        memcpy(&x->result,&op->result,sizeof(znode));
+        SET_DEFINED(x);
+        SET_TO_NOP(op);
 #ifndef ZEND_ENGINE_2
-      if (x->op1.op_type == IS_VAR) {
-        memcpy(&op->op1,&x->op1,sizeof(znode));
-        op->opcode = ZEND_SWITCH_FREE;
-        op->extended_value = 0;
-      }
+        if (x->op1.op_type == IS_VAR) {
+          memcpy(&op->op1,&x->op1,sizeof(znode));
+          op->opcode = ZEND_SWITCH_FREE;
+          op->extended_value = 0;
+        }
 #endif
+      }
 #ifdef ZEND_ENGINE_2
     /* FETCH_IS               local("GLOBALS"),$x    ISSET_ISEMPTY_VAR $y(global),res
        ISSET_ISEMPTY_DIM_OBJ  $x,$y,$res          => NOP
