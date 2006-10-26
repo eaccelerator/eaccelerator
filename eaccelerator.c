@@ -3,7 +3,7 @@
    | eAccelerator project                                                 |
    +----------------------------------------------------------------------+
    | Copyright (c) 2004 - 2006 eAccelerator                               |
-   | http://eaccelerator.net											  |
+   | http://eaccelerator.net																						  |
    +----------------------------------------------------------------------+
    | This program is free software; you can redistribute it and/or        |
    | modify it under the terms of the GNU General Public License          |
@@ -95,9 +95,9 @@ zend_extension* ZendOptimizer = NULL;
 static HashTable eaccelerator_global_function_table;
 static HashTable eaccelerator_global_class_table;
 
-int binary_eaccelerator_version;
-int binary_php_version;
-int binary_zend_version;
+int binary_eaccelerator_version[2];
+int binary_php_version[2];
+int binary_zend_version[2];
 
 #ifdef ZEND_ENGINE_2
 /* pointer to the properties_info hashtable destructor */
@@ -317,44 +317,92 @@ static void shutdown_mm(TSRMLS_D) {
   }
 }
 
+void encode_version(const char *str, int *version, int *extra)
+{
+    unsigned int a = 0;
+    unsigned int b = 0;
+    unsigned int c = 0;
+    unsigned int d = 0;
+    size_t len;
+    char s[255];
+    char buf[255];
 
-static int encode_version(const char *s) {
-  unsigned int v1 = 0;
-  unsigned int v2 = 0;
-  unsigned int v3 = 0;
-  unsigned int c;
-  char m = '.';
-  sscanf(s, "%u.%u%c%u",&v1,&v2,&m,&v3);
-  switch (m) {
-    case  'a': c = 0; break;
-    case  'b': c = 1; break;
-    case  '.': c = 2; break;
-    case  's': c = 15; break;
-    default: c = 2;
-  }
-  return ((v1 & 0xf) << 20) |
-         ((v2 & 0xff) << 12) |
-         ((c & 0xf) << 8) |
-         (v3 & 0xff);
+    len = strlen(str);
+    memcpy(buf, str, (len > 255) ? 255 : len);
+    buf[255] = '\0';
+
+    memset(s, 0, 255);
+    sscanf(str, "%u.%u.%u%s", &a, &b, &c, s);
+
+    if (s[0] == '.') {
+        sscanf(s, ".%u-%s", &d, buf);
+    } else if (s[0] == '-') {
+        memcpy(buf, &s[1], 254);
+    } else {
+        memcpy(buf, s, 255);
+    }
+
+    *version = ((a & 0xff) << 24) | ((b & 0xff) << 16) | ((c & 0xff) << 8) | (d & 0xff);
+
+    if (buf[0] == 0) {
+        a = 0;
+        b = 0;
+    } else if (strncasecmp(buf, "rev", 3) == 0) {
+        a = 1;
+        sscanf(buf, "rev%u", &b);
+    } else if (strncasecmp(buf, "rc", 2) == 0) {
+        a = 2;
+        sscanf(buf, "rc%u", &b);
+    } else if (strncasecmp(buf, "beta", 4) == 0) {
+        a = 3;
+        sscanf(buf, "beta%u", &b);
+    } else {
+        a = 0xf;
+        // just encode the first 4 bytes
+        b = ((buf[0] & 0x7f) << 21) | ((buf[1] & 0x7f) << 14) | ((buf[2] & 0x7f) << 7) | (buf[3] & 0x7f);
+    }
+
+    *extra = ((a & 0xf) << 28) | (0x0fffffff & b);
 }
 
-/* This function isn't used. So disable it for now
-static void decode_version(char *version, int v) {
-  int t = (v & 0x000f00) >> 8;
-  char c;
-  switch (t) {
-    case  0: c = 'a'; break;
-    case  1: c = 'b'; break;
-    case  2: c = '.'; break;
-    case 15: c = 's'; break;
-    default: c = '.';
-  }
-  snprintf(version, 16, "%d.%d%c%d", (v & 0xf00000) >> 20,
-                                     (v & 0x0ff000) >> 12,
-                                     c,
-                                     (v & 0x0000ff));
-} 
-*/
+static void decode_version(int version, int extra, char *str, size_t len)
+{
+    int number;
+
+    if ((version & 0xff) == 0) {
+        number = snprintf(str, len, "%u.%u.%u", (version >> 24), ((version >> 16) & 0xff), ((version >> 8) & 0xff));
+    } else {
+        number = snprintf(str, len, "%u.%u.%u.%u", (version >> 24), ((version >> 16) & 0xff), ((version >> 8) & 0xff), (version & 0xff));
+    }
+
+    if (extra != 0) {
+        unsigned int type = ((extra >> 28) & 0xf);
+        extra = (extra & 0x0fffffff);
+        switch (type) {
+            case 1:
+                snprintf(&str[number], len, "-rev%u", extra);
+                break;
+            case 2:
+                snprintf(&str[number], len, "-rc%u", extra);
+                break;
+            case 3:
+                snprintf(&str[number], len, "-beta%u", extra);
+                break;
+            case 15:
+                if (len >= number + 5) {
+                    str[number] = '-';
+                    str[number + 1] = (extra >> 21) & 0x7f;
+                    str[number + 2] = (extra >> 14) & 0x7f;
+                    str[number + 3] = (extra >> 7) & 0x7f;
+                    str[number + 4] = extra & 0x7f;
+                    str[number + 5] = '\0';
+                }
+                break;
+            default:
+                break;
+        }
+    }
+}
 
 static char num2hex[] = {'0','1','2','3','4','5','6','7','8','9','a','b','c','d','e','f'};
 
@@ -564,9 +612,66 @@ unsigned int eaccelerator_crc32(const char *p, size_t n) {
 }
 
 /******************************************************************************/
-/* Cache file functions.													  */
+/* Cache file functions.														*/
 /******************************************************************************/
 
+/* A function to check if the header of a cache file valid is.
+ */
+inline int check_header(ea_file_header *hdr)
+{
+#ifdef DEBUG
+  char current[255];
+  char cache[255];
+#endif
+	
+  if (strncmp(hdr->magic, EA_MAGIC, 8) != 0) {
+#ifdef DEBUG
+    ea_debug_printf(EA_DEBUG, "Magic header mismatch.");
+#endif
+	return 0;	
+  }
+  if (hdr->eaccelerator_version[0] != binary_eaccelerator_version[0] 
+      || hdr->eaccelerator_version[1] != binary_eaccelerator_version[1]) {
+#ifdef DEBUG
+    decode_version(hdr->eaccelerator_version[0], hdr->eaccelerator_version[1], cache, 255);
+    decode_version(binary_eaccelerator_version[0], binary_eaccelerator_version[1], current, 255);
+    ea_debug_printf(EA_DEBUG, "eAccelerator version mismatch, cache file %s and current version %s\n", cache, current);
+#endif
+    return 0;
+  }
+  if (hdr->zend_version[0] != binary_zend_version[0] 
+      || hdr->zend_version[1] != binary_zend_version[1]) {
+#ifdef DEBUG
+    decode_version(hdr->zend_version[0], hdr->zend_version[1], cache, 255);
+    decode_version(binary_zend_version[0], binary_zend_version[1], current, 255);
+    ea_debug_printf(EA_DEBUG, "Zend version mismatch, cache file %s and current version %s\n", cache, current);
+#endif
+    return 0;
+  }
+  if (hdr->php_version[0] != binary_php_version[0] 
+      || hdr->php_version[1] != binary_php_version[1]) {
+#ifdef DEBUG
+    decode_version(hdr->php_version[0], hdr->php_version[1], cache, 255);
+    decode_version(binary_php_version[0], binary_php_version[1], current, 255);
+    ea_debug_printf(EA_DEBUG, "PHP version mismatch, cache file %s and current version %s\n", cache, current);
+#endif
+    return 0;
+  }
+  return 1;
+}
+
+/* A function to create the header for a cache file.
+ */
+inline void init_header(ea_file_header *hdr)
+{
+  strncpy(hdr->magic, EA_MAGIC, 8);
+  hdr->eaccelerator_version[0] = binary_eaccelerator_version[0];
+  hdr->eaccelerator_version[1] = binary_eaccelerator_version[1];
+  hdr->zend_version[0] = binary_zend_version[0];
+  hdr->zend_version[1] = binary_zend_version[1];
+  hdr->php_version[0] = binary_php_version[0];	
+  hdr->php_version[1] = binary_php_version[1];
+}
 /* Retrieve a cache entry from the cache directory */
 static ea_cache_entry* hash_find_file(const char  *key, struct stat *buf TSRMLS_DC) {
   int f;
@@ -594,10 +699,7 @@ static ea_cache_entry* hash_find_file(const char  *key, struct stat *buf TSRMLS_
       close(f);
       return NULL;
     }
-    if (strncmp(hdr.magic, EA_MAGIC, 8) != 0 ||
-        hdr.eaccelerator_version != binary_eaccelerator_version ||
-        hdr.zend_version != binary_zend_version ||
-        hdr.php_version != binary_php_version) {
+    if (check_header(&hdr)) {
       EACCELERATOR_FLOCK(f, LOCK_UN);
       close(f);
       unlink(s);
@@ -692,10 +794,7 @@ static int hash_add_file(ea_cache_entry *p TSRMLS_DC) {
   f = open(s, O_CREAT | O_WRONLY | O_EXCL | O_BINARY, S_IRUSR | S_IWUSR);
   if (f > 0) {
     EACCELERATOR_FLOCK(f, LOCK_EX);
-    strncpy(hdr.magic, EA_MAGIC, 8);
-    hdr.eaccelerator_version = binary_eaccelerator_version;
-    hdr.zend_version    = binary_zend_version;
-    hdr.php_version     = binary_php_version;
+    init_header(&hdr);
     hdr.size  = p->size;
     hdr.mtime = p->mtime;
     p->next = p;
@@ -795,19 +894,19 @@ static zend_op_array* eaccelerator_restore(char *realname, struct stat *buf,
       used->next   = (ea_used_entry*)EAG(used_entries);
       EAG(used_entries) = (void*)used;
       EAG(mem) = op_array->filename;
-	    /* only restore the classes and functions when we restore this script 
-	     * for the first time. 
-	     */
+			/* only restore the classes and functions when we restore this script 
+			 * for the first time. 
+			 */
       if (!zend_hash_exists(&EAG(restored), p->realfilename, strlen(p->realfilename))) {
-	      for (e = p->c_head; e!=NULL; e = e->next) {
+				for (e = p->c_head; e!=NULL; e = e->next) {
           restore_class(e TSRMLS_CC);
         }
         for (e = p->f_head; e!=NULL; e = e->next) {
           restore_function(e TSRMLS_CC);
         }
-		    zend_hash_add(&EAG(restored), p->realfilename, strlen(p->realfilename), NULL, 0, NULL);  
-	    }
-	    EAG(mem) = p->realfilename;
+				zend_hash_add(&EAG(restored), p->realfilename, strlen(p->realfilename), NULL, 0, NULL);  
+			}
+			EAG(mem) = p->realfilename;
     }
   }
   return op_array;
@@ -933,7 +1032,7 @@ static int eaccelerator_stat(zend_file_handle *file_handle,
        return 0;
     }
   } else if (PG(include_path) == NULL || 
-  			 file_handle->filename[0] == '.' ||
+				 file_handle->filename[0] == '.' ||
              IS_SLASH(file_handle->filename[0]) ||
              IS_ABSOLUTE_PATH(file_handle->filename,strlen(file_handle->filename))) {
     if (stat(file_handle->filename, buf) == 0 && S_ISREG(buf->st_mode)) {
@@ -1178,13 +1277,6 @@ ZEND_DLEXPORT zend_op_array* eaccelerator_compile_file(zend_file_handle *file_ha
   } else { // not in cache or must be recompiled
     Bucket *function_table_tail;
     Bucket *class_table_tail;
-    HashTable* orig_function_table;
-    HashTable* orig_class_table;
-    HashTable* orig_eg_class_table = NULL;
-    HashTable tmp_function_table;
-    HashTable tmp_class_table;
-    zend_function tmp_func;
-    zend_class_entry tmp_class;
     int ea_bailout;
 
 #ifdef DEBUG
@@ -1714,9 +1806,9 @@ PHP_MINIT_FUNCTION(eaccelerator) {
   REGISTER_LONG_CONSTANT("EACCELERATOR_SHM_ONLY", ea_shm_only, CONST_CS | CONST_PERSISTENT);
   REGISTER_LONG_CONSTANT("EACCELERATOR_DISK_ONLY", ea_disk_only, CONST_CS | CONST_PERSISTENT);
   REGISTER_LONG_CONSTANT("EACCELERATOR_NONE", ea_none, CONST_CS | CONST_PERSISTENT);
-  binary_eaccelerator_version = encode_version(EACCELERATOR_VERSION);
-  binary_php_version = encode_version(PHP_VERSION);
-  binary_zend_version = encode_version(ZEND_VERSION);
+  encode_version(EACCELERATOR_VERSION, &binary_eaccelerator_version[0], &binary_eaccelerator_version[1]);
+  encode_version(PHP_VERSION, &binary_php_version[0], &binary_php_version[1]);
+  encode_version(ZEND_VERSION, &binary_zend_version[0], &binary_zend_version[1]);
   eaccelerator_is_extension = 1;
 
   ea_debug_init(TSRMLS_C);
