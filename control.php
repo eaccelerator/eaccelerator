@@ -32,7 +32,7 @@ $npp = 50;		// Number of records per page (script / key cache listings)
 */
 
 // Inline media
-if ($_GET['img']) {
+if (isset($_GET['img']) && $_GET['img']) {
     $img = strtolower($_GET['img']);
     $imgs['dnarr'][0] = 199;
     $imgs['dnarr'][1] = 'H4sIAAAAAAAAA3P3dLOwTORlEGBoZ2BYsP3Y0t0nlu85ueHQ2U1Hzu86efnguetHL968cPPBtbuPbzx4+vTV24+fv3768u3nr9+/f//59+/f////GUbBKBgWQPEnCzMDgyCDDogDyhMMHP4MyhwyHhsWHGzmENaKOSHAyMDAKMWTI/BAkYmDTU6oQuAhY2M7m4JLgcGDh40c7HJ8BQaBBw4z8bMaaOx4sPAsK7voDZ8GAadTzEqSXLJWBgoM1gBhknrUcgMAAA==';
@@ -60,7 +60,7 @@ if ($auth && ($_SERVER['PHP_AUTH_USER'] != $user || $_SERVER['PHP_AUTH_PW'] != $
     exit;
 } 
 
-$sec = (int)$_GET['sec'];
+$sec = isset($_GET['sec']) ? (int)$_GET['sec'] : 0;
 
 // No-cache headers
 header("Expires: Mon, 26 Jul 1997 05:00:00 GMT");
@@ -171,17 +171,20 @@ function qstring_update ($arr) {
 
 // Returns standard column headers for the lists
 function colheadstr ($nme, $id) {
-    $cursrt = $_GET['ordby'];
-    $srtdir = $_GET['dir'];
+    $cursrt = isset($_GET['ordby']) ? $_GET['ordby'] : 0;
+    $srtdir = isset($_GET['dir']) ? $_GET['dir'] : "";
     return '<a href="'.$_SERVER['PHP_SELF'].'?'.qstring_update(array('ordby' => $id, 'dir' => ($cursrt == $id)?1-$srtdir:0)).'">'.$nme.'&nbsp;'.(($cursrt == $id)?'<img src="'.$_SERVER['PHP_SELF'].'?img='.(($srtdir)?'dnarr':'uparr').'" width="13" height="16" border="0" alt="'.(($srtdir)?'v':'^').'"/>':'');
 }
 
 // Array sorting callback function
 function arrsort ($a, $b) {
     global $ordby, $ordbystr;
-    if ($ordbystr) $val = strnatcmp($a[$ordby], $b[$ordby]);
-    else $val = ($a[$ordby]==$b[$ordby])?0:(($a[$ordby]<$b[$ordby])?-1:1);
-    if ($_GET['dir']) $val = -1*$val;
+    if ($ordbystr) 
+        $val = strnatcmp($a[$ordby], $b[$ordby]);
+    else 
+        $val = ($a[$ordby] == $b[$ordby]) ? 0 : (($a[$ordby] < $b[$ordby]) ? -1: 1);
+    if (isset($_GET['dir']) && $_GET['dir'])
+        $val = -1*$val;
     return $val;
 }
 
@@ -402,12 +405,14 @@ switch ($sec) {
     
         // search
         function scriptsearch ($val) {
-            return preg_match('/'.preg_quote($_GET['str'], '/').'/i', $val['file']);
+            $str = isset($_GET['str']) ? $_GET['str'] : '';
+            return preg_match('/'.preg_quote($str, '/').'/i', $val['file']);
         }
         $scripts = array_filter($scripts, 'scriptsearch');
     
         // sort
-        switch ($_GET['ordby']) {
+        $ordby = isset($_GET['ordby']) ? intval($_GET['ordby']) : 0;
+        switch ($ordby) {
             default:
             case 0: $ordby = 'file'; $ordbystr = true; break;
             case 1: $ordby = 'mtime'; $ordbystr = false; break;
@@ -420,11 +425,13 @@ switch ($sec) {
         // slice
         $numtot = count($scripts);
 
-        $pg = (int)$_GET['pg']; // zero-starting
+        $pg = (isset($_GET['pg']) ? (int)$_GET['pg'] : 0); // zero-starting
         $pgs = ceil($numtot/$npp);
 
-        if ($pg+1 > $pgs) $pg = $pgs-1;
-        if ($pg < 0) $pg = 0;
+        if ($pg + 1 > $pgs)
+            $pg = $pgs-1;
+        if ($pg < 0)
+            $pg = 0;
 
         $scripts = array_slice($scripts, $pg*$npp, $npp);
         $numres = count($scripts);
@@ -462,9 +469,10 @@ switch ($sec) {
 </tr>
 <?php
             for ($i = 0; $i < $numres; $i++) {
+ 
 ?>
 <tr>
-    <td class="el"><small><?php echo (($scripts[$i]['removed'])?'<span class="s">':'').$scripts[$i]['file'].(($scripts[$i]['removed'])?'</span>':'')?></small></td>
+    <td class="el"><small><?php echo ((isset($scripts[$i]['removed']) && $scripts[$i]['removed'])?'<span class="s">':'').$scripts[$i]['file'].((isset($scripts[$i]['removed']) && $scripts[$i]['removed'])?'</span>':'')?></small></td>
     <td class="fl"><small><?php echo date('Y-m-d H:i:s', $scripts[$i]['mtime'])?></small></td>
     <td class="fr"><small><?php echo format_size($scripts[$i]['size'])?></small></td>
     <td class="fr"><small><?php echo $scripts[$i]['reloads']?> (<?php echo $scripts[$i]['usecount']?>)</small></td>
@@ -501,7 +509,8 @@ switch ($sec) {
         $userkeys = array_filter($userkeys, 'usersearch');
     
         // sort
-        switch ($_GET['ordby']) {
+        $ordby = isset($_GET['ordby']) ? intval($_GET['ordby']) : 0;
+        switch ($ordby) {
             default:
             case 0: $ordby = 'name'; $ordbystr = true; break;
             case 1: $ordby = 'created'; $ordbystr = false; break;
@@ -513,7 +522,7 @@ switch ($sec) {
         // slice
         $numtot = count($userkeys);
 
-        $pg = (int)$_GET['pg']; // zero-starting
+        $pg = isset($_GET['pg']) ? (int)$_GET['pg'] : 0; // zero-starting
         $pgs = ceil($numtot/$npp);
 
         if ($pg+1 > $pgs) $pg = $pgs-1;
