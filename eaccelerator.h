@@ -336,13 +336,16 @@ typedef struct _ea_lock_entry {
 
 typedef struct _ea_file_header {
 	char magic[8];				/* "EACCELERATOR" */
-	int eaccelerator_version;
-	int zend_version;
-	int php_version;
+	int eaccelerator_version[2];
+	int zend_version[2];
+	int php_version[2];
 	int size;
 	time_t mtime;
 	unsigned int crc32;
 } ea_file_header;
+
+int check_header(ea_file_header *hdr);
+void init_header(ea_file_header *hdr);
 
 typedef struct {
 	MM *mm;

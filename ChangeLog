@@ -1,8 +1,14 @@
+2006-10-26  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
+
+        * Fix encoding and decoding of eA and php versions. Only three numbers
+          versions were encoded, this way file cache isn't removed when using
+          svn snapshots or rc releases.
+
 2006-10-19  Hans Rakers <hans at parse dot nl>
 
-	* Replaced short php opening tags in control.php
-	* Fixed typo in NEWS file
-	* Fix for ticket #170 (handling of multi-dim globals by the optimizer)
+        * Replaced short php opening tags in control.php
+        * Fixed typo in NEWS file
+        * Fix for ticket #170 (handling of multi-dim globals by the optimizer)
 
 2006-10-10  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 

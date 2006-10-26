@@ -268,10 +268,7 @@ int eaccelerator_put(const char *key, int key_len, zval * val, time_t ttl, ea_ca
             if (f > 0) {
                 ea_file_header hdr;
                 EACCELERATOR_FLOCK(f, LOCK_EX);
-                strncpy(hdr.magic, EA_MAGIC, 8);
-                hdr.eaccelerator_version = binary_eaccelerator_version;
-                hdr.zend_version = binary_zend_version;
-                hdr.php_version = binary_php_version;
+                init_header(&hdr);
                 hdr.size = q->size;
                 hdr.mtime = q->ttl;
                 q->next = q;
@@ -387,9 +384,7 @@ int eaccelerator_get(const char *key, int key_len, zval * return_value, ea_cache
             ea_file_header hdr;
 
             EACCELERATOR_FLOCK(f, LOCK_SH);
-            if (read(f, &hdr, sizeof(hdr)) != sizeof(hdr) || strncmp(hdr.magic, EA_MAGIC, 8) != 0 || 
-                    hdr.eaccelerator_version != binary_eaccelerator_version || hdr.zend_version != binary_zend_version 
-                    || hdr.php_version != binary_php_version) {
+            if (read(f, &hdr, sizeof(hdr)) != sizeof(hdr) || check_header(&hdr)) {
                 EACCELERATOR_FLOCK(f, LOCK_UN);
                 close(f);
                 unlink(s);
