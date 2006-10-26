@@ -12,5 +12,8 @@ Inactive member(s) :
 Code used from:
 Aidan Lister <aidan [ett] php [dutt] net> - The PHP_Highlight.php script
 
+Contributors:
+Thomas Love <tomlove@gmail.com> - The new control panel
+
 eAccelerator is based on Turck MMCache, written by
   Dmitry Stogov <dstogov at users.sourceforge.net>

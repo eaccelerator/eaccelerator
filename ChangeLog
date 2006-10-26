@@ -3,6 +3,12 @@
         * Fix encoding and decoding of eA and php versions. Only three numbers
           versions were encoded, this way file cache isn't removed when using
           svn snapshots or rc releases.
+        * Fix a compile warning when using filename hashing instead of inode 
+          hashing.
+        * Optimize a part of the inode hashing function.
+        * Remove a conditional compile for very old php versions in the filename
+          hashing function.
+        * Included the new control center written by Thomas Love. It rocks!
 
 2006-10-19  Hans Rakers <hans at parse dot nl>
 

@@ -1,197 +1,195 @@
 <?php 
 /*
-   +----------------------------------------------------------------------+
-   | eAccelerator control panel                                           |
-   +----------------------------------------------------------------------+
-   | Copyright (c) 2004-2006 eAccelerator								  |
-   | http://eaccelerator.net											  |
-   +----------------------------------------------------------------------+
-   | This source file is subject to version 2.00 of the Zend license,     |
-   | that is bundled with this package in the file LICENSE, and is        |
-   | available through the world-wide-web at the following url:           |
-   | http://www.zend.com/license/2_00.txt.                                |
-   | If you did not receive a copy of the Zend license and are unable to  |
-   | obtain it through the world-wide-web, please send a note to          |
-   | license@zend.com so we can mail you a copy immediately.              |
-   +----------------------------------------------------------------------+
-
-   $ Id: $
+   	+-----------------------------------------------------------------------+
+   	| eAccelerator control panel                                           	|
+   	+-----------------------------------------------------------------------+
+   	| Copyright (c) 2004-2006 eAccelerator                                 	|
+	| http://eaccelerator.net                                              	|
+   	+-----------------------------------------------------------------------+
+   	| This source file is subject to version 3.0 of the PHP license,       	|
+	| that is bundled with this package in the file LICENSE, and is        	|
+	| available through the world-wide-web at the following url:           	|
+	| http://www.php.net/license/3_0.txt.                                  	|
+	| If you did not receive a copy of the PHP license and are unable to   	|
+	| obtain it through the world-wide-web, please send a note to          	|
+	| license@php.net so we can mail you a copy immediately.             	|
+	+-----------------------------------------------------------------------+
 */
+
+/*** CONFIG ***/
+$auth = false;		// Set to false to disable authentication
+$user = "admin";
+$pw = "eAccelerator";
+
+$npp = 50;		// Number of records per page (script / key cache listings)
+
+/*** TODO for API / reporting / this script: 
+     + want script ttl from API
+     + would be cool to have init_time for scripts (time of caching) - could then get hit rates etc.
+     + count hits on user keys
+     + colon bug in eaccelerator_list_keys()
+     + might be better if usercache ttl was returned as absolute time even if expired
+*/
+
+// Inline media
+if ($_GET['img']) {
+    $img = strtolower($_GET['img']);
+    $imgs['dnarr'][0] = 199;
+    $imgs['dnarr'][1] = 'H4sIAAAAAAAAA3P3dLOwTORlEGBoZ2BYsP3Y0t0nlu85ueHQ2U1Hzu86efnguetHL968cPPBtbuPbzx4+vTV24+fv3768u3nr9+/f//59+/f////GUbBKBgWQPEnCzMDgyCDDogDyhMMHP4MyhwyHhsWHGzmENaKOSHAyMDAKMWTI/BAkYmDTU6oQuAhY2M7m4JLgcGDh40c7HJ8BQaBBw4z8bMaaOx4sPAsK7voDZ8GAadTzEqSXLJWBgoM1gBhknrUcgMAAA==';
+    $imgs['uparr'][0] = 201;
+    $imgs['uparr'][1] = 'H4sIAAAAAAAAA3P3dLOwTORlEGBoZ2BYsP3Y0t0nlu85ueHQ2U1Hzu86efnguetHL968cPPBtbuPbzx4+vTV24+fv3768u3nr9+/f//59+/f////GUbBKBgWQPEnCzMDgyCDDogDyhMMHIEMyhwyHhsWHGzmENaKOTFBoYWZgc/BYQVDw1EWdvGIOzsWJDAzinFHiBxIWNDMKMbv0sCR0NDMIcATofJB4RAzkxivg0OCoUNzIy9ThMuFDRqHGxisAZtUvS50AwAA';
+
+    if (!$imgs[$img] || strpos($_SERVER['HTTP_ACCEPT_ENCODING'], 'gzip') === false) 
+        exit();
+
+    header("Expires: ".gmdate("D, d M Y H:i:s", time()+(86400*30))." GMT");
+    header("Last-Modified: ".gmdate("D, d M Y H:i:s", time())." GMT");
+    header('Accept-Ranges: bytes');
+    header('Content-Length: '.$imgs[$img][0]);
+    header('Content-Type: image/gif');
+    header('Content-Encoding: gzip');
+
+    echo base64_decode($imgs[$img][1]);
+    exit();
+}
+
+// Authenticate before proceeding
+if ($auth && ($_SERVER['PHP_AUTH_USER'] != $user || $_SERVER['PHP_AUTH_PW'] != $pw)) {
+    header('WWW-Authenticate: Basic realm="eAccelerator control panel"');
+    header('HTTP/1.0 401 Unauthorized');
+    exit;
+} 
+
+$sec = (int)$_GET['sec'];
+
+// No-cache headers
+header("Expires: Mon, 26 Jul 1997 05:00:00 GMT");
+header("Last-Modified: " . gmdate("D, d M Y H:i:s") . " GMT");
+header("Cache-Control: no-store, no-cache, must-revalidate");
+header("Cache-Control: post-check=0, pre-check=0", false);
+header("Pragma: no-cache");
+
+function print_footer() {
+    global $info;
+?>
+</div>
+<div class="footer">
+<?php
+if (is_array($info)) {
+?>
+<br/><br/>
+    <hr style="width:500px; color: #cdcdcd" noshade="noshade" size="1" />
+    <strong>Created by the eAccelerator team &ndash; <a href="http://eaccelerator.net">http://eaccelerator.net</a></strong><br /><br />
+    eAccelerator <?php echo $info['version']; ?> [shm:<?php echo $info['shm_type']?> sem:<?php echo $info['sem_type']; ?>]<br />
+    PHP <?php echo phpversion();?> [ZE <?php echo zend_version(); ?>]<br />
+    Using <?php echo php_sapi_name();?> on <?php echo php_uname(); ?><br />
+<?php
+}
+?>
+</div>
+</body>
+</html>
+<?php
+}
 
 if (!function_exists('eaccelerator_info')) {
     die('eAccelerator isn\'t installed or isn\'t compiled with info support!');
 }
 
-/** config **/
-$user = "admin";
-$pw = "eAccelerator";
-/** /config **/
+// formats sizes
+function format_size ($x) {
+    $a = array('bytes', 'kb', 'mb', 'gb');
+    $i = 0;
+    while ($x >= 1024) {
+        $i++;
+        $x = $x / 1024;
+    }
+    return number_format($x, ($i > 0)?2:0, '.', ',').' '.$a[$i];
+}
 
-/* {{{ auth */
-if (!isset($_SERVER['PHP_AUTH_USER']) || !isset($_SERVER['PHP_AUTH_USER']) ||
-        $_SERVER['PHP_AUTH_USER'] != $user || $_SERVER['PHP_AUTH_PW'] != $pw) {
-    header('WWW-Authenticate: Basic realm="eAccelerator control panel"');
-    header('HTTP/1.0 401 Unauthorized');
-    exit;
-} 
-/* }}} */
+// Generates a simple & colourful horizontal bar graph. $x:$y is used:free
+function space_graph ($x, $y) {
+    $colr = 183; $colg = 225; $colb = 149;	// #B7E195
 
-/* {{{ process any commands */
+    $colr = base_convert($colr + floor(($x/$y)*(50+exp($x*3/$y))), 10, 16);
+    $colg = base_convert($colg - floor(($x/$y)*(100+exp($x*4/$y))), 10, 16);
+    $colb = base_convert($colb - floor(($x/$y)*(70+exp($x*4/$y))), 10, 16);
+
+    $s = '<table class="hgraph"><tr>';
+    $s .= '<td class="hgraph_pri" style="width:'.floor(($x/$y)*100).'%">&nbsp;</td>';
+    $s .= '<td class="hgraph_sec" style="background-color: #'.$colr.$colg.$colb.'; width:'.ceil(100 - ($x/$y)*100).'%">&nbsp;</td></tr></table>';
+    return $s;
+}
+
+// Messy algorithm to generate neat page selectors
+function pageselstr ($pg, $pgs) {
+    $pg += 1;
+    $st = max(1, $pg - 2) - max(0, 2 - ($pgs - $pg));
+    $nd = $pg + 2 + max(0, 3 - $pg);
+    $d = $st - 1 - 1;
+    if (abs($nd - $pg) > 2) $sp[] = $nd - 2;
+    if (abs($pg - $st) > 2) $sp[] = $st + 2;
+    if (($d-2)/3 >= 2) {
+        $sp[] = (ceil($d/3)+1);
+        $sp[] = (ceil($d/3)*2+1);
+    }
+    elseif (($d-1)/2 > 0) $sp[] = (ceil($d/2)+1);
+    $d = $pgs - $nd - 1;
+    if (($d-2)/3 >= 2) {
+        $sp[] = (ceil($d/3)+$nd);
+        $sp[] = (ceil($d/3)*2+$nd);
+    }
+    elseif (($d-1)/2 > 0) $sp[] = (ceil($d/2)+$nd);
+    $sp[] = $st;$sp[] = $nd;$sp[] = $pg;$sp[] = 1;$sp[] = $pgs;
+    $lp = 1;
+    $pgstr = 'Page: ';
+    if ($pgs < 1) $pgstr .= '-';
+    for ($i = 1; $i <= $pgs; $i++) {
+        if (in_array($i, $sp)) {
+            if ($i - $lp <= 2 && $i > 2 && !in_array($i-1, $sp)) $pgstr .= '<a href="'.$_SERVER['PHP_SELF'].'?'.qstring_update(array('pg' => $i-2)).'">'.($i-1).'</a> ';
+            if ($i - $lp > 2) $pgstr .= '..';
+            if ($i == $pg) $pgstr .= ' ['.$i.'] ';
+            else {
+                $pgstr .= ' <a href="'.$_SERVER['PHP_SELF'].'?'.qstring_update(array('pg' => $i-1)).'">'.$i.'</a> ';
+            }
+            $lp = $i;
+        }
+    }
+    return $pgstr;
+}
+
+// Returns qstring with updated key / value pairs.
+function qstring_update ($arr) {
+    $qs = '';
+    $combo = array_merge($_GET, $arr);
+    foreach ($combo as $a => $b) {
+        if ($qs) $qs .= '&';
+        $qs .= urlencode($a).'='.urlencode($b);
+    }
+    return $qs;
+}
+
+// Returns standard column headers for the lists
+function colheadstr ($nme, $id) {
+    $cursrt = $_GET['ordby'];
+    $srtdir = $_GET['dir'];
+    return '<a href="'.$_SERVER['PHP_SELF'].'?'.qstring_update(array('ordby' => $id, 'dir' => ($cursrt == $id)?1-$srtdir:0)).'">'.$nme.'&nbsp;'.(($cursrt == $id)?'<img src="'.$_SERVER['PHP_SELF'].'?img='.(($srtdir)?'dnarr':'uparr').'" width="13" height="16" border="0" alt="'.(($srtdir)?'v':'^').'"/>':'');
+}
+
+// Array sorting callback function
+function arrsort ($a, $b) {
+    global $ordby, $ordbystr;
+    if ($ordbystr) $val = strnatcmp($a[$ordby], $b[$ordby]);
+    else $val = ($a[$ordby]==$b[$ordby])?0:(($a[$ordby]<$b[$ordby])?-1:1);
+    if ($_GET['dir']) $val = -1*$val;
+    return $val;
+}
+
+// Global info array
 $info = eaccelerator_info();
-if (isset($_POST['caching'])) {
-    if ($info['cache']) {
-        eaccelerator_caching(false);
-    } else {
-        eaccelerator_caching(true);
-    }
-} else if (isset($_POST['optimizer']) && function_exists('eaccelerator_optimizer')) {
-    if ($info['optimizer']) {
-        eaccelerator_optimizer(false);
-    } else {
-        eaccelerator_optimizer(true);
-    }
-} else if (isset($_POST['clear'])) {
-    eaccelerator_clear();
-} else if (isset($_POST['clean'])) {
-    eaccelerator_clean();
-} else if (isset($_POST['purge'])) {
-    eaccelerator_purge();
-}
-$info = eaccelerator_info();
-if (!is_array($info)) {
-	die('An error occured getting eAccelerator information, this is caused if eAccelerator isn\'t initalised properly');
-}
-/* }}} */
-
-function compare($x, $y)
-{
-  global $sortby;
-
-  if ( $x[$sortby] == $y[$sortby] )
-    return 0;
-  else if ( $x[$sortby] < $y[$sortby] )
-    return -1;
-  else
-    return 1;
-}
-
-function revcompare($x, $y)
-{
-  global $sortby;
-
-  if ( $x[$sortby] == $y[$sortby] )
-    return 0;
-  else if ( $x[$sortby] < $y[$sortby] )
-    return 1;
-  else
-    return -1;
-}
-   
-/* {{{ create_script_table */
-function create_script_table($list) {
-  global $sortby;
-
-  if (isset($_GET['order']) && ($_GET['order'] == "asc" || $_GET['order'] =="desc")) {
-    $order = $_GET['order'];
-  } else {
-    $order = "asc";
-  }
-  
-  if (isset($_GET['sort'])) {
-    switch ($_GET['sort']) {
-      case "mtime":
-      case "size":
-      case "reloads":
-      case "hits":
-        $sortby = $_GET['sort'];
-        ($order == "asc" ? uasort($list, 'compare') : uasort($list, 'revcompare'));
-        break;
-      default:
-        $sortby = "file";
-        ($order == "asc" ? uasort($list, 'compare') : uasort($list, 'revcompare'));
-    }
-  }
 
 ?>
-    <table>
-        <tr>
-            <th><a href="<?php echo $_SERVER['PHP_SELF']?>?sort=file&order=<?php echo($order == "asc" ? "desc" : "asc")?>">Filename</a>&nbsp;<?php if($sortby == "file") echo ($order == "asc" ? "&darr;" : "&uarr;")?></th>
-            <th><a href="<?php echo $_SERVER['PHP_SELF']?>?sort=mtime&order=<?php echo ($order == "asc" ? "desc" : "asc")?>">MTime</a>&nbsp;<?php if($sortby == "mtime") echo ($order == "asc" ? "&darr;" : "&uarr;")?></th>
-            <th><a href="<?php echo $_SERVER['PHP_SELF']?>?sort=size&order=<?php echo ($order == "asc" ? "desc" : "asc")?>">Size</a>&nbsp;<?php if($sortby == "size") echo ($order == "asc" ? "&darr;" : "&uarr;")?></th>
-            <th><a href="<?php echo $_SERVER['PHP_SELF']?>?sort=reloads&order=<?php echo ($order == "asc" ? "desc" : "asc")?>">Reloads</a>&nbsp;<?php if($sortby == "reloads") echo ($order == "asc" ? "&darr;" : "&uarr;")?></th>
-            <th><a href="<?php echo $_SERVER['PHP_SELF']?>?sort=hits&order=<?php echo ($order == "asc" ? "desc" : "asc")?>">Hits</a>&nbsp;<?php if($sortby == "hits") echo ($order == "asc" ? "&darr;" : "&uarr;")?></th>
-        </tr>
-    <?php
-          switch ($sortby) {
-            case "mtime":
-            case "size":
-            case "reloads":
-            case "hits":
-              ($order == "asc" ? uasort($list, 'compare') : uasort($list, 'revcompare'));
-              break;
-            case "file":
-            default:
-              $sortby = "file";
-              ($order == "asc" ? uasort($list, 'compare') : uasort($list, 'revcompare'));
-              
-          }
-
-          foreach($list as $script) { ?>
-        <tr>
-    <?php   if (function_exists('eaccelerator_dasm_file')) { ?>
-            <td class="e"><a href="dasm.php?file=<?php echo $script['file']; ?>"><?php echo $script['file']; ?></a></td>
-    <?php   } else { ?>
-            <td class="e"><?php echo $script['file']; ?></td>
-    <?php   } ?>
-            <td class="vr"><?php echo date('Y-m-d H:i', $script['mtime']); ?></td>
-            <td class="vr"><?php echo number_format($script['size'] / 1024, 2); ?> KB</td>
-            <td class="vr"><?php echo $script['reloads']; ?> (<?php echo $script['usecount']; ?>)</td>
-            <td class="vr"><?php echo $script['hits']; ?></td>
-        </tr>
-    <?php } ?>
-    </table>
-<?php 
-}
-/* }}} */
-
-/* {{{ create_key_table */
-function create_key_table($list) {
-?>
-    <table class="key">
-        <tr>
-            <th>Name</th>
-            <th>Created</th>
-            <th>Size</th>
-            <th>ttl</th>
-        </tr>
-<?php
-    foreach($list as $key) {
-?>
-        <tr>
-            <td class="e"><?php echo $key['name']; ?></td>
-            <td class="vr"><?php echo date('Y-m-d H:i', $key['created']); ?></td>
-            <td class="vr"><?php echo number_format($key['size']/1024, 3); ?>KB</td>
-            <td class="vr"><?php 
-                if ($key['ttl'] == -1) {
-                    echo 'expired';
-                } elseif ($key['ttl'] == 0) {
-                    echo 'none';
-                } else {
-                    echo date('Y-m-d H:i', $key['ttl']);
-                }
-            ?></td>
-        </tr>
-<?php
-    }
-?>
-    </table>
-<?php
-}
-/* }}} */
-
-/* {{{ print_header */
-function print_header() { ?>
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">  
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
 <head>
     <title>eAccelerator control panel</title>
@@ -200,139 +198,381 @@ function print_header() { ?>
     <meta http-equiv="Content-Language" content="en" />
 
     <style type="text/css" media="all">
-        body {background-color: #ffffff; color: #000000;}
-        body, td, th, h1, h2 {font-family: sans-serif;}
-        pre {margin: 0px; font-family: monospace;}
-        a:link {color: #000099; text-decoration: none}
-        a:hover {text-decoration: underline;}
-        table {border-collapse: collapse; width: 800px;}
-        .center {text-align: center;}
-        .center table { margin-left: auto; margin-right: auto; text-align: left;}
-        .center th { text-align: center !important; }
-        td, th { border: 1px solid #000000; font-size: 75%; vertical-align: baseline;}
-        h1 {font-size: 150%;}
-        h2 {font-size: 125%;}
-        .p {text-align: left;}
-        .e {background-color: #ccccff; font-weight: bold; color: #000000;}
-        .h,th {background-color: #9999cc; font-weight: bold; color: #000000;}
-        .v,td {background-color: #cccccc; color: #000000;}
-        .vr{background-color: #cccccc; text-align: right; color: #000000; white-space: nowrap;}
-        img {float: right; border: 0px;}
-        hr {width: 600px; background-color: #cccccc; border: 0px; height: 1px; color: #000000;}
-        input {width: 150px}
-        h1 {width: 800px;  border: 1px solid #000000; margin-left: auto; margin-right: auto; background-color: #9999cc;}
+        body {background-color: #ffffff; color: #000000;margin: 0px;}
+        body, td {font-family: Tahoma, sans-serif;font-size: 12pt;}
+
+        a:link {color: #ff0000; text-decoration: none;}
+        a:visited {color: #ff0000; text-decoration: none;}
+        a:active {color: #aa0000; text-decoration: none;}
+        a:hover {color: #aa0000; text-decoration: none;}
+        
+        .head1 {background-color: #A9CFDD; width: 100%; font-size: 32px; color: #ffffff;padding-top: 20px;font-family: Tahoma, sans-serif;}
+        .head1_item {padding-left: 15px;}
+        .head2 {background-color: #62ADC2; width: 100%; font-size: 18px; color: #ffffff;text-align: right; font-family: Tahoma, sans-serif;border-top: #ffffff 2px solid;}
+        .head2 a:link {color: #ffffff;}
+        .head2 a:visited {color: #ffffff;}
+        .head2 a:active {color: #ffffff;}
+        .head2 a:hover {color: #000000;}
+
+        .menuitem {padding-left: 15px;padding-right: 15px;}
+        .menuitem_sel {padding-left: 15px;padding-right: 15px;background-color: #ffffff; color: #000000;}
+        .menuitem_hov {padding-left: 15px;padding-right: 15px;cursor:pointer;color: #000000;}
+        .mnbody {padding:15px; padding-top: 30px; margin-right: auto; margin-left: auto; text-align: center;bottom: 60px;}
+
+        .mnbody table {border-collapse: collapse; margin-right: auto; margin-left: auto;}
+        
+        td {padding: 3px 10px 3px 10px; border: #ffffff 2px solid;vertical-align:top}
+        .el {text-align: left;background-color: #e1eff8;}
+        .er {text-align: right;background-color: #e1eff8;}
+        .ec {text-align: center;background-color: #e1eff8;}
+
+        .fl {text-align: left;background-color: #efefef;}
+        .fr {text-align: right;background-color: #efefef;}
+
+        .h {text-align: center; font-weight: bold;}
+        .h a:link {color: #000000;}
+        .h a:visited {color: #000000;}
+        .h a:active {color: #ababab;}
+        .h a:hover {color: #ababab;}
+
+        .hgraph {width:100%;}
+        .hgraph td {border: 0px;padding: 0px;}
+        .hgraph_pri {background-color: #62ADC2;}
+        .hgraph_sec {}
+        
+        
+        .footer {width: 100%;text-align: center;font-size: 9pt;color: #ababab;}
+        .footer a:link {color: #ababab;}
+        .footer a:visited {color: #ababab;}
+        .footer a:active {color: #000000;}
+        .footer a:hover {color: #000000;}
+        
+        small {font-size: 10pt;}
+        .s {color: #676767;}
+
     </style>
+    
+    <script type="text/javascript">
+      function menusel(i) {
+        if (i.className == "menuitem_hov") i.className = "menuitem";
+        else if (i.className == "menuitem") i.className = "menuitem_hov";
+      }
+      function gosec(i) {
+        document.location = "<?php echo $_SERVER['PHP_SELF']?>?sec="+i;
+      }
+    </script>
+    
 </head>
-<?php 
-} 
-/* }}} */
+
+<body>
+<div class="head1"><span class="head1_item">eAccelerator control panel</span></div>
+<div class="head2">
+<?php
+$items = array(0 => 'Status', 1 => 'Script Cache', 2 => 'User Cache');
+foreach ($items as $i => $item) {
+    echo '<span class="menuitem'.(($sec == $i)?'_sel':'').'" onmouseover="menusel(this)" onmouseout="menusel(this)" onclick="gosec('.$i.')">'.(($sec != $i)?'<a href="'.$_SERVER['PHP_SELF'].'?sec='.$i.'">'.$item.'</a>':$item).'</span>';
+}  
 ?>
+</div>
+<div class="mnbody">
+<?php
+switch ($sec) {
+    default:
+    case 0:
+        /******************************     STATUS / CONTROL     ******************************/
 
-<?php print_header(); ?>
-<body class="center">
-<h1>eAccelerator <?php echo $info['version']; ?> control panel</h1>
+        if (isset($_POST['cachingoff'])) eaccelerator_caching(false);
+        if (isset($_POST['cachingon'])) eaccelerator_caching(true);
 
-<!-- {{{ information -->
-<h2>Information</h2>
+        if (isset($_POST['optoff']) && function_exists('eaccelerator_optimizer')) eaccelerator_optimizer(false);
+        if (isset($_POST['opton']) && function_exists('eaccelerator_optimizer')) eaccelerator_optimizer(true);
+
+        if (isset($_POST['clear'])) eaccelerator_clear();
+        if (isset($_POST['clean'])) eaccelerator_clean();
+        if (isset($_POST['purge'])) eaccelerator_purge();
+
+        $info = eaccelerator_info();
+
+?>
+<table>
+<tr><td>
+
+<form action="<?php echo $_SERVER['PHP_SELF']?>?sec=0" method="post">
 <table>
 <tr>
-    <td class="e">Caching enabled</td> 
-    <td><?php echo $info['cache'] ? 'yes':'no' ?></td>
+    <td class="h" colspan="2">Usage statistics</td>
 </tr>
 <tr>
-    <td class="e">Optimizer enabled</td>
-    <td><?php echo $info['optimizer'] ? 'yes':'no' ?></td>
+    <td class="er">Caching enabled</td> 
+    <td class="fl"><?php echo $info['cache'] ? '<span style="color:green"><b>yes</b></span>&nbsp;&nbsp;&nbsp;<input type="submit" name="cachingoff" value=" Disable "/>':'<span style="color:red"><b>no</b></span>&nbsp;&nbsp;&nbsp;<input type="submit" name="cachingon" value=" Enable "/>' ?></td>
 </tr>
 <tr>
-    <td class="e">Memory usage</td>
-    <td><?php echo number_format(100 * $info['memoryAllocated'] / $info['memorySize'], 2); ?>% 
-        (<?php echo number_format($info['memoryAllocated'] / (1024*1024), 2); ?>MB/
-        <?php echo number_format($info['memorySize'] / (1024*1024), 2); ?>MB)</td>
+    <td class="er">Optimizer enabled</td>
+    <td class="fl"><?php echo $info['optimizer'] ? '<span style="color:green"><b>yes</b></span>&nbsp;&nbsp;&nbsp;<input type="submit" name="optoff" value=" Disable "/>':'<span style="color:red"><b>no</b></span>&nbsp;&nbsp;&nbsp;<input type="submit" name="opton" value=" Enable "/>' ?></td>
 </tr>
 <tr>
-    <td class="e">Free memory</td>
-    <td><?php echo number_format($info['memoryAvailable'] / (1024*1024), 2); ?>MB</td>
+    <td class="er">Total memory</td>
+    <td class="fl"><?php echo format_size($info['memorySize']); ?></td>
 </tr>
 <tr>
-    <td class="e">Cached scripts</td>
-    <td><?php echo $info['cachedScripts']; ?></td>
+    <td class="er">Memory in use</td>
+    <td class="fl"><?php echo format_size($info['memoryAllocated']).' ('.number_format(100 * $info['memoryAllocated'] / max(1, $info['memorySize']), 0).'%)';?></td>
 </tr>
 <tr>
-    <td class="e">Removed scripts</td> 
-    <td><?php echo $info['removedScripts']; ?></td>
+    <td class="er" colspan="2"><?php echo space_graph($info['memoryAllocated'], $info['memorySize']);?></td>
 </tr>
 <tr>
-    <td class="e">Cached keys</td>
-    <td><?php echo $info['cachedKeys']; ?></td>
+    <td class="er">Free memory</td>
+    <td class="fl"><?php echo format_size($info['memoryAvailable'])?></td>
+</tr>
+<tr>
+    <td class="er">Cached scripts</td>
+    <td class="fl"><?php echo number_format($info['cachedScripts']); ?></td>
+</tr>
+<tr>
+    <td class="er">Removed scripts</td> 
+    <td class="fl"><?php echo number_format($info['removedScripts']); ?></td>
+</tr>
+<tr>
+    <td class="er">Cached keys</td>
+    <td class="fl"><?php echo number_format($info['cachedKeys']); ?></td>
 </tr>
 </table>
-<!-- }}} -->
-
-<!-- {{{ control -->
-<h2>Actions</h2>
-<form name="ea_control" method="post">
-    <table>
-        <tr>
-            <td class="e">Caching</td>
-            <td><input type="submit" name="caching" value="<?php echo $info['cache']?'disable':'enable'; ?>" /></td>
-        </tr>
-        <tr>
-            <td class="e">Optimizer</td>
-            <td><input type="submit" name="optimizer" value="<?php echo $info['optimizer']?'disable':'enable'; ?>" /></td>
-        </tr>
-        <tr>
-            <td class="e">Clear cache</td>
-            <td><input type="submit" name="clear" value="clear" title="remove all unused scripts and data from shared memory and disk cache" /></td>
-        </tr>
-        <tr>
-            <td class="e">Clean cache</td>
-            <td><input type="submit" name="clean" value="clean" title=" remove all expired scripts and data from shared memory and disk cache" /></td>
-        </tr>
-        <tr>
-            <td class="e">Purge cache</td>
-            <td><input type="submit" name="purge" value="purge" title="remove all 'removed' scripts from shared memory" /></td>
-        </tr>
-    </table>
 </form>
-<!-- }}} -->
 
-<h2>Cached scripts</h2>
-<?php create_script_table(eaccelerator_cached_scripts()); ?>
+</td><td>
 
-<h2>Removed scripts</h2>
-<?php create_script_table(eaccelerator_removed_scripts()); ?>
-
-<?php
-if (function_exists('eaccelerator_get')) {
-    echo "<h2>Cached keys</h2>";
-    create_key_table(eaccelerator_list_keys());
-}
-?>
-
-<!-- {{{ footer -->
-<br /><br />
 <table>
-    <tr><td class="center">
-    <a href="http://eaccelerator.net"><img src="?=<?php echo $info['logo']; ?>" alt="eA logo" /></a>
-    <strong>Created by the eAccelerator team, <a href="http://eaccelerator.net">http://eaccelerator.net</a></strong><br /><br />
-    <nobr>eAccelerator <?php echo $info['version']; ?> [shm:<?php echo $info['shm_type']?> sem:<?php echo $info['sem_type']; ?>]</nobr><br />
-    <nobr>PHP <?php echo phpversion();?> [ZE <?php echo zend_version(); ?>]</nobr><br />
-    <nobr>Using <?php echo php_sapi_name();?> on <?php echo php_uname(); ?></nobr><br />
-    </td></tr>
+<tr>
+    <td class="h" colspan="2">Build information</td>
+</tr>
+<tr>
+    <td class="er">eAccelerator version</td> 
+    <td class="fl"><?php echo $info['version']; ?></td>
+</tr>
+<tr>
+    <td class="er">Shared memory type</td> 
+    <td class="fl"><?php echo $info['shm_type']; ?></td>
+</tr>
+<tr>
+    <td class="er">Semaphore type</td> 
+    <td class="fl"><?php echo $info['sem_type']; ?></td>
+</tr>
 </table>
-<!-- }}} -->
-</body>
-</html>
+
+</td></tr>
+</table>
+
+<br/><br/>
+
+<form action="<?php echo $_SERVER['PHP_SELF']?>?sec=0" method="post">
+<table>
+<tr>
+    <td class="h" colspan="2">Maintenance</td>
+</tr>
+<tr>
+    <td class="ec"><input type="submit" name="clear" value=" Clear cache "/></td> 
+    <td class="fl">Removed all scripts and data from shared memory and / or disk.</td>
+</tr>
+<tr>
+    <td class="ec"><input type="submit" name="clean" value=" Delete expired "/></td> 
+    <td class="fl">Removed all expired scripts and data from shared memory and / or disk.</td>
+</tr>
+<tr>
+    <td class="ec"><input type="submit" name="purge" value=" Purge cache "/></td> 
+    <td class="fl">Delete all 'removed' scripts from shared memory.</td>
+</tr>
+</table>
+</form>
 
 <?php
+        break;
+    case 1:
+        /******************************     SCRIPT CACHE     ******************************/
+    
+        $scripts = eaccelerator_cached_scripts();
+        $removed = eaccelerator_removed_scripts();
+    
+        // combine arrays
+        function removedmod ($val) {
+            $val['removed'] = true;
+            return $val;
+        }
+        $scripts = array_merge($scripts, array_map('removedmod', $removed));
+    
+        // search
+        function scriptsearch ($val) {
+            return preg_match('/'.preg_quote($_GET['str'], '/').'/i', $val['file']);
+        }
+        $scripts = array_filter($scripts, 'scriptsearch');
+    
+        // sort
+        switch ($_GET['ordby']) {
+            default:
+            case 0: $ordby = 'file'; $ordbystr = true; break;
+            case 1: $ordby = 'mtime'; $ordbystr = false; break;
+            case 2: $ordby = 'size'; $ordbystr = false; break;
+            case 3: $ordby = 'reloads'; $ordbystr = false; break;
+            case 4: $ordby = 'hits'; $ordbystr = false; break;
+        }
+        usort($scripts, 'arrsort');
+ 
+        // slice
+        $numtot = count($scripts);
 
-/*
- * Local variables:
- * tab-width: 4
- * c-basic-offset: 4
- * End:
- * vim600: noet sw=4 ts=4 fdm=marker
- * vim<600: noet sw=4 ts=4
- */
+        $pg = (int)$_GET['pg']; // zero-starting
+        $pgs = ceil($numtot/$npp);
 
+        if ($pg+1 > $pgs) $pg = $pgs-1;
+        if ($pg < 0) $pg = 0;
+
+        $scripts = array_slice($scripts, $pg*$npp, $npp);
+        $numres = count($scripts);
+?>
+<table class="center">
+<tr>
+    <td class="h" colspan="2">Search</td>
+</tr>
+<tr>
+    <form action="<?php echo $_SERVER['PHP_SELF']?>" method="get"><input type="hidden" name="sec" value="1"/>
+    <td class="el">Match filename:</td> 
+    <td class="fl"><input type="text" name="str" size="40" value="<?php echo $_GET['str']?>"/>&nbsp;<input type="submit" value=" Find "/></td>
+    </form>
+</tr>
+</table>
+
+<br/><br/>
+
+<?php
+        if (count($scripts) == 0) 
+            echo '<div class="center"><i>No scripts found</i></div>';
+        else {
+?>
+<table class="center">
+<tr>
+    <td colspan="1" style="text-align: left">Showing <?php echo $pg*$npp+1?> &ndash; <?php echo $pg*$npp+min($npp, $numres)?> of <?php echo $numtot?></td>
+    <td colspan="4" style="text-align: right;"><small><?php echo pageselstr($pg, $pgs)?></small></td>
+</tr>
+<tr>
+    <td class="h"><?php echo colheadstr('File', 0)?></td>
+    <td class="h"><?php echo colheadstr('Last Modified', 1)?></td>
+    <td class="h"><?php echo colheadstr('Size', 2)?></td>
+    <td class="h"><?php echo colheadstr('Reloads', 3)?></td>
+    <td class="h"><?php echo colheadstr('Hits', 4)?></td>
+</tr>
+<?php
+            for ($i = 0; $i < $numres; $i++) {
+?>
+<tr>
+    <td class="el"><small><?php echo (($scripts[$i]['removed'])?'<span class="s">':'').$scripts[$i]['file'].(($scripts[$i]['removed'])?'</span>':'')?></small></td>
+    <td class="fl"><small><?php echo date('Y-m-d H:i:s', $scripts[$i]['mtime'])?></small></td>
+    <td class="fr"><small><?php echo format_size($scripts[$i]['size'])?></small></td>
+    <td class="fr"><small><?php echo $scripts[$i]['reloads']?> (<?php echo $scripts[$i]['usecount']?>)</small></td>
+    <td class="fr"><small><?php echo number_format($scripts[$i]['hits'])?></small></td>
+</tr>
+<?php
+      }
+?>
+<tr>
+    <td colspan="1" style="text-align: left">&nbsp;</td>
+    <td colspan="4" style="text-align: right;"><small><?php echo pageselstr($pg, ceil($numtot/$npp))?></small></td>
+</tr>
+</table>
+<?php
+            }
+            break;
+        case 2:
+        /******************************     USER CACHE     ******************************/
+
+        $userkeys = eaccelerator_list_keys();
+
+        // ** work around colon bug **
+        function colonbug ($val) {
+            if (substr($val['name'], 0, 1) == ':') 
+                $val['name'] = substr($val['name'], 1);
+            return $val;
+        }
+        $userkeys = array_map('colonbug', $userkeys);
+
+        // search
+        function usersearch ($val) {
+            return preg_match('/'.preg_quote($_GET['str'], '/').'/i', $val['name']);
+        }
+        $userkeys = array_filter($userkeys, 'usersearch');
+    
+        // sort
+        switch ($_GET['ordby']) {
+            default:
+            case 0: $ordby = 'name'; $ordbystr = true; break;
+            case 1: $ordby = 'created'; $ordbystr = false; break;
+            case 2: $ordby = 'size'; $ordbystr = false; break;
+            case 3: $ordby = 'ttl'; $ordbystr = false; break;
+        }
+        usort($userkeys, 'arrsort');
+ 
+        // slice
+        $numtot = count($userkeys);
+
+        $pg = (int)$_GET['pg']; // zero-starting
+        $pgs = ceil($numtot/$npp);
+
+        if ($pg+1 > $pgs) $pg = $pgs-1;
+        if ($pg < 0) $pg = 0;
+
+        $userkeys = array_slice($userkeys, $pg*$npp, $npp);
+        $numres = count($userkeys);
+?>
+<table class="center">
+<tr>
+    <td class="h" colspan="2">Search</td>
+</tr>
+<tr>
+    <form name="srch" action="<?php echo $_SERVER['PHP_SELF']?>" method="get"><input type="hidden" name="sec" value="2"/>
+    <td class="el">Match key name:</td> 
+    <td class="fl"><input type="text" name="str" size="40" value="<?php echo $_GET['str']?>"/>&nbsp;<input type="submit" value=" Find "/></td>
+    </form>
+</tr>
+</table>
+
+<br/><br/>
+
+<?php
+        if (count($userkeys) == 0) 
+            echo '<div class="center"><i>No keys found</i></div>';
+        else {
+?>
+<table class="center">
+<tr>
+    <td colspan="1" style="text-align: left">Showing <?php echo $pg*$npp+1?> &ndash; <?php echo $pg*$npp+min($npp, $numres)?> of <?php echo $numtot?></td>
+    <td colspan="4" style="text-align: right;"><small><?php echo pageselstr($pg, $pgs)?></small></td>
+</tr>
+<tr>
+    <td class="h"><?php echo colheadstr('Key Name', 0)?></td>
+    <td class="h"><?php echo colheadstr('Created', 1)?></td>
+    <td class="h"><?php echo colheadstr('Size', 2)?></td>
+    <td class="h"><?php echo colheadstr('Expiry', 3)?></td>
+</tr>
+<?php
+            for ($i = 0; $i < $numres; $i++) {
+?>
+<tr>
+    <td class="el"><small><?php echo (($userkeys[$i]['ttl'] == -1)?'<span class="s">':'').$userkeys[$i]['name'].(($userkeys[$i]['ttl'] == -1)?'</span>':'')?></small></td>
+    <td class="fl"><small><?php echo date('Y-m-d H:i:s', $userkeys[$i]['created'])?></small></td>
+    <td class="fr"><small><?php echo format_size($userkeys[$i]['size'])?></small></td>
+    <td class="fl"><small><?php echo ($userkeys[$i]['ttl'])?(($userkeys[$i]['ttl'] > 0)?date('Y-m-d H:i:s', $userkeys[$i]['ttl']):'expired'):'never'?></small></td>
+</tr>
+<?php
+      }
+?>
+<tr>
+    <td colspan="1" style="text-align: left">&nbsp;</td>
+    <td colspan="4" style="text-align: right;"><small><?php echo pageselstr($pg, ceil($numtot/$npp))?></small></td>
+</tr>
+</table>
+<?php
+            }
+            break;
+    }
+
+print_footer();
 ?>

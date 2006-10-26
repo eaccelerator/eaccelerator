@@ -3,7 +3,7 @@
    | eAccelerator project                                                 |
    +----------------------------------------------------------------------+
    | Copyright (c) 2004 - 2006 eAccelerator                               |
-   | http://eaccelerator.net																						  |
+   | http://eaccelerator.net                                              |
    +----------------------------------------------------------------------+
    | This program is free software; you can redistribute it and/or        |
    | modify it under the terms of the GNU General Public License          |
@@ -131,7 +131,7 @@ static ea_cache_entry* hash_find_mm(const char  *key,
 #ifdef EACCELERATOR_USE_INODE
   hv = buf->st_dev + buf->st_ino;
 #else
-  hv = zend_get_hash_value(key, strlen(key));
+  hv = zend_get_hash_value((char *)key, strlen(key));
 #endif
   slot = hv & EA_HASH_MAX;
 
@@ -412,7 +412,7 @@ static int eaccelerator_inode_key(char* s, dev_t dev, ino_t ino TSRMLS_DC) {
   snprintf(s, MAXPATHLEN-1, "%s/", EAG(cache_dir));
   n = strlen(s);
   for (i = 1; i <= EACCELERATOR_HASH_LEVEL && n < MAXPATHLEN - 1; i++) {
-    s[n++] = num2hex[(ino >> (i*4)) & 0xf];
+    s[n++] = num2hex[(ino >> (i << 2)) & 0xf]; // (ino / (i * 4))
     s[n++] = '/';
   }
   s[n] = 0;
@@ -438,8 +438,6 @@ static int eaccelerator_inode_key(char* s, dev_t dev, ino_t ino TSRMLS_DC) {
 
 /* Function to create a hash key when filenames are used */
 int eaccelerator_md5(char* s, const char* prefix, const char* key TSRMLS_DC) {
-#if defined(PHP_MAJOR_VERSION) && defined(PHP_MINOR_VERSION) && \
-    ((PHP_MAJOR_VERSION > 4) || (PHP_MAJOR_VERSION == 4 && PHP_MINOR_VERSION > 1))
   char md5str[33];
   PHP_MD5_CTX context;
   unsigned char digest[16];
@@ -460,27 +458,6 @@ int eaccelerator_md5(char* s, const char* prefix, const char* key TSRMLS_DC) {
   s[n] = 0;
   snprintf(s, MAXPATHLEN-1, "%s%s%s", s, prefix, md5str);
   return 1;
-#else
-  zval retval;
-  zval md5;
-  zval param;
-  zval *params[1];
-
-  ZVAL_STRING(&md5, "md5", 0);
-  INIT_ZVAL(param);
-  params[0] = &param;
-  ZVAL_STRING(params[0], (char*)key, 0);
-  if (call_user_function(CG(function_table), (zval**)NULL, &md5, &retval, 1, params TSRMLS_CC) == SUCCESS &&
-      Z_TYPE(retval) == IS_STRING && Z_STRLEN(retval) == 32) {
-    strncpy(s, EAG(cache_dir), MAXPATHLEN-1);
-    strlcat(s, prefix, MAXPATHLEN);
-    strlcat(s, Z_STRVAL(retval), MAXPATHLEN);
-    zval_dtor(&retval);
-    return 1;
-  }
-  s[0] ='\0';
-#endif
-  return 0;
 }
 
 /* Remove expired keys, content and scripts from the cache */
