@@ -715,6 +715,9 @@ static zend_property_info *restore_property_info(zend_property_info *
     to->doc_comment = NULL;
 #endif
 #endif
+#ifdef ZEND_ENGINE_2_2
+    to->ce = EAG(class_entry);
+#endif
 	return to;
 }
 #endif
