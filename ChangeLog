@@ -1,3 +1,8 @@
+2006-11-08  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
+
+        * Enable disassembler links again in the control panel
+        * Add some more isset for E_ALL error reporting
+
 2006-11-04  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
         * It seems I'm longer able to do simple comparisons, this 

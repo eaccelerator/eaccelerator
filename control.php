@@ -443,7 +443,7 @@ switch ($sec) {
 <tr>
     <form action="<?php echo $_SERVER['PHP_SELF']?>" method="get"><input type="hidden" name="sec" value="1"/>
     <td class="el">Match filename:</td> 
-    <td class="fl"><input type="text" name="str" size="40" value="<?php echo $_GET['str']?>"/>&nbsp;<input type="submit" value=" Find "/></td>
+    <td class="fl"><input type="text" name="str" size="40" value="<?php echo isset($_GET['str']) ? $_GET['str'] : '' ?>"/>&nbsp;<input type="submit" value=" Find "/></td>
     </form>
 </tr>
 </table>
@@ -468,11 +468,19 @@ switch ($sec) {
     <td class="h"><?php echo colheadstr('Hits', 4)?></td>
 </tr>
 <?php
+            $disassembler = function_exists('eaccelerator_dasm_file');
             for ($i = 0; $i < $numres; $i++) {
- 
+                $removed = (isset($scripts[$i]['removed']) && $scripts[$i]['removed']);
+                if ($disassembler && !$removed) {
+                    $file_col = sprintf('<a href="dasm.php?file=%s">%s</a>', $scripts[$i]['file'], $scripts[$i]['file']);
+                } elseif ($removed) {
+                    $file_col = sprintf('<span class="s">%s</span>', $scripts[$i]['file']);   
+                } else {
+                    $file_col = $scripts[$i]['file'];
+                }
 ?>
 <tr>
-    <td class="el"><small><?php echo ((isset($scripts[$i]['removed']) && $scripts[$i]['removed'])?'<span class="s">':'').$scripts[$i]['file'].((isset($scripts[$i]['removed']) && $scripts[$i]['removed'])?'</span>':'')?></small></td>
+    <td class="el"><small><?php echo $file_col ?></small></td>
     <td class="fl"><small><?php echo date('Y-m-d H:i:s', $scripts[$i]['mtime'])?></small></td>
     <td class="fr"><small><?php echo format_size($scripts[$i]['size'])?></small></td>
     <td class="fr"><small><?php echo $scripts[$i]['reloads']?> (<?php echo $scripts[$i]['usecount']?>)</small></td>
@@ -538,7 +546,7 @@ switch ($sec) {
 <tr>
     <form name="srch" action="<?php echo $_SERVER['PHP_SELF']?>" method="get"><input type="hidden" name="sec" value="2"/>
     <td class="el">Match key name:</td> 
-    <td class="fl"><input type="text" name="str" size="40" value="<?php echo $_GET['str']?>"/>&nbsp;<input type="submit" value=" Find "/></td>
+    <td class="fl"><input type="text" name="str" size="40" value="<?php echo isset($_GET['str']) ? $_GET['str'] : '' ?>"/>&nbsp;<input type="submit" value=" Find "/></td>
     </form>
 </tr>
 </table>
