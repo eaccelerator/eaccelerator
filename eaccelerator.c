@@ -92,9 +92,6 @@ static int eaccelerator_is_zend_extension = 0;
 static int eaccelerator_is_extension      = 0;
 zend_extension* ZendOptimizer = NULL;
 
-static HashTable eaccelerator_global_function_table;
-static HashTable eaccelerator_global_class_table;
-
 int binary_eaccelerator_version[2];
 int binary_php_version[2];
 int binary_zend_version[2];
@@ -1869,22 +1866,6 @@ PHP_RINIT_FUNCTION(eaccelerator)
 		return SUCCESS;
 	}
 
-	/*
-	 * Initialization on first call, comes from eaccelerator_zend_startup().
-	 */
-	if (eaccelerator_global_function_table.nTableSize == 0) {
-		zend_function tmp_func;
-		zend_class_entry tmp_class;
-
-		zend_hash_init_ex(&eaccelerator_global_function_table, 100, NULL, NULL, 1, 0);
-		zend_hash_copy(&eaccelerator_global_function_table, CG(function_table), NULL, 
-			&tmp_func, sizeof(zend_function));
-		
-		zend_hash_init_ex(&eaccelerator_global_class_table, 10, NULL, NULL, 1, 0);
-		zend_hash_copy(&eaccelerator_global_class_table, CG(class_table), NULL, 
-			&tmp_class, sizeof(zend_class_entry));
-	}
-
 	DBG(ea_debug_printf, (EA_DEBUG, "[%d] Enter RINIT\n",getpid()));
 	DBG(ea_debug_put, (EA_PROFILE_OPCODES, "\n========================================\n"));
 
@@ -2284,14 +2265,6 @@ ZEND_DLEXPORT int eaccelerator_zend_startup(zend_extension *extension) {
 
   php_register_info_logo(EACCELERATOR_VERSION_GUID, "text/plain", (unsigned char*)EACCELERATOR_VERSION_STRING, sizeof(EACCELERATOR_VERSION_STRING));
   php_register_info_logo(EACCELERATOR_LOGO_GUID,    "image/gif",  (unsigned char*)eaccelerator_logo, sizeof(eaccelerator_logo));
-
-  /*
-   * HOESH: on apache restart there was some
-   * problem with CG(class_table) in the latest PHP
-   * versions. Initialization moved to eaccelerator_compile_file()
-   * depends on the value below.
-   */
-  eaccelerator_global_function_table.nTableSize = 0;
 
   return SUCCESS;
 }
