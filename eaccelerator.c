@@ -92,6 +92,9 @@ static int eaccelerator_is_zend_extension = 0;
 static int eaccelerator_is_extension      = 0;
 zend_extension* ZendOptimizer = NULL;
 
+static HashTable eaccelerator_global_function_table;
+static HashTable eaccelerator_global_class_table;
+
 int binary_eaccelerator_version[2];
 int binary_php_version[2];
 int binary_zend_version[2];
@@ -1252,9 +1255,16 @@ ZEND_DLEXPORT zend_op_array* eaccelerator_compile_file(zend_file_handle *file_ha
     DBG(ea_debug_printf, (EA_DEBUG, "[%d] Leave COMPILE\n", getpid()));
     return t;
   } else { // not in cache or must be recompiled
-    Bucket *function_table_tail;
-    Bucket *class_table_tail;
-    int ea_bailout;
+		Bucket *function_table_tail;
+		Bucket *class_table_tail;
+		HashTable* orig_function_table;
+		HashTable* orig_class_table;
+		HashTable* orig_eg_class_table = NULL;
+		HashTable tmp_function_table;
+		HashTable tmp_class_table;
+		zend_function tmp_func;
+		zend_class_entry tmp_class;
+		int ea_bailout;
 
 #ifdef DEBUG
     ea_debug_printf(EA_DEBUG, "\t[%d] compile_file: marking\n", getpid());
@@ -1266,6 +1276,22 @@ ZEND_DLEXPORT zend_op_array* eaccelerator_compile_file(zend_file_handle *file_ha
       ea_debug_printf(EA_DEBUG, "\t[%d] OKAY. That what I thought, CG(class_table)[%08x] == EG(class_table)[%08x]\n", getpid(), CG(class_table), EG(class_table));
       ea_debug_log_hashkeys("CG(class_table)\n", CG(class_table));
     }
+#endif
+
+
+    zend_hash_init_ex(&tmp_function_table, 100, NULL, ZEND_FUNCTION_DTOR, 1, 0);
+    zend_hash_copy(&tmp_function_table, &eaccelerator_global_function_table, NULL, &tmp_func, sizeof(zend_function));
+    orig_function_table = CG(function_table);
+    CG(function_table) = &tmp_function_table;
+
+    zend_hash_init_ex(&tmp_class_table, 10, NULL, ZEND_CLASS_DTOR, 1, 0);
+    zend_hash_copy(&tmp_class_table, &eaccelerator_global_class_table, NULL, &tmp_class, sizeof(zend_class_entry));
+
+    orig_class_table = CG(class_table);;
+    CG(class_table) = &tmp_class_table;
+#ifdef ZEND_ENGINE_2
+    orig_eg_class_table = EG(class_table);;
+    EG(class_table) = &tmp_class_table;
 #endif
 
     /* Storing global pre-compiled functions and classes */
@@ -1283,6 +1309,11 @@ ZEND_DLEXPORT zend_op_array* eaccelerator_compile_file(zend_file_handle *file_ha
     zend_try {
       t = mm_saved_zend_compile_file(file_handle, type TSRMLS_CC);
     } zend_catch {
+      CG(function_table) = orig_function_table;
+      CG(class_table) = orig_class_table;
+#ifdef ZEND_ENGINE_2
+      EG(class_table) = orig_eg_class_table;
+#endif
       ea_bailout = 1;
     } zend_end_try();
     if (ea_bailout) {
@@ -1314,6 +1345,62 @@ ZEND_DLEXPORT zend_op_array* eaccelerator_compile_file(zend_file_handle *file_ha
       function_table_tail = function_table_tail ? function_table_tail->pListNext : CG(function_table)->pListHead;
       class_table_tail = class_table_tail ? class_table_tail->pListNext : CG(class_table)->pListHead;
     }
+    CG(function_table) = orig_function_table;
+    CG(class_table) = orig_class_table;
+#ifdef ZEND_ENGINE_2
+    EG(class_table) = orig_eg_class_table;
+    DBG(ea_debug_printf, (EA_DEBUG, "\t[%d] restoring CG(class_table)[%08x] != EG(class_table)[%08x]\n", 
+                getpid(), CG(class_table), EG(class_table)));
+#endif
+    while (function_table_tail != NULL) {
+      zend_op_array *op_array = (zend_op_array*)function_table_tail->pData;
+      if (op_array->type == ZEND_USER_FUNCTION) {
+        if (zend_hash_add(CG(function_table), function_table_tail->arKey, function_table_tail->nKeyLength, op_array, 
+                    sizeof(zend_op_array), NULL) == FAILURE && function_table_tail->arKey[0] != '\000') {
+          CG(in_compilation) = 1;
+          CG(compiled_filename) = file_handle->opened_path;
+#ifdef ZEND_ENGINE_2
+          CG(zend_lineno) = op_array->line_start;
+#else
+          CG(zend_lineno) = op_array->opcodes[0].lineno;
+#endif
+          zend_error(E_ERROR, "Cannot redeclare %s()", function_table_tail->arKey);
+        }
+      }
+      function_table_tail = function_table_tail->pListNext;
+    }
+    while (class_table_tail != NULL) {
+#ifdef ZEND_ENGINE_2
+      zend_class_entry **ce = (zend_class_entry**)class_table_tail->pData;
+      if ((*ce)->type == ZEND_USER_CLASS) {
+        if (zend_hash_add(CG(class_table), class_table_tail->arKey, class_table_tail->nKeyLength, 
+                    ce, sizeof(zend_class_entry*), NULL) == FAILURE && class_table_tail->arKey[0] != '\000') {
+          CG(in_compilation) = 1;
+          CG(compiled_filename) = file_handle->opened_path;
+          CG(zend_lineno) = (*ce)->line_start;
+#else
+      zend_class_entry *ce = (zend_class_entry*)class_table_tail->pData;
+      if (ce->type == ZEND_USER_CLASS) {
+        if (ce->parent != NULL) {
+          if (zend_hash_find(CG(class_table), (void*)ce->parent->name, ce->parent->name_length+1, (void **)&ce->parent) != SUCCESS) {
+            ce->parent = NULL;
+          }
+        }
+        if (zend_hash_add(CG(class_table), class_table_tail->arKey, class_table_tail->nKeyLength, ce, 
+                    sizeof(zend_class_entry), NULL) == FAILURE && class_table_tail->arKey[0] != '\000') {
+          CG(in_compilation) = 1;
+          CG(compiled_filename) = file_handle->opened_path;
+          CG(zend_lineno) = 0;
+#endif
+          zend_error(E_ERROR, "Cannot redeclare class %s", class_table_tail->arKey);
+        }
+      }
+      class_table_tail = class_table_tail->pListNext;
+    }
+    tmp_function_table.pDestructor = NULL;
+    tmp_class_table.pDestructor = NULL;
+    zend_hash_destroy(&tmp_function_table);
+    zend_hash_destroy(&tmp_class_table);
   }
   DBG(ea_debug_printf, (EA_TEST_PERFORMANCE, "\t[%d] compile_file: end (%ld)\n", getpid(), ea_debug_elapsed_time(&tv_start)));
   DBG(ea_debug_printf, (EA_DEBUG, "\t[%d] compile_file: end\n", getpid()));
