@@ -8,6 +8,7 @@
             reordered some conditional includes to reduce ifdef statements
         * Check if those array indices are set before testing them in control.php
         * Revert some changes form changeset @256 to fix bug #199
+        * Some more year updates
 
 2007-01-29  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
