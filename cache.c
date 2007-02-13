@@ -384,7 +384,7 @@ int eaccelerator_get(const char *key, int key_len, zval * return_value, ea_cache
             ea_file_header hdr;
 
             EACCELERATOR_FLOCK(f, LOCK_SH);
-            if (read(f, &hdr, sizeof(hdr)) != sizeof(hdr) || check_header(&hdr)) {
+            if (read(f, &hdr, sizeof(hdr)) != sizeof(hdr) || !check_header(&hdr)) {
                 EACCELERATOR_FLOCK(f, LOCK_UN);
                 close(f);
                 unlink(s);

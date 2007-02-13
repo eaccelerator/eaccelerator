@@ -676,7 +676,7 @@ static ea_cache_entry* hash_find_file(const char  *key, struct stat *buf TSRMLS_
       close(f);
       return NULL;
     }
-    if (check_header(&hdr)) {
+    if (!check_header(&hdr)) {
       EACCELERATOR_FLOCK(f, LOCK_UN);
       close(f);
       unlink(s);
