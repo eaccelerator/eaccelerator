@@ -294,7 +294,7 @@ void ea_debug_dump_ea_class_entry(ea_class_entry *ce)
 void ea_debug_dump_zend_class_entry(zend_class_entry *ce)
 {
     fprintf(F_fp, "zend class entry: '%s' (len = %u)\n", ce->name, ce->name_length);
-    fprintf(F_fp, "\tparent: '%s'\n", ce->parent);
+    fprintf(F_fp, "\tparent: '%s'\n", (ce->parent == NULL) ? "none" : ce->parent->name);
     fprintf(F_fp, "\ttype: %d\n", ce->type);
     fprintf(F_fp, "\tfunction_table: %u entries\n", ce->function_table.nNumOfElements);
     fprintf(F_fp, "\tdefault_properties: %u entries\n", ce->default_properties.nNumOfElements);

@@ -10,6 +10,7 @@
         * Revert some changes form changeset @256 to fix bug #199
         * Some more year updates
         * Fix loading of cached scripts and data on disk
+        * Fixed a bug in the zend_class_entry dump debug routine
 
 2007-01-29  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
