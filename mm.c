@@ -44,10 +44,6 @@
 #  endif
 #endif
 
-#if !defined(MM_TEST_SEM) && !defined(MM_TEST_SHM)
-# include "debug.h"
-#endif
-
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <errno.h>
@@ -128,6 +124,10 @@ typedef union mm_mem_head {
 #define MM mm_core
 #define MM_PRIVATE
 #include "mm.h"
+
+#if !defined(MM_TEST_SEM) && !defined(MM_TEST_SHM)
+# include "debug.h"
+#endif
 
 typedef union mm_word {
   size_t size;

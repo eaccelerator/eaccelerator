@@ -28,6 +28,7 @@
 #ifndef INCLUDED_DEBUG_H
 #define INCLUDED_DEBUG_H
 
+#include "eaccelerator.h"
 #include "zend.h"
 #include "zend_API.h"
 #include "zend_extensions.h"
@@ -67,7 +68,6 @@
 #define EA_PROFILE_OPCODES	(1<<2L)
 
 /* print out performance data (start - end time) */
-
 #define EA_TEST_PERFORMANCE	(1<<3L)
 
 /* log the hashkeys used to cache scripts */
@@ -87,5 +87,7 @@ void ea_debug_start_time (struct timeval *tvstart);
 long ea_debug_elapsed_time (struct timeval *tvstart);
 
 void ea_debug_hash_display(HashTable * ht);
+void ea_debug_dump_ea_class_entry(ea_class_entry *ce);
+void ea_debug_dump_zend_class_entry(zend_class_entry *ce);
 
 #endif /* INCLUDED_DEBUG_H */

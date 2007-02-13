@@ -250,17 +250,72 @@ void ea_debug_hash_display(HashTable * ht)
 	for (i = 0; i < ht->nTableSize; i++) {
 		p = ht->arBuckets[i];
 		while (p != NULL) {
-			fprintf(F_fp, "%s <==> 0x%lX\n", p->arKey, p->h);
+			fprintf(F_fp, "\t%s <==> 0x%lX\n", p->arKey, p->h);
 			p = p->pNext;
 		}
 	}
 
-	p = ht->pListTail;
-	while (p != NULL) {
-		fprintf(F_fp, "%s <==> 0x%lX\n", p->arKey, p->h);
-		p = p->pListLast;
-	}
 	fflush(F_fp);
+}
+
+/*
+ *  Dump an eaccelerator class entry structure
+ */
+void ea_debug_dump_ea_class_entry(ea_class_entry *ce)
+{
+    fprintf(F_fp, "ea class entry: '%s' (len = %u)\n", ce->name, ce->name_length);
+    fprintf(F_fp, "\tparent: '%s'\n", ce->parent);
+    fprintf(F_fp, "\ttype: %d\n", ce->type);
+    fprintf(F_fp, "\tfunction_table: %u entries\n", ce->function_table.nNumOfElements);
+    fprintf(F_fp, "\tdefault_properties: %u entries\n", ce->default_properties.nNumOfElements);
+#ifdef ZEND_ENGINE_2
+    fprintf(F_fp, "\tproperties_info: %u entries\n", ce->properties_info.nNumOfElements);
+#  ifdef ZEND_ENGINE_2_1
+    fprintf(F_fp, "\tdefault_static_members: %u entries\n", ce->default_static_members.nNumOfElements);
+#  endif
+    fprintf(F_fp, "\tstatic_members: %u entries\n", ce->static_members->nNumOfElements);
+    fprintf(F_fp, "\tconstants_Table: %u entries\n", ce->constants_table.nNumOfElements);
+    fprintf(F_fp, "\tce_flags: %u\n", ce->ce_flags);
+    fprintf(F_fp, "\tnum_interfaces: %u\n", ce->num_interfaces);
+    fprintf(F_fp, "\tfilename: %s\n", ce->filename);
+    fprintf(F_fp, "\tline_start: %u\n", ce->line_start);
+    fprintf(F_fp, "\tline_end: %u\n", ce->line_end);
+#  ifdef INCLUDE_DOC_COMMENTS
+    fprintf(F_fp, "\tdoc_comment: %s\n", ce->doc_comment);
+    fprintf(F_fp, "\tdoc_comment_len: %u\n", ce->doc_comment_len);
+#  endif
+#endif
+    fflush(F_fp);
+}
+
+/*
+ *  Dump a zend class entry structure
+ */
+void ea_debug_dump_zend_class_entry(zend_class_entry *ce)
+{
+    fprintf(F_fp, "zend class entry: '%s' (len = %u)\n", ce->name, ce->name_length);
+    fprintf(F_fp, "\tparent: '%s'\n", ce->parent);
+    fprintf(F_fp, "\ttype: %d\n", ce->type);
+    fprintf(F_fp, "\tfunction_table: %u entries\n", ce->function_table.nNumOfElements);
+    fprintf(F_fp, "\tdefault_properties: %u entries\n", ce->default_properties.nNumOfElements);
+#ifdef ZEND_ENGINE_2
+    fprintf(F_fp, "\tproperties_info: %u entries\n", ce->properties_info.nNumOfElements);
+#  ifdef ZEND_ENGINE_2_1
+    fprintf(F_fp, "\tdefault_static_members: %u entries\n", ce->default_static_members.nNumOfElements);
+#  endif
+    fprintf(F_fp, "\tstatic_members: %u entries\n", ce->static_members->nNumOfElements);
+    fprintf(F_fp, "\tconstants_Table: %u entries\n", ce->constants_table.nNumOfElements);
+    fprintf(F_fp, "\tce_flags: %u\n", ce->ce_flags);
+    fprintf(F_fp, "\tnum_interfaces: %u\n", ce->num_interfaces);
+    fprintf(F_fp, "\tfilename: %s\n", ce->filename);
+    fprintf(F_fp, "\tline_start: %u\n", ce->line_start);
+    fprintf(F_fp, "\tline_end: %u\n", ce->line_end);
+#  ifdef INCLUDE_DOC_COMMENTS
+    fprintf(F_fp, "\tdoc_comment: %s\n", ce->doc_comment);
+    fprintf(F_fp, "\tdoc_comment_len: %u\n", ce->doc_comment_len);
+#  endif
+#endif
+    fflush(F_fp);
 }
 
 #endif /* #ifdef HAVE_EACCELERATOR */
