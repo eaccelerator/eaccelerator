@@ -802,7 +802,10 @@ static int eaccelerator_store(char* key, struct stat *buf, int nreloads,
   if (size == 0) {
     return 0;
   }
-  DBG(ea_debug_printf, (EA_DEBUG, "[%d] eaccelerator_store: calc_size returned %d, mm=%x", getpid(), size, eaccelerator_mm_instance->mm));
+  
+  DBG(ea_debug_pad, (EA_DEBUG TSRMLS_CC));
+  DBG(ea_debug_printf, (EA_DEBUG, "[%d] eaccelerator_store:  returned %d, mm=%x\n", getpid(), size, eaccelerator_mm_instance->mm));
+  
   EACCELERATOR_UNPROTECT();
   EAG(mem) = eaccelerator_malloc(size);
   if (EAG(mem) == NULL) {
@@ -1360,7 +1363,6 @@ ZEND_DLEXPORT zend_op_array* profile_compile_file(zend_file_handle *file_handle,
     EAG(self_time)[EAG(profile_level)-1] += usec;
   for (i=0;i<EAG(profile_level);i++)
     DBG(ea_debug_put, (EA_PROFILE_OPCODES, "  "));
-  ea_debug_printf(EA_DEBUG, "zend_op_array compile: %s (%ld)\n", file_handle->filename, usec);
   return t;
 }
 

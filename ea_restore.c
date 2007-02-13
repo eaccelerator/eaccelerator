@@ -582,30 +582,23 @@ zend_op_array *restore_op_array(zend_op_array * to, ea_op_array * from TSRMLS_DC
 		efree(fname_lc);
 	}
 #endif
-	to->opcodes = from->opcodes;
-	to->last = to->size = from->last;
-	to->T = from->T;
-	to->brk_cont_array = from->brk_cont_array;
-	to->last_brk_cont = from->last_brk_cont;
-	
-	   to->current_brk_cont = -1;
-	   to->static_variables = from->static_variables;
-/*	   to->start_op         = to->opcodes; */
-	   to->backpatch_count  = 0;
-	
-	to->return_reference = from->return_reference;
-	to->done_pass_two = 1;
-	to->filename = from->filename;
-/*	if (from->filename != NULL) {
-		size_t len = strlen(from->filename) + 1;
-		to->filename = emalloc(len);
-		memcpy(to->filename, from->filename, len);
-	}*/
+    to->opcodes = from->opcodes;
+    to->last = to->size = from->last;
+    to->T = from->T;
+    to->brk_cont_array = from->brk_cont_array;
+    to->last_brk_cont = from->last_brk_cont;
+
+    to->current_brk_cont = -1;
+    to->static_variables = from->static_variables;
+    to->backpatch_count  = 0;
+
+    to->return_reference = from->return_reference;
+    to->done_pass_two = 1;
+    to->filename = from->filename;
 
 #ifdef ZEND_ENGINE_2
-	/* HOESH: try & catch support */
-	to->try_catch_array = from->try_catch_array;
-	to->last_try_catch = from->last_try_catch;
+    to->try_catch_array = from->try_catch_array;
+    to->last_try_catch = from->last_try_catch;
 	to->uses_this = from->uses_this;
 
 	to->line_start = from->line_start;
@@ -638,14 +631,6 @@ zend_op_array *restore_op_array(zend_op_array * to, ea_op_array * from TSRMLS_DC
 	to->vars             = from->vars;
 	to->last_var         = from->last_var;
 	to->size_var         = 0;
-/*	if (from->vars) {
-		zend_uint i;
-		to->vars = (zend_compiled_variable*)emalloc(from->last_var*sizeof(zend_compiled_variable));		
-		memcpy(to->vars, from->vars, sizeof(zend_compiled_variable) * from->last_var);
-		for (i = 0; i < from->last_var; i ++) {
-			to->vars[i].name = estrndup(from->vars[i].name, from->vars[i].name_len);
-		}
-	}*/
 #endif
 
 	/* disable deletion in destroy_op_array */
@@ -794,23 +779,6 @@ static zend_class_entry *restore_class_entry(zend_class_entry * to, ea_class_ent
 	}
 	memset(to, 0, sizeof(zend_class_entry));
 	to->type = from->type;
-	/*
-	   to->name        = NULL;
-	   to->name_length = from->name_length;
-	   to->constants_updated = 0;
-	   to->parent      = NULL;
-	 */
-#ifdef ZEND_ENGINE_2
-	to->ce_flags = from->ce_flags;
-	to->num_interfaces = from->num_interfaces;
-	to->interfaces = NULL;
-
-	if (to->num_interfaces > 0) {
-		/* hrak: Allocate the slots which will later be populated by ZEND_ADD_INTERFACE */
-		to->interfaces = (zend_class_entry **) emalloc(sizeof(zend_class_entry *) * to->num_interfaces);
-		memset(to->interfaces, 0, sizeof(zend_class_entry *) * to->num_interfaces);
-	}
-#endif
 
 	if (from->name != NULL) {
 		to->name_length = from->name_length;
@@ -822,28 +790,30 @@ static zend_class_entry *restore_class_entry(zend_class_entry * to, ea_class_ent
 	EAG(class_entry) = to;
 
 #ifdef ZEND_ENGINE_2
+    to->ce_flags = from->ce_flags;
+    to->num_interfaces = from->num_interfaces;
+    to->interfaces = NULL;
 	to->refcount = 1;
-
 	to->line_start = from->line_start;
 	to->line_end = from->line_end;
+    
+    if (to->num_interfaces > 0) {
+        /* hrak: Allocate the slots which will later be populated by ZEND_ADD_INTERFACE */
+        to->interfaces = (zend_class_entry **) emalloc(sizeof(zend_class_entry *) * to->num_interfaces);
+        memset(to->interfaces, 0, sizeof(zend_class_entry *) * to->num_interfaces);
+    }
 #ifdef INCLUDE_DOC_COMMENTS
 	to->doc_comment_len = from->doc_comment_len;
+    if (from->doc_comment != NULL) {
+        to->doc_comment = emalloc(from->doc_comment_len + 1);
+        memcpy(to->doc_comment, from->doc_comment, from->doc_comment_len + 1);
+    }
 #else
 	to->doc_comment_len = 0;
     to->doc_comment = NULL;
 #endif
-/*	if (from->filename != NULL) {
-		size_t len = strlen(from->filename) + 1;
-		to->filename = emalloc(len);
-		memcpy(to->filename, from->filename, len);
-	}*/
-	to->filename = from->filename;
-#ifdef INCLUDE_DOC_COMMENTS
-     if (from->doc_comment != NULL) {
-     to->doc_comment = emalloc(from->doc_comment_len + 1);
-     memcpy(to->doc_comment, from->doc_comment, from->doc_comment_len + 1);
-     }
-#endif
+
+    to->filename = from->filename;
 
 	/* restore constants table */
 	restore_zval_hash(&to->constants_table, &from->constants_table);
@@ -852,8 +822,7 @@ static zend_class_entry *restore_class_entry(zend_class_entry * to, ea_class_ent
 	restore_zval_hash(&to->default_properties, &from->default_properties);
 	to->default_properties.pDestructor = ZVAL_PTR_DTOR;
 	/* restore properties */
-	restore_hash(&to->properties_info, &from->properties_info, 
-            (restore_bucket_t) restore_property_info TSRMLS_CC);
+	restore_hash(&to->properties_info, &from->properties_info, (restore_bucket_t) restore_property_info TSRMLS_CC);
 	to->properties_info.pDestructor = properties_info_dtor;
 
 #  ifdef ZEND_ENGINE_2_1
@@ -890,6 +859,7 @@ static zend_class_entry *restore_class_entry(zend_class_entry * to, ea_class_ent
 		}
 	}
 #endif
+
 	if (from->parent != NULL) {
 		restore_class_parent(from->parent, strlen(from->parent), to TSRMLS_CC);
 	} else {
@@ -904,12 +874,14 @@ static zend_class_entry *restore_class_entry(zend_class_entry * to, ea_class_ent
 #ifdef ZEND_ENGINE_2
 	restore_class_methods(to TSRMLS_CC);
 #endif
-	if (to->parent)
+
+	if (to->parent) {
 #ifdef ZEND_ENGINE_2
 		zend_do_inheritance(to, to->parent TSRMLS_CC);
 #else
         zend_do_inheritance(to, to->parent);
 #endif
+    }
 	EAG(class_entry) = old;
 
 #ifdef DEBUG
