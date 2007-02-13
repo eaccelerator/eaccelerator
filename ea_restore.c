@@ -698,8 +698,7 @@ static void restore_class_parent(char *parent, int len, zend_class_entry * to TS
 	if (zend_hash_find(CG(class_table), (void *) name_lc, len + 1, (void **) &to->parent) != SUCCESS)
 #endif
 	{
-		DBG(ea_debug_error, ("[%d] EACCELERATOR can't restore parent class \"%s\" of class \"%s\"\n", 
-                getpid(), (char *) parent, to->name));
+		ea_debug_error("[%d] EACCELERATOR can't restore parent class \"%s\" of class \"%s\"\n", getpid(), (char *) parent, to->name);
 		to->parent = NULL;
 	} else {
 		/* parent found */

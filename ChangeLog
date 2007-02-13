@@ -1,8 +1,9 @@
 2007-02-13  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
-        
+
         * Added a function to dump an eaccelerator class entry in debug.c
         * Changed include order in mm.c because of eaccelerator.h include in debug.h 
         * Fixed a nullpointer dereference in some special cases in ea_restore.c:509
+        * Always compile a ea_debug_error message in ea_restore.c
 
 2007-01-29  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
