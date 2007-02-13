@@ -6,6 +6,7 @@
         * Always compile a ea_debug_error message in ea_restore.c
         * Cleanup: Removed some commented out code, changed some debug statements,
             reordered some conditional includes to reduce ifdef statements
+        * Check if those array indices are set before testing them in control.php
 
 2007-01-29  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 

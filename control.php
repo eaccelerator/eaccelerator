@@ -54,7 +54,8 @@ if (isset($_GET['img']) && $_GET['img']) {
 }
 
 // Authenticate before proceeding
-if ($auth && ($_SERVER['PHP_AUTH_USER'] != $user || $_SERVER['PHP_AUTH_PW'] != $pw)) {
+if ($auth && (!isset($_SERVER['PHP_AUTH_USER']) || !isset($_SERVER['PHP_AUTH_PW']) ||
+        $_SERVER['PHP_AUTH_USER'] != $user || $_SERVER['PHP_AUTH_PW'] != $pw)) {
     header('WWW-Authenticate: Basic realm="eAccelerator control panel"');
     header('HTTP/1.0 401 Unauthorized');
     exit;
