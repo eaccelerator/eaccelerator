@@ -499,18 +499,20 @@ zend_op_array *restore_op_array(zend_op_array * to, ea_op_array * from TSRMLS_DC
         } scope;
 		char *from_scope_lc = zend_str_tolower_dup(from->scope_name, from->scope_name_len);
         scope.v = to->scope;
-		if (zend_hash_find (CG(class_table), (void *) from_scope_lc, from->scope_name_len + 1, &scope.ptr) != SUCCESS) {
-			DBG(ea_debug_pad, (EA_DEBUG TSRMLS_CC));
-			DBG(ea_debug_printf, (EA_DEBUG, "[%d]                   can't find '%s' in class_table. use EAG(class_entry).\n", getpid(), from->scope_name));
-			to->scope = EAG(class_entry);
-		} else {
+		if (zend_hash_find (CG(class_table), (void *) from_scope_lc, from->scope_name_len + 1, &scope.ptr) == SUCCESS &&
+                to->scope != NULL) {
 			DBG(ea_debug_pad, (EA_DEBUG TSRMLS_CC));
 			DBG(ea_debug_printf, (EA_DEBUG, "[%d]                   found '%s' in hash\n", getpid(), from->scope_name));
+            DBG(ea_debug_printf, (EA_DEBUG, "name=%s :: to->scope is 0x%x", to->function_name, (unsigned int) to->scope));
 			to->scope = *(zend_class_entry **) to->scope;
-		}
+		} else {
+            DBG(ea_debug_pad, (EA_DEBUG TSRMLS_CC));
+            DBG(ea_debug_printf, (EA_DEBUG, "[%d]                   can't find '%s' in class_table. use EAG(class_entry).\n", getpid(), from->scope_name));
+            to->scope = EAG(class_entry);
+        }
 		efree(from_scope_lc);
-	} else {					// zoeloelip: is this needed? scope is always stored -> hra: no its not :P only if from->scope!=null in ea_store
-		DBG(ea_debug_pad, (EA_DEBUG TSRMLS_CC));
+	} else {
+        DBG(ea_debug_pad, (EA_DEBUG TSRMLS_CC));
 		DBG(ea_debug_printf, (EA_DEBUG, "[%d]                   from is NULL\n", getpid()));
 		if (EAG(class_entry)) {
 			zend_class_entry *p;
