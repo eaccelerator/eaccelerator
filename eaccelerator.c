@@ -702,6 +702,7 @@ static ea_cache_entry* hash_find_file(const char  *key, struct stat *buf TSRMLS_
       close(f);
       unlink(s);
       if (use_shm) eaccelerator_free(p); else efree(p);
+			DBG(ea_debug_printf, (EA_DEBUG, "cache file is corrupted\n"));
       return NULL;
     }
     EACCELERATOR_FLOCK(f, LOCK_UN);
@@ -1534,9 +1535,9 @@ PHP_INI_MH(eaccelerator_filter) {
   for (p = EAG(cond_list); p != NULL; p = q) {
     q = p->next;
     if (p->str) {
-      free(p->str);
+      efree(p->str);
     }
-    free(p);
+    efree(p);
   }
   EAG(cond_list) = NULL;
   while (*s) {
@@ -1554,12 +1555,12 @@ PHP_INI_MH(eaccelerator_filter) {
     for (; *s && *s != ' ' && *s != '\t'; s++)
       ;
     if ((s > ss) && *ss) {
-      p = (ea_cond_entry *)malloc(sizeof(ea_cond_entry));
+      p = (ea_cond_entry *)emalloc(sizeof(ea_cond_entry));
       if (p == NULL)
         break;
       p->not = not;
       p->len = s-ss;
-      p->str = malloc(p->len+1);
+      p->str = emalloc(p->len+1);
       memcpy(p->str, ss, p->len);
       p->str[p->len] = 0;
       p->next = EAG(cond_list);
@@ -1798,9 +1799,9 @@ static void eaccelerator_globals_dtor(zend_eaccelerator_globals *eaccelerator_gl
   for (p = eaccelerator_globals->cond_list; p != NULL; p = q) {
     q = p->next;
     if (p->str) {
-      free(p->str);
+      efree(p->str);
     }
-    free(p);
+    efree(p);
   }
   eaccelerator_globals->cond_list = NULL;
 }
