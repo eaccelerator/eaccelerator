@@ -6,6 +6,8 @@
           (read: when windows is being used). Until some steps up to do this 
           or we run into a machine with windows and VC windows support wil be 
           b0rked.
+        * Move spinlock stuff into mm.c, no need for an extra file with extra
+          indirection.
 
 2007-02-13  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 

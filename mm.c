@@ -174,9 +174,7 @@ static int strxcat(char* dst, const char* src, int size) {
 
 #if defined(MM_SEM_SPINLOCK)
 
-#if defined(__GNUC__) && (defined(__i386__) || defined(__x86_64__))
-#  include "x86_spinlocks.h"
-#else
+#if !defined(__GNUC__) || !(defined(__i386__) || defined(__x86_64__))
 #  error "spinlocks are not implemented for your system"
 #endif
 
@@ -189,23 +187,64 @@ static int strxcat(char* dst, const char* src, int size) {
 #define MM_SEM_TYPE "spinlock"
 #define MM_SEM_CAN_ATTACH
 
+#define EA_DEBUG_SPINLOCK
+#define EA_SPINLOCK_TIMEOUT 2
+
 typedef struct mm_mutex {
-  spinlock_t spinlock;
+    volatile unsigned int lock;
+    volatile pid_t pid;
+    volatile int locked;
+#ifdef EA_DEBUG_SPINLOCK
+    time_t timestamp;
+#endif
 } mm_mutex;
 
-static int mm_init_lock(const char* key, mm_mutex* lock) {
-  spinlock_init(&lock->spinlock);
-  return 1;
+#define spinlock_try_lock(rw)  asm volatile("lock ; decl %0" :"=m" ((rw)->lock) : : "memory")
+#define _spinlock_unlock(rw)   asm volatile("lock ; incl %0" :"=m" ((rw)->lock) : : "memory")
+
+static int mm_init_lock(const char* key, mm_mutex* lock) 
+{
+    lock->lock = 0x1;
+    lock->pid = -1;
+    lock->locked = 0;
+#ifdef EA_DEBUG_SPINLOCK
+    lock->timestamp = 0;
+#endif   
+    return 1;
 }
 
-static int mm_do_lock(mm_mutex* lock, int kind) {
-  spinlock_lock(&lock->spinlock);
-  return 1;
+static int mm_do_lock(mm_mutex* lock, int kind) 
+{
+#ifdef EA_DEBUG_SPINLOCK
+    lock->timestamp = time(0);
+#endif    
+    while (1) {
+        spinlock_try_lock(lock);
+        if (lock->lock == 0) {
+            lock->pid = getpid();
+            lock->locked = 1;
+            return 1;
+        }
+#ifdef EA_DEBUG_SPINLOCK         
+        else {
+            if (lock->timestamp >= time(0) + EA_SPINLOCK_TIMEOUT) {
+                ea_debug_error("Lock time-out, exiting\n");
+                return 0;
+            }
+        }
+#endif
+        _spinlock_unlock(lock);
+    }
+    return 1;
 }
 
 static int mm_do_unlock(mm_mutex* lock) {
-  spinlock_unlock(&lock->spinlock);
-  return 1;
+    if (lock->locked && (lock->pid == getpid())) {
+        lock->pid = 0;
+        lock->locked = 0;
+        _spinlock_unlock(lock);
+    }
+    return 1;
 }
 
 static void mm_destroy_lock(mm_mutex* lock) {
