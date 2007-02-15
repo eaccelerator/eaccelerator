@@ -427,15 +427,10 @@ void eaccelerator_optimize (zend_op_array * op_array);
 #  define EAG(v) (eaccelerator_globals.v)
 #endif
 
-/*
- * conditional filter
- */
-typedef struct _ea_cond_entry {
-	char *str;
-	int len;
-	zend_bool not;
-	struct _ea_cond_entry *next;
-} ea_cond_entry;
+struct ea_pattern_t {
+  struct ea_pattern_t *next;
+  char *pattern;
+};
 
 /*
  * Globals (different for each process/thread)
@@ -460,9 +455,9 @@ char *allowed_admin_path;
 HashTable strings;
 HashTable restored;
 zend_class_entry *class_entry;
-ea_cond_entry *cond_list;
 zend_uint refcount_helper;
 char hostname[32];
+struct ea_pattern_t *pattern_list;
 #ifdef WITH_EACCELERATOR_CRASH_DETECTION
 #ifdef SIGSEGV
 void (*original_sigsegv_handler) (int);

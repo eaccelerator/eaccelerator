@@ -1,7 +1,11 @@
 2007-02-15  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
-        * Use emalloc for filter lists, mixing memory from two allocators is 
-          enough.
+        * Kick out the old filter implementation and use one based on fnmatch,
+          this breaks windows support. The plan is to include a bsd licensed
+          fnmatch implementation when a platform doesn't provide fnmatch. 
+          (read: when windows is being used). Until some steps up to do this 
+          or we run into a machine with windows and VC windows support wil be 
+          b0rked.
 
 2007-02-13  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 

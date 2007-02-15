@@ -48,6 +48,7 @@
 
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <fnmatch.h>
 #ifdef ZEND_WIN32
 #  include "win32/time.h"
 #  include <time.h>
@@ -893,106 +894,6 @@ static zend_op_array* eaccelerator_restore(char *realname, struct stat *buf,
   return op_array;
 }
 
-/*
- * Only files matching user specified conditions should be cached.
- *
- * TODO - check the algorithm (fl)
- */
-static int match(const char* name, const char* pat) {
-  char p,k;
-  int ok, neg;
-  
-  while (1) {
-    p = *pat++;
-    if (p == '\0') {
-      return (*name == '\0');
-    } else if (p == '*') {
-      if (*pat == '\0') {
-        return 1;
-      }
-      do {
-        if (match(name, pat)) {
-          return 1;
-        }
-      } while (*name++ != '\0');
-      return 0;
-    } else if (p == '?') {
-      if (*name++ == '\0') {
-        return 0;
-      }
-    } else if (p == '[') {
-      ok = 0;
-      if ((k = *name++) == '\0') {
-        return 0;
-      }
-      if ((neg = (*pat == '!')) != '\0') {
-        ++pat;
-      }
-      while ((p = *pat++) != ']') {
-        if (*pat == '-') {
-          if (p <= k && k <= pat[1]) {
-            ok = 1;
-          }
-          pat += 2;
-        } else {
-          if (p == '\\') {
-            p = *pat++;
-            if (p == '\0') {
-              p ='\\';
-              pat--;
-            }
-          }
-          if (p == k) {
-            ok = 1;
-          }
-        }
-      }
-      if (ok == neg) {
-        return 0;
-      }
-    } else {
-      if (p == '\\') {
-        p = *pat++;
-        if (p == '\0') {
-          p ='\\';
-          pat--;
-        }
-      }
-      if (*name++ != p) {
-        return 0;
-      }
-    }
-  }
-  return (*name == '\0');
-}
-
-/* Check if the file is ok to cache */
-static int eaccelerator_ok_to_cache(char *realname TSRMLS_DC) {
-  ea_cond_entry *p;
-  int ok;
-  if (EAG(cond_list) == NULL) {
-    return 1;
-  }
-
-  /* if "realname" matches to any pattern started with "!" then ignore it */
-  for (p = EAG(cond_list); p != NULL; p = p->next) {
-    if (p->not && match(realname, p->str)) {
-      return 0;
-    }
-  }
-
-  /* else if it matches to any pattern not started with "!" then accept it */
-  ok = 1;
-  for (p = EAG(cond_list); p != NULL; p = p->next) {
-    if (!p->not) {
-      ok = 0;
-      if (match(realname, p->str)) {
-        return 1;
-      }
-    }
-  }
-  return ok;
-}
 
 static int eaccelerator_stat(zend_file_handle *file_handle,
                         char* realname, struct stat* buf TSRMLS_DC) {
@@ -1156,6 +1057,42 @@ static int eaccelerator_stat(zend_file_handle *file_handle,
 #endif
 }
 
+static int ea_match(struct ea_pattern_t *list, const char *path)
+{
+	struct ea_pattern_t *p;
+	char result, positive;
+
+	// apply all patterns
+	//  - when not patterns are given, *accept*
+	//  - when a pattern with a ! matches, *reject*
+	//  - when no negative pattern matches and a positive pattern match, *accept*
+	//  - when no negative pattern matches and there are no possitive patterns, *accept*
+	//  - *reject*
+
+	if (list == NULL) {
+		// there are no patterns, accept
+		return 1;
+	}
+
+	result = 0; // there are patterns, so if no positive pattern matches, reject
+	positive = 0;
+	p = list;
+	while (p != NULL) {
+		if (p->pattern[0] == '!') {
+		  if ((fnmatch((const char *)(p->pattern + 1), path, 0) == 0)) {
+				// a negative pattern matches, accept
+				return 0;
+			}
+		} else {
+			result |= (fnmatch((const char *)p->pattern, path, 0) == 0);
+			positive = 1;
+		}
+		p = p->next;
+	}
+
+  return result | !positive;
+}
+
 /*
  * Intercept compilation of PHP file.  If we already have the file in
  * our cache, restore it.  Otherwise call the original Zend compilation
@@ -1192,7 +1129,7 @@ ZEND_DLEXPORT zend_op_array* eaccelerator_compile_file(zend_file_handle *file_ha
 	ea_debug_log("EACCELERATOR: Warning: \"%s\" is cached but it's mtime is in the future.\n", file_handle->filename);
   }
 
-  ok_to_cache = eaccelerator_ok_to_cache(file_handle->filename TSRMLS_CC);
+  ok_to_cache = ea_match(EAG(pattern_list), file_handle->filename);
  
   // eAccelerator isn't working, so just compile the file
   if (!EAG(enabled) || (eaccelerator_mm_instance == NULL) || 
@@ -1520,6 +1457,33 @@ PHP_MINFO_FUNCTION(eaccelerator) {
   DISPLAY_INI_ENTRIES();
 }
 
+/* 
+ * Parse a list of filters which is seperated by a " "
+ */
+static struct ea_pattern_t *ea_parse_filter(char *filter)
+{
+	char *saveptr, *token;
+	struct ea_pattern_t *list_head, *p;
+	size_t len;
+
+	// tokenize the filter string on a space
+	list_head = NULL;
+	p = NULL;
+	while ((token = strtok_r(filter, " ", &saveptr)) != NULL) {
+		filter = NULL;
+		list_head = malloc(sizeof(struct ea_pattern_t));
+		memset(list_head, 0, sizeof(struct ea_pattern_t));
+
+		len = strlen(token);
+		list_head->pattern = malloc(len + 1);
+		strncpy(list_head->pattern, token, len + 1); 
+		list_head->next = p;
+		p = list_head;
+	}
+
+	return list_head;
+}
+
 /******************************************************************************/
 /*
  * Begin of dynamic loadable module interfaces.
@@ -1528,45 +1492,7 @@ PHP_MINFO_FUNCTION(eaccelerator) {
  *  - zend extension.
  */
 PHP_INI_MH(eaccelerator_filter) {
-  ea_cond_entry *p, *q;
-  char *s = new_value;
-  char *ss;
-  int  not;
-  for (p = EAG(cond_list); p != NULL; p = q) {
-    q = p->next;
-    if (p->str) {
-      efree(p->str);
-    }
-    efree(p);
-  }
-  EAG(cond_list) = NULL;
-  while (*s) {
-    for (; *s == ' ' || *s == '\t'; s++)
-      ;
-    if (*s == 0)
-      break;
-    if (*s == '!') {
-      s++;
-      not = 1;
-    } else {
-      not = 0;
-    }
-    ss = s;
-    for (; *s && *s != ' ' && *s != '\t'; s++)
-      ;
-    if ((s > ss) && *ss) {
-      p = (ea_cond_entry *)emalloc(sizeof(ea_cond_entry));
-      if (p == NULL)
-        break;
-      p->not = not;
-      p->len = s-ss;
-      p->str = emalloc(p->len+1);
-      memcpy(p->str, ss, p->len);
-      p->str[p->len] = 0;
-      p->next = EAG(cond_list);
-      EAG(cond_list) = p;
-    }
-  }
+  EAG(pattern_list) = ea_parse_filter(new_value);
   return SUCCESS;
 }
 
@@ -1773,37 +1699,38 @@ static void eaccelerator_crash_handler(int dummy) {
 }
 #endif
 
-static void eaccelerator_init_globals(zend_eaccelerator_globals *eaccelerator_globals)
+static void eaccelerator_init_globals(zend_eaccelerator_globals *eag)
 {
-  eaccelerator_globals->used_entries      = NULL;
-  eaccelerator_globals->enabled           = 1;
-  eaccelerator_globals->cache_dir         = NULL;
-  eaccelerator_globals->optimizer_enabled = 1;
-  eaccelerator_globals->compiler          = 0;
-  eaccelerator_globals->cond_list         = NULL;
-  eaccelerator_globals->content_headers   = NULL;
+	eag->used_entries = NULL;
+	eag->enabled = 1;
+	eag->cache_dir = NULL;
+	eag->optimizer_enabled = 1;
+	eag->compiler = 0;
+	eag->content_headers = NULL;
 #ifdef WITH_EACCELERATOR_SESSIONS
-  eaccelerator_globals->session           = NULL;
+	eag->session = NULL;
 #endif
-  eaccelerator_globals->eaccelerator_log_file = '\000';
-  eaccelerator_globals->name_space        = '\000';
-  eaccelerator_globals->hostname[0]       = '\000';
-  eaccelerator_globals->in_request        = 0;
-  eaccelerator_globals->allowed_admin_path= NULL;
+	eag->eaccelerator_log_file = '\000';
+	eag->name_space = '\000';
+	eag->hostname[0] = '\000';
+	eag->in_request = 0;
+	eag->allowed_admin_path= NULL;
+	eag->pattern_list = NULL;
 }
 
-static void eaccelerator_globals_dtor(zend_eaccelerator_globals *eaccelerator_globals)
+static void eaccelerator_globals_dtor(zend_eaccelerator_globals *eag)
 {
-  ea_cond_entry *p, *q;
+	struct ea_pattern_t *p, *q;
 
-  for (p = eaccelerator_globals->cond_list; p != NULL; p = q) {
-    q = p->next;
-    if (p->str) {
-      efree(p->str);
-    }
-    efree(p);
-  }
-  eaccelerator_globals->cond_list = NULL;
+	/* free the list of patterns */
+	p = eag->pattern_list;
+	while (p != NULL) {
+		q = p;
+		free(p->pattern);
+		free(p);
+		p = q->next;
+	}
+	eag->pattern_list = NULL;
 }
 
 static void register_eaccelerator_as_zend_extension();
