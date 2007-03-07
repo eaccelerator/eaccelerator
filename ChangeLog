@@ -1,3 +1,7 @@
+2007-03-07  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
+
+        * Apply the patch from #244 which causes heap corruption.
+
 2007-02-15  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
         * Kick out the old filter implementation and use one based on fnmatch,

@@ -111,7 +111,7 @@ PHP_FUNCTION (eaccelerator_put)
     if ((Z_TYPE_P(val) & ~IS_CONSTANT_INDEX) == IS_OBJECT) {
         php_serialize_data_t var_hash;
         smart_str buf = {0};
-        result = (zval *)emalloc(sizeof(result));
+        result = (zval *)emalloc(sizeof(zval));
 
         PHP_VAR_SERIALIZE_INIT(var_hash);
         php_var_serialize(&buf, &val, &var_hash TSRMLS_CC);
