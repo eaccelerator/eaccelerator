@@ -1216,14 +1216,17 @@ ZEND_DLEXPORT zend_op_array* eaccelerator_compile_file(zend_file_handle *file_ha
     }
 #endif
 
-
     zend_hash_init_ex(&tmp_function_table, 100, NULL, ZEND_FUNCTION_DTOR, 1, 0);
     zend_hash_copy(&tmp_function_table, &eaccelerator_global_function_table, NULL, &tmp_func, sizeof(zend_function));
     orig_function_table = CG(function_table);
     CG(function_table) = &tmp_function_table;
 
     zend_hash_init_ex(&tmp_class_table, 10, NULL, ZEND_CLASS_DTOR, 1, 0);
+#ifdef ZEND_ENGINE_2
+		zend_hash_copy(&tmp_class_table, &eaccelerator_global_class_table, (copy_ctor_func_t)zend_class_add_ref, &tmp_class, sizeof(zend_class_entry *));
+#else
     zend_hash_copy(&tmp_class_table, &eaccelerator_global_class_table, NULL, &tmp_class, sizeof(zend_class_entry));
+#endif
 
     orig_class_table = CG(class_table);;
     CG(class_table) = &tmp_class_table;
