@@ -1,7 +1,18 @@
+May 06, 2007 - Bart Vanbrabant
+----------------------------------
+
+ * Released 0.9.5.1
+    Changes in this version (from 0.9.5)
+        - Fix bug that causes problems with protected attributes and php 5.2
+        - Fix ttl bug in list_keys
+        Known issues:
+            Exceptions aren't catched by try catch due to optimizer bug, see
+            bugreport #242.
+
 Oct 11, 2006 - Bart Vanbrabant
 ----------------------------------
 
- * Released 0.9.6
+ * Released 0.9.5
 
     Changes in this version (from 0.9.4):
         - This version brings full php 5.1 and 5.2 support, this has as 
