@@ -1472,7 +1472,7 @@ static struct ea_pattern_t *ea_parse_filter(char *filter)
 	// tokenize the filter string on a space
 	list_head = NULL;
 	p = NULL;
-	while ((token = strtok_r(filter, " ", &saveptr)) != NULL) {
+	while ((token = phpstrtok_r(filter, " ", &saveptr)) != NULL) {
 		filter = NULL;
 		list_head = malloc(sizeof(struct ea_pattern_t));
 		memset(list_head, 0, sizeof(struct ea_pattern_t));
