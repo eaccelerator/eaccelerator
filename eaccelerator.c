@@ -48,12 +48,13 @@
 
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <fnmatch.h>
 #ifdef ZEND_WIN32
+#  include "fnmatch.h"
 #  include "win32/time.h"
 #  include <time.h>
 #  include <sys/utime.h>
 #else
+#  include <fnmatch.h>
 #  include <sys/file.h>
 #  include <sys/time.h>
 #  include <utime.h>
