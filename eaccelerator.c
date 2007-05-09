@@ -391,7 +391,7 @@ static void decode_version(int version, int extra, char *str, size_t len)
                 snprintf(&str[number], len, "-beta%u", extra);
                 break;
             case 15:
-                if (len >= number + 5) {
+                if ((int)len >= number + 5) {
                     str[number] = '-';
                     str[number + 1] = (extra >> 21) & 0x7f;
                     str[number + 2] = (extra >> 14) & 0x7f;
@@ -1473,7 +1473,7 @@ static struct ea_pattern_t *ea_parse_filter(char *filter)
 	// tokenize the filter string on a space
 	list_head = NULL;
 	p = NULL;
-	while ((token = phpstrtok_r(filter, " ", &saveptr)) != NULL) {
+	while ((token = php_strtok_r(filter, " ", &saveptr)) != NULL) {
 		filter = NULL;
 		list_head = malloc(sizeof(struct ea_pattern_t));
 		memset(list_head, 0, sizeof(struct ea_pattern_t));

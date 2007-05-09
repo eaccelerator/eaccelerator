@@ -1,6 +1,8 @@
 2007-05-09  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
         * Use php_strtok_r instead of strtok_r (Thanks to Daan <daan at parse.nl>)
+        * Add fnmatch.c and fnmatch.h and use it on win32 (Thanks to Daan <daan at parse.nl>)
+        * Casting of var 'len' to (int) in decode_version() to get rid of an VC++ 6 warning (Thanks to Daan <daan at parse.nl>)
 
 2007-04-21  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
