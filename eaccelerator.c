@@ -1748,11 +1748,13 @@ static int eaccelerator_check_php_version(TSRMLS_D) {
         strcmp(Z_STRVAL(v),PHP_VERSION) == 0) {
       ret = 1;
     } else {
-      zend_error(E_CORE_WARNING,"[%s] This build of \"%s\" was compiled for PHP version %s. Rebuild it for your PHP version (%s) or download precompiled binaries.\n", EACCELERATOR_EXTENSION_NAME,EACCELERATOR_EXTENSION_NAME,PHP_VERSION,Z_STRVAL(v));
+      ea_debug_error("[%s] This build of \"%s\" was compiled for PHP version %s. Rebuild it for your PHP version (%s) or download precompiled binaries.\n", 
+					EACCELERATOR_EXTENSION_NAME, EACCELERATOR_EXTENSION_NAME,PHP_VERSION,Z_STRVAL(v));
     }
     zval_dtor(&v);
   } else {
-    zend_error(E_CORE_WARNING,"[%s] This build of \"%s\" was compiled for PHP version %s. Rebuild it for your PHP version.\n", EACCELERATOR_EXTENSION_NAME,EACCELERATOR_EXTENSION_NAME,PHP_VERSION);
+    ea_debug_error("[%s] This build of \"%s\" was compiled for PHP version %s. Rebuild it for your PHP version.\n",
+				EACCELERATOR_EXTENSION_NAME, EACCELERATOR_EXTENSION_NAME, PHP_VERSION);
   }
   return ret;
 }
@@ -1791,7 +1793,11 @@ PHP_MINIT_FUNCTION(eaccelerator) {
 #endif
   }
   if (!eaccelerator_check_php_version(TSRMLS_C)) {
-    return FAILURE;
+    /* 
+		 * do not return FAILURE, because it causes PHP to completely fail.
+		 * Just disable eAccelerator instead of making eA fail starting php
+		 */
+    return SUCCESS;
   }
   ZEND_INIT_MODULE_GLOBALS(eaccelerator, eaccelerator_init_globals, NULL);
   REGISTER_INI_ENTRIES();
