@@ -27,8 +27,8 @@
 
 #include "eaccelerator.h"
 
-//#ifdef HAVE_EACCELERATOR
-//#ifdef WITH_EACCELERATOR_OPTIMIZER
+#ifdef HAVE_EACCELERATOR
+#ifdef WITH_EACCELERATOR_OPTIMIZER
 
 #include "zend.h"
 #include "zend_API.h"
@@ -45,7 +45,7 @@ typedef struct _BB {
   int             used;
   /*
    * HOESH: To protect merging. Primary
-   * it applies to try & catch blocks.
+   * it abblies to try & catch blocks.
    * ZEND_ENGINE_2 specific, but can take place
    */
   int             protect_merge;
@@ -62,17 +62,17 @@ typedef struct _BBlink {
   struct _BBlink* next;
 } BBlink;
 
+#if 0
 static void dump_bb(BB* bb, zend_op_array *op_array) {
   BB* p = bb;
   BBlink *q;
   zend_printf("<pre>%s:%s\n", op_array->filename, op_array->function_name);
   while (p != NULL) {
-    zend_printf("  <strong>bb%u</strong> start=%u len=%d used=%d protected=%d\n",
+    zend_printf("  bb%u start=%u len=%d used=%d\n",
                  (unsigned int)(p-bb),
                  (unsigned int)(p->start-op_array->opcodes),
                  p->len,
-                 p->used,
-                 p->protect_merge);
+                 p->used);
     if (p->jmp_1) {
       zend_printf("    jmp_1 bb%u start=%u  len=%d used=%d\n",
                   (unsigned int)(p->jmp_1-bb),
@@ -167,6 +167,7 @@ static void dump_array(int nb,void *pos,char type)
    }
    zend_printf("<br>\n");
 }
+#endif
 
 #define SET_TO_NOP(op) \
   (op)->opcode = ZEND_NOP; \
@@ -247,12 +248,12 @@ static void compute_live_var(BB* bb, zend_op_array* op_array, char* global)
         if (((end->result.op_type == IS_VAR &&
 #ifdef ZEND_ENGINE_2
              (end->opcode == ZEND_RECV || end->opcode == ZEND_RECV_INIT ||
-             (end->result.u.EA.type & EXT_TYPE_UNUSED) == 0)) ||
+              (end->result.u.EA.type & EXT_TYPE_UNUSED) == 0)) ||
 #else
              (end->result.u.EA.type & EXT_TYPE_UNUSED) == 0) ||
 #endif
              (end->result.op_type == IS_TMP_VAR)) &&
-             !global[VAR_NUM(end->result.u.var)] && !used[VAR_NUM(end->result.u.var)]) {
+            !global[VAR_NUM(end->result.u.var)] && !used[VAR_NUM(end->result.u.var)]) {
            switch(end->opcode) {
              case ZEND_JMPZ_EX:
                end->opcode = ZEND_JMPZ;
@@ -547,7 +548,7 @@ static void optimize_jmp(BB* bb, zend_op_array* op_array)
     /* Remove Unused Basic Blocks */
     p = bb;
     while (p->next != NULL) {
-      if (p->next->used && (p->next->pred || p->protect_merge)) {
+      if (p->next->used && p->next->pred) {
         p = p->next;
       } else {
         del_bb(p->next);
@@ -579,7 +580,7 @@ static void optimize_jmp(BB* bb, zend_op_array* op_array)
     /* JMP optimization */
     p = bb;
     while (p != NULL) {
-      while (p->next != NULL && (!p->next->used || p->next->pred == NULL) && !p->protect_merge) {
+      while (p->next != NULL && (!p->next->used || p->next->pred == NULL)) {
         del_bb(p->next);
         p->next = p->next->next;
         ok = 0;
@@ -2713,12 +2714,8 @@ static int build_cfg(zend_op_array *op_array, BB* bb)
 
 			bb[tc_element->catch_op].start = &op_array->opcodes[tc_element->catch_op];
 			bb[tc_element->catch_op].protect_merge = 1;
-            bb[tc_element->catch_op].used = 1;
 		}
 	}
-    
-    dump_bb(bb, op_array);
-    
 #endif
 	/* Find Starts of Basic Blocks */
 	bb[0].start = op;
@@ -3177,7 +3174,8 @@ static void emit_cfg(zend_op_array *op_array, BB* bb)
 
 #define FREE_REG(R) reg_pool[(R)] = 0;
 
-static void reassign_registers(zend_op_array *op_array, BB* p, char *global) {
+
+void reassign_registers(zend_op_array *op_array, BB* p, char *global) {
   zend_uint i;
   zend_uint n = 0;
 #ifndef ZEND_ENGINE_2
@@ -3299,7 +3297,7 @@ static void reassign_registers(zend_op_array *op_array, BB* p, char *global) {
   free_alloca(assigned);
 }
 
-static void restore_operand_types(zend_op_array *op_array) {
+void restore_operand_types(zend_op_array *op_array) {
 	zend_op* op = op_array->opcodes;
 	int len = op_array->last;
 	int line_num;
@@ -3323,7 +3321,11 @@ void eaccelerator_optimize(zend_op_array *op_array)
   BB* bb;
 
   TSRMLS_FETCH();
-
+/*???
+#ifdef ZEND_ENGINE_2
+  return;
+#endif
+*/
   if (!EAG(compiler) || op_array->type != ZEND_USER_FUNCTION) {
     return;
   }
@@ -3334,14 +3336,12 @@ void eaccelerator_optimize(zend_op_array *op_array)
 
   /* Find All Basic Blocks and build CFG */
   if (build_cfg(op_array, bb)) {
-    dump_bb(bb, op_array);
     char *global = do_alloca(op_array->T * sizeof(char));
     if (global == NULL) return;
 
     for (i=0; i<2; i++) {
       /* Determine Used Blocks and its Predcessors */
       mark_used_bb(bb);
-      dump_bb(bb, op_array);
 
       /* JMP Optimization */
       optimize_jmp(bb, op_array);
@@ -3354,7 +3354,7 @@ void eaccelerator_optimize(zend_op_array *op_array)
         p = p->next;
       }
 
-      /* Mark All Basic Blocks as Unused. Free Predcessors Links. */
+      /* Mark All Basik Blocks as Unused. Free Predcessors Links. */
       p = bb;
       while (p != NULL) {
         rm_bb(p);
@@ -3367,7 +3367,7 @@ void eaccelerator_optimize(zend_op_array *op_array)
     /* Remove Unused Basic Blocks */
     p = bb;
     while (p->next != NULL) {
-      if (p->next->used || p->protect_merge) {
+      if (p->next->used) {
         p = p->next;
       } else {
         del_bb(p->next);
@@ -3397,5 +3397,5 @@ void eaccelerator_optimize(zend_op_array *op_array)
 #  endif
   free_alloca(bb);
 }
-//#endif
-//#endif /* #ifdef HAVE_EACCELERATOR */
+#endif
+#endif /* #ifdef HAVE_EACCELERATOR */
