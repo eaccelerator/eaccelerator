@@ -2982,6 +2982,13 @@ cont_failed:
 						/* clear extended_value again just for tidyness :) */
 						op->extended_value = 0;
 					}
+#  if (PHP_MAJOR_VERSION == 5 && PHP_MINOR_VERSION >= 2 && PHP_RELEASE_VERSION >= 1) || PHP_MAJOR_VERSION >= 6
+					/* php >= 5.2.1 introduces a ZEND_JMP before a ZEND_FETCH_CLASS and ZEND_CATCH
+					   this leaves those blocks intact */
+					else if ((op+1)->opcode == ZEND_FETCH_CLASS && (op+2)->opcode == ZEND_CATCH) { /* fix for #242 */
+						p->follow = &bb[line_num];
+					}
+#  endif
 #endif
 					break;
 				case ZEND_JMPZNZ:
