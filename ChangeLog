@@ -1,3 +1,9 @@
+2007-08-14  Hans Rakers <hans at react.nl>
+
+	* Optimizer fix for #242. PHP-5.2.1 introduces a ZEND_JMP before a
+	  ZEND_FETCH_CLASS/ZEND_CATCH which the optimizer did not handle
+	  correctly, resulting in uncaught exceptions. (Thanks to warwickshaw)
+
 2007-05-09  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
         * Use php_strtok_r instead of strtok_r (Thanks to Daan <daan at parse.nl>)
