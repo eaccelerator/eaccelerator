@@ -38,6 +38,7 @@
 #include "zend_API.h"
 #include "zend_extensions.h"
 #include "standard/php_var.h"
+#include "standard/php_smart_str.h"
 
 /* where to cache the keys */
 ea_cache_place eaccelerator_keys_cache_place = ea_shm_and_disk;
@@ -104,30 +105,35 @@ PHP_FUNCTION (eaccelerator_put)
 	zval *val, *result;
 	time_t ttl = 0;
 	long where = eaccelerator_keys_cache_place;
+    int ret_val = 0;
+    smart_str buf = {0};
 
 	if (zend_parse_parameters (ZEND_NUM_ARGS ()TSRMLS_CC, "sz|ll", &key, &key_len, &val, &ttl, &where) == FAILURE)
 		return;
 
     if ((Z_TYPE_P(val) & ~IS_CONSTANT_INDEX) == IS_OBJECT) {
         php_serialize_data_t var_hash;
-        smart_str buf = {0};
-        result = (zval *)emalloc(sizeof(zval));
 
         PHP_VAR_SERIALIZE_INIT(var_hash);
         php_var_serialize(&buf, &val, &var_hash TSRMLS_CC);
         PHP_VAR_SERIALIZE_DESTROY(var_hash);
 
-        Z_TYPE_P(result) = IS_NULL;
         if (buf.c) {
+            ALLOC_ZVAL(result);
             ZVAL_STRINGL(result, buf.c, buf.len, 1);
             Z_TYPE_P(result) = Z_TYPE_P(val);
         }
-        INIT_PZVAL(result);
     } else {
         result = val;
     }
 
-	if (eaccelerator_put (key, key_len, result, ttl, where TSRMLS_CC)) {
+	ret_val = eaccelerator_put (key, key_len, result, ttl, where TSRMLS_CC);
+
+    if ((Z_TYPE_P(val) & ~IS_CONSTANT_INDEX) == IS_OBJECT) {
+        smart_str_free(&buf);
+    }
+
+    if (ret_val) {
 		RETURN_TRUE;
 	} else {
 		RETURN_FALSE;
@@ -139,24 +145,27 @@ PHP_FUNCTION (eaccelerator_get)
 	char *key;
 	int key_len;
 	long where = eaccelerator_keys_cache_place;
-    zval *value;
 
 	if (zend_parse_parameters (ZEND_NUM_ARGS ()TSRMLS_CC, "s|l", &key, &key_len, &where) == FAILURE)
 		return;
 
-    ALLOC_ZVAL(value);
-    if (eaccelerator_get (key, key_len, value, where TSRMLS_CC)) {
-        if ((Z_TYPE_P(value) & ~IS_CONSTANT_INDEX) == IS_OBJECT) {
+    if (eaccelerator_get (key, key_len, return_value, where TSRMLS_CC)) {
+        if ((Z_TYPE_P(return_value) & ~IS_CONSTANT_INDEX) == IS_OBJECT) {
             const unsigned char *p;
             php_unserialize_data_t var_hash;
+            zval *object;
 
-            p = (const unsigned char*)Z_STRVAL_P(value);
+            /*
+             * We serialized the object to a string but stored the object type 
+             * so it will be serialized here.
+             */
+            Z_TYPE_P(return_value) = IS_STRING;
+
             PHP_VAR_UNSERIALIZE_INIT(var_hash);
-            if (!php_var_unserialize(&return_value, &p, p + Z_STRLEN_P(value),  &var_hash TSRMLS_CC)) {
-                PHP_VAR_UNSERIALIZE_DESTROY(var_hash);
-                zval_dtor(return_value);
-                php_error_docref(NULL TSRMLS_CC, E_NOTICE, "Error at offset %ld of %d bytes", 
-                        (long)((char*)p - Z_STRVAL_P(value)), Z_STRLEN_P(value));
+            p = (const unsigned char *)Z_STRVAL_P(return_value);
+            if (!php_var_unserialize(&return_value, &p, p + Z_STRLEN_P(return_value), &var_hash TSRMLS_CC)) {
+                zval_dtor(object);
+                Z_TYPE_P(object) = IS_NULL;
             }
             PHP_VAR_UNSERIALIZE_DESTROY(var_hash);
         }

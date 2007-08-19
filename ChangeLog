@@ -1,5 +1,6 @@
 2007-08-19  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
         * Fix an E_NOTICE error in the control panel
+        * Improve storing of objects and fix bug #264
 
 2007-08-16  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
         * Fix a typo in the config file. #269
