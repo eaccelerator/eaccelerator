@@ -513,7 +513,8 @@ switch ($sec) {
 
         // search
         function usersearch ($val) {
-            return preg_match('/'.preg_quote($_GET['str'], '/').'/i', $val['name']);
+            $str = isset($_GET['str']) ? $_GET['str'] : '';
+            return preg_match('/'.preg_quote($str, '/').'/i', $val['name']);
         }
         $userkeys = array_filter($userkeys, 'usersearch');
     

@@ -1,11 +1,14 @@
+2007-08-19  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
+        * Fix an E_NOTICE error in the control panel
+
 2007-08-16  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
-	* Fix a typo in the config file. #269
+        * Fix a typo in the config file. #269
 
 2007-08-14  Hans Rakers <hans at react.nl>
 
-	* Optimizer fix for #242. PHP-5.2.1 introduces a ZEND_JMP before a
-	  ZEND_FETCH_CLASS/ZEND_CATCH which the optimizer did not handle
-	  correctly, resulting in uncaught exceptions. (Thanks to warwickshaw)
+        * Optimizer fix for #242. PHP-5.2.1 introduces a ZEND_JMP before a
+	      ZEND_FETCH_CLASS/ZEND_CATCH which the optimizer did not handle
+	      correctly, resulting in uncaught exceptions. (Thanks to warwickshaw)
 
 2007-05-09  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
