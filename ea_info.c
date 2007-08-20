@@ -290,7 +290,7 @@ PHP_FUNCTION(eaccelerator_clean)
 		RETURN_NULL();
 	}
 
-	t = time (0);
+	t = time (NULL);
 
 	/* Remove expired scripts from shared memory */
 	eaccelerator_prune (t);
@@ -300,8 +300,10 @@ PHP_FUNCTION(eaccelerator_clean)
 		clean_filecache(EAG(cache_dir), t);
         }
 
+#if defined(WITH_EACCELERATOR_CONTENT_CACHING) || defined(WITH_EACCELERATOR_SESSIONS) || defined(WITH_EACCELERATOR_SHM)
 	/* Remove expired keys (session data, content) from shared memory */
 	eaccelerator_gc (TSRMLS_C);
+#endif
 }
 /* }}} */
 
