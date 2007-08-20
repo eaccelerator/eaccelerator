@@ -19,6 +19,9 @@
         * Rewrite the calc_* funtions so they no longer uses the EAG(mem) global.
         * Rewrite the fixup_* functions so they no longer use the EAG(mem) global.
         * Rewrite store_* functions so they no longer use the EAG(mem) global.
+        * Add code that checks the shared memory chunks if needed to make sure
+          no data was written past the boundary. Change #undef MM_CHECK in mm.c
+          to #define MM_CHECK
 
 2007-08-19  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 

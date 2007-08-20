@@ -66,6 +66,9 @@
 #  endif
 #endif
 
+#undef MM_CHECK 
+#define MM_PATTERN  0xdeadbeef
+
 #if defined(MM_SHM_MMAP_FILE) || defined(MM_SHM_MMAP_ZERO) || defined(MM_SHM_MMAP_ANON) || defined(MM_SHM_MMAP_POSIX) || defined(HAVE_MPROTECT)
 #  include <sys/mman.h>
 #endif
@@ -1065,6 +1068,9 @@ void* mm_malloc_nolock(MM* mm, size_t size) {
   if (size > 0) {
     mm_mem_head* x = NULL;
     size_t realsize = (size_t)MM_ALIGN(MM_SIZE(size));
+#if MM_CHECK
+    realsize += (size_t)MM_ALIGN(sizeof(int));
+#endif
     if (realsize <= mm->available) {
       /* Search for free bucket */
       mm_free_bucket* p = mm->free_list;
@@ -1083,7 +1089,7 @@ void* mm_malloc_nolock(MM* mm, size_t size) {
           }
           break;
         } else if (p->size > realsize && (best == NULL || best->size > p->size)) {
-          /* Found best bucket (smallest bucket with the grater size) */
+          /* Found best bucket (smallest bucket with the bigger size) */
           best = p;
           best_prev = q;
         }
@@ -1118,6 +1124,9 @@ void* mm_malloc_nolock(MM* mm, size_t size) {
       }
     }
     if (x != NULL) {
+#ifdef MM_CHECK
+      *(int *)((char *)x + realsize - (size_t)MM_ALIGN(sizeof(int))) = MM_PATTERN;
+#endif
       return HEAD_TO_PTR(x);
     }
   }
@@ -1317,6 +1326,17 @@ int mm_protect(MM* mm, int mode) {
 #endif
   return 0;
 }
+
+#if defined(MM_CHECK) && !(defined(MM_TEST_SHM) || defined(MM_TEST_SEM))
+void mm_check_mem(void *x) {
+  mm_mem_head *p = PTR_TO_HEAD(x);
+  if (*((unsigned int *)((char *)p + p->size - (size_t)MM_ALIGN(sizeof(int)))) != MM_PATTERN) {
+    ea_debug_error("[EACCELERATOR] Corrupted memory detected\n");
+  }
+}
+#else
+void mm_check_mem(void *x) {}
+#endif
 
 #ifdef MM_TEST_SHM
 int main() {

@@ -748,6 +748,7 @@ static ea_cache_entry* hash_find_file(const char  *key, struct stat *buf TSRMLS_
       p->use_cnt  = 0;
       p->removed  = 1;
     }
+    mm_check_mem(p); 
     return p;
   }
   return NULL;
@@ -799,6 +800,7 @@ static int eaccelerator_store(char* key, struct stat *buf, int nreloads,
   int use_shm = 1;
   int ret = 0;
   int size = 0;
+  void *data = NULL;
 
   zend_try {
     size = calc_size(key, op_array, f, c TSRMLS_CC);
@@ -814,6 +816,7 @@ static int eaccelerator_store(char* key, struct stat *buf, int nreloads,
   
   EACCELERATOR_UNPROTECT();
   EAG(mem) = eaccelerator_malloc(size);
+  data = EAG(mem);
   if (EAG(mem) == NULL) {
     EAG(mem) = eaccelerator_malloc2(size TSRMLS_CC);
   }
@@ -824,7 +827,8 @@ static int eaccelerator_store(char* key, struct stat *buf, int nreloads,
   }
   if (EAG(mem)) {
     memset(EAG(mem), 0, size);
-    p = eaccelerator_store_int(key, len, op_array, f, c TSRMLS_CC);
+		p = (ea_cache_entry *)EAG(mem);
+    eaccelerator_store_int(p, key, len, op_array, f, c TSRMLS_CC);
     p->mtime    = buf->st_mtime;
     p->filesize = buf->st_size;
     p->size     = size;
@@ -845,6 +849,7 @@ static int eaccelerator_store(char* key, struct stat *buf, int nreloads,
       hash_add_mm(p);
       EACCELERATOR_PROTECT();
       ret = 1;
+      mm_check_mem(data);
     } else {
       ret =  hash_add_file(p TSRMLS_CC);
       efree(p);
