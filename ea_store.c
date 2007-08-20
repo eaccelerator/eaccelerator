@@ -39,6 +39,10 @@
 /* size.                                                                      */
 /******************************************************************************/
 
+// add the given length to the size var and aling it
+#define ADDSIZE(size, len) (size) += (len); \
+    EA_SIZE_ALIGN(size);
+
 #ifndef DEBUG
 inline
 #endif
@@ -70,8 +74,7 @@ static size_t calc_zval_ptr(zval ** from TSRMLS_DC)
 {
     size_t size = 0;
 
-    size += sizeof(zval);
-    EA_SIZE_ALIGN(size);
+    ADDSIZE(size, sizeof(zval));
     size += calc_zval(*from TSRMLS_CC);
 
     return size;
@@ -82,8 +85,7 @@ static size_t calc_property_info(zend_property_info * from TSRMLS_DC)
 {
     size_t size = 0;
 
-    size += sizeof(zend_property_info);
-    EA_SIZE_ALIGN(size);
+    ADDSIZE(size, sizeof(zend_property_info));
 
     size += calc_string(from->name, from->name_length + 1 TSRMLS_CC);
 #ifdef INCLUDE_DOC_COMMENTS
@@ -106,13 +108,11 @@ static size_t calc_hash_int(HashTable * source, Bucket * start,
 
     if (source->nNumOfElements > 0) {
         if (!EAG(compress)) {
-            size += source->nTableSize * sizeof(Bucket *);
-            EA_SIZE_ALIGN(size);
+            ADDSIZE(size, source->nTableSize * sizeof(Bucket *));
         }
         p = start;
         while (p) {
-            size += offsetof(Bucket, arKey) + p->nKeyLength;
-            EA_SIZE_ALIGN(size);
+            ADDSIZE(size, offsetof(Bucket, arKey) + p->nKeyLength);
             size += calc_bucket(p->pData TSRMLS_CC);
             p = p->pListNext;
         }
@@ -134,8 +134,7 @@ size_t calc_zval(zval *zv TSRMLS_DC)
         case IS_ARRAY:
         case IS_CONSTANT_ARRAY:
             if (Z_ARRVAL_P(zv) != NULL && Z_ARRVAL_P(zv) != &EG(symbol_table)) {
-                size += sizeof(HashTable);
-                EA_SIZE_ALIGN(size);
+                ADDSIZE(size, sizeof(HashTable));
                 size += calc_zval_hash(Z_ARRVAL_P(zv));
             }
             break;
@@ -158,11 +157,9 @@ static size_t calc_op_array(zend_op_array * from TSRMLS_DC)
     size_t size = 0;
 
     if (from->type == ZEND_INTERNAL_FUNCTION) {
-        size += sizeof(zend_internal_function);
-        EA_SIZE_ALIGN(size);
+        ADDSIZE(size, sizeof(zend_internal_function));
     } else if (from->type == ZEND_USER_FUNCTION) {
-        size += sizeof(ea_op_array);
-        EA_SIZE_ALIGN(size);
+        ADDSIZE(size, sizeof(ea_op_array));
     } else {
         DBG(ea_debug_error, ("[%d] EACCELERATOR can't cache function \"%s\"\n", getpid(), from->function_name));
         zend_bailout();
@@ -170,8 +167,7 @@ static size_t calc_op_array(zend_op_array * from TSRMLS_DC)
 #ifdef ZEND_ENGINE_2
     if (from->num_args > 0) {
         zend_uint i;
-        size += from->num_args * sizeof(zend_arg_info);
-        EA_SIZE_ALIGN(size);
+        ADDSIZE(size, from->num_args * sizeof(zend_arg_info));
         for (i = 0; i < from->num_args; i++) {
             if (from->arg_info[i].name) {
                 size += calc_string(from->arg_info[i].name, from->arg_info[i].name_len + 1 TSRMLS_CC);
@@ -207,8 +203,7 @@ static size_t calc_op_array(zend_op_array * from TSRMLS_DC)
     }
 
     if (from->opcodes != NULL) {
-        size += from->last * sizeof(zend_op);
-        EA_SIZE_ALIGN(size);
+        ADDSIZE(size, from->last * sizeof(zend_op));
 
         opline = from->opcodes;
         end = opline + from->last;
@@ -224,25 +219,21 @@ static size_t calc_op_array(zend_op_array * from TSRMLS_DC)
         EAG(compress) = 1;
     }
     if (from->brk_cont_array != NULL) {
-        size += sizeof(zend_brk_cont_element) * from->last_brk_cont;
-        EA_SIZE_ALIGN(size);
+        ADDSIZE(size, sizeof(zend_brk_cont_element) * from->last_brk_cont);
     }
 #ifdef ZEND_ENGINE_2
     if (from->try_catch_array != NULL) {
-        size += sizeof(zend_try_catch_element) * from->last_try_catch;
-        EA_SIZE_ALIGN(size);
+        ADDSIZE(size, sizeof(zend_try_catch_element) * from->last_try_catch);
     }
 #endif
     if (from->static_variables != NULL) {
-        size += sizeof(HashTable);
-        EA_SIZE_ALIGN(size);
+        ADDSIZE(size, sizeof(HashTable));
         size += calc_zval_hash(from->static_variables);
     }
 #ifdef ZEND_ENGINE_2_1
     if (from->vars != NULL) {
         int i;
-        size += sizeof(zend_compiled_variable) * from->last_var;
-        EA_SIZE_ALIGN(size);
+        ADDSIZE(size, sizeof(zend_compiled_variable) * from->last_var);
         for (i = 0; i < from->last_var; i ++) {
             size += calc_string(from->vars[i].name, from->vars[i].name_len+1 TSRMLS_CC);
         }
@@ -270,8 +261,7 @@ static size_t calc_class_entry(zend_class_entry * from TSRMLS_DC)
         DBG(ea_debug_error, ("[%d] EACCELERATOR can't cache internal class \"%s\"\n", getpid(), from->name));
         zend_bailout();
     }
-    size += sizeof(ea_class_entry);
-    EA_SIZE_ALIGN(size);
+    ADDSIZE(size, sizeof(ea_class_entry));
 
     if (from->name != NULL) {
         size += calc_string(from->name, from->name_length + 1 TSRMLS_CC);
@@ -299,8 +289,7 @@ static size_t calc_class_entry(zend_class_entry * from TSRMLS_DC)
 #  else
     if (from->static_members != NULL) {
 #  endif
-        size += sizeof(HashTable);
-        EA_SIZE_ALIGN(size);
+        ADDSIZE(size, sizeof(HashTable));
         size += calc_zval_hash(from->static_members);
     }
 #else
@@ -322,13 +311,11 @@ size_t calc_size(char *key, zend_op_array * op_array, Bucket * f, Bucket * c TSR
     size_t size = 0;
 
     zend_hash_init(&EAG(strings), 0, NULL, NULL, 0);
-    size += offsetof(ea_cache_entry, realfilename) + len + 1;
-    EA_SIZE_ALIGN(size);
+    ADDSIZE(size, offsetof(ea_cache_entry, realfilename) + len + 1);
     zend_hash_add(&EAG(strings), key, len + 1, &key, sizeof(char *), NULL);
     b = c;
     while (b != NULL) {
-        size += offsetof(ea_fc_entry, htabkey) + b->nKeyLength;
-        EA_SIZE_ALIGN(size);
+        ADDSIZE(size, offsetof(ea_fc_entry, htabkey) + b->nKeyLength);
 
         x = b->arKey;
         zend_hash_add(&EAG(strings), b->arKey, b->nKeyLength, &x, sizeof(char *), NULL);
@@ -336,8 +323,7 @@ size_t calc_size(char *key, zend_op_array * op_array, Bucket * f, Bucket * c TSR
     }
     b = f;
     while (b != NULL) {
-        size += offsetof(ea_fc_entry, htabkey) + b->nKeyLength;
-        EA_SIZE_ALIGN(size);
+        ADDSIZE(size, offsetof(ea_fc_entry, htabkey) + b->nKeyLength);
     
         x = b->arKey;
         zend_hash_add(&EAG(strings), b->arKey, b->nKeyLength, &x, sizeof(char *), NULL);
