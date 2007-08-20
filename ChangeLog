@@ -13,6 +13,12 @@
         * Disable 'User Cache' tab in control panel when not build with either
           session, shm or user cache functionality (which are all off by
           default)
+        * Added a creation timestamp to each cache object (shm and disk)
+        * Added ttl and creation timestamp display to
+          eaccelerator_cached_scripts() / control.php
+        * Changed some counters in ea_cache_entry from signed to unsigned
+          int
+        * Renamed some mmCache remnants && fixed typos/language
 
 2007-08-20  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 

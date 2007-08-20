@@ -107,10 +107,10 @@ extern dtor_func_t properties_info_dtor;
 #endif
 
 /* saved original functions */
-static zend_op_array *(*mm_saved_zend_compile_file)(zend_file_handle *file_handle, int type TSRMLS_DC);
+static zend_op_array *(*ea_saved_zend_compile_file)(zend_file_handle *file_handle, int type TSRMLS_DC);
 
 #ifdef DEBUG
-static void (*mm_saved_zend_execute)(zend_op_array *op_array TSRMLS_DC);
+static void (*ea_saved_zend_execute)(zend_op_array *op_array TSRMLS_DC);
 #endif
 
 /* external declarations */
@@ -164,7 +164,7 @@ static ea_cache_entry* hash_find_mm(const char  *key,
         }
         eaccelerator_mm_instance->hash_cnt--;
         if (p->use_cnt > 0) {
-          /* key is used by other process/thred. Shedule it to remove */
+          /* key is used by other process/thread. Shedule it for removal */
           p->removed = 1;
           p->next = eaccelerator_mm_instance->removed;
           eaccelerator_mm_instance->removed = p;
@@ -221,7 +221,7 @@ static void hash_add_mm(ea_cache_entry *x) {
       eaccelerator_mm_instance->hash_cnt--;
       eaccelerator_mm_instance->hash[slot]->nreloads += p->nreloads;
       if (p->use_cnt > 0) {
-        /* key is used by other process/thred. Shedule it to remove */
+        /* key is used by other process/thread. Shedule it to remove */
         p->removed = 1;
         p->next = eaccelerator_mm_instance->removed;
         eaccelerator_mm_instance->removed = p;
@@ -745,6 +745,7 @@ static ea_cache_entry* hash_find_file(const char  *key, struct stat *buf TSRMLS_
       } else {
         p->ttl = 0;
       }
+      p->ts       = hdr.ts;	/* get cached item creation timestamp from cache file */
       hash_add_mm(p);
     } else {
       p->use_cnt  = 0;
@@ -780,6 +781,7 @@ static int hash_add_file(ea_cache_entry *p TSRMLS_DC) {
     init_header(&hdr);
     hdr.size  = p->size;
     hdr.mtime = p->mtime;
+    hdr.ts    = p->ts;
     p->next = p;
     hdr.crc32 = eaccelerator_crc32((const char*)p,p->size);
     ret = (write(f, &hdr, sizeof(hdr)) == sizeof(hdr));
@@ -832,6 +834,7 @@ static int eaccelerator_store(char* key, struct stat *buf, int nreloads,
 		p = (ea_cache_entry *)EAG(mem);
     eaccelerator_store_int(p, key, len, op_array, f, c TSRMLS_CC);
     p->mtime    = buf->st_mtime;
+    p->ts       = EAG(req_start);
     p->filesize = buf->st_size;
     p->size     = size;
     p->nreloads = nreloads;
@@ -1113,7 +1116,6 @@ ZEND_DLEXPORT zend_op_array* eaccelerator_compile_file(zend_file_handle *file_ha
   struct stat buf;
   char  realname[MAXPATHLEN];
   int   nreloads;
-  time_t compile_time;
   int stat_result = 0;
 #ifdef DEBUG
   struct timeval tv_start;
@@ -1140,7 +1142,7 @@ ZEND_DLEXPORT zend_op_array* eaccelerator_compile_file(zend_file_handle *file_ha
       !eaccelerator_mm_instance->enabled || file_handle == NULL ||
       file_handle->filename == NULL || stat_result != 0 || !ok_to_cache) {
     DBG(ea_debug_printf, (EA_DEBUG, "\t[%d] compile_file: compiling\n", getpid()));
-    t = mm_saved_zend_compile_file(file_handle, type TSRMLS_CC);
+    t = ea_saved_zend_compile_file(file_handle, type TSRMLS_CC);
     DBG(ea_debug_printf, (EA_TEST_PERFORMANCE, "\t[%d] compile_file: end (%ld)\n", getpid(), ea_debug_elapsed_time(&tv_start)));
     DBG(ea_debug_printf, (EA_DEBUG, "\t[%d] compile_file: end\n", getpid()));
 #ifdef DEBUG
@@ -1155,12 +1157,11 @@ ZEND_DLEXPORT zend_op_array* eaccelerator_compile_file(zend_file_handle *file_ha
     zend_error(E_ERROR, "Can't load %s, open_basedir restriction.", file_handle->filename);
   }
 
-  compile_time = EAG(req_start);
-  if (buf.st_mtime >= compile_time && eaccelerator_debug > 0) {
+  if (buf.st_mtime >= EAG(req_start) && eaccelerator_debug > 0) {
 	ea_debug_log("EACCELERATOR: Warning: \"%s\" is cached but it's mtime is in the future.\n", file_handle->filename);
   }
 
-  t = eaccelerator_restore(realname, &buf, &nreloads, compile_time TSRMLS_CC);
+  t = eaccelerator_restore(realname, &buf, &nreloads, EAG(req_start) TSRMLS_CC);
 
 // segv74: really cheap work around to auto_global problem.
 //         it makes just in time to every time.
@@ -1261,7 +1262,7 @@ ZEND_DLEXPORT zend_op_array* eaccelerator_compile_file(zend_file_handle *file_ha
 	/* try to compile the script */
     ea_bailout = 0;
     zend_try {
-      t = mm_saved_zend_compile_file(file_handle, type TSRMLS_CC);
+      t = ea_saved_zend_compile_file(file_handle, type TSRMLS_CC);
     } zend_catch {
       CG(function_table) = orig_function_table;
       CG(class_table) = orig_class_table;
@@ -1381,7 +1382,7 @@ static void profile_execute(zend_op_array *op_array TSRMLS_DC)
   EAG(self_time)[EAG(profile_level)] = 0;
   EAG(profile_level)++;
   ea_debug_printf(EA_PROFILE_OPCODES, "About to enter zend_execute...\n");
-  mm_saved_zend_execute(op_array TSRMLS_CC);
+  ea_saved_zend_execute(op_array TSRMLS_CC);
   ea_debug_printf(EA_PROFILE_OPCODES, "Finished zend_execute...\n");
   usec = ea_debug_elapsed_time(&tv_start);
   EAG(profile_level)--;
@@ -1852,11 +1853,11 @@ PHP_MINIT_FUNCTION(eaccelerator) {
       zend_error(E_CORE_WARNING,"[%s] Can not create shared memory area", EACCELERATOR_EXTENSION_NAME);
       return FAILURE;
     }
-    mm_saved_zend_compile_file = zend_compile_file;
+    ea_saved_zend_compile_file = zend_compile_file;
 
 #ifdef DEBUG
     zend_compile_file = profile_compile_file;
-    mm_saved_zend_execute = zend_execute;
+    ea_saved_zend_execute = zend_execute;
     zend_execute = profile_execute;
 #else
     zend_compile_file = eaccelerator_compile_file;
@@ -1884,7 +1885,7 @@ PHP_MSHUTDOWN_FUNCTION(eaccelerator) {
   if (eaccelerator_mm_instance == NULL || !eaccelerator_is_extension) {
     return SUCCESS;
   }
-  zend_compile_file = mm_saved_zend_compile_file;
+  zend_compile_file = ea_saved_zend_compile_file;
 #ifdef WITH_EACCELERATOR_CONTENT_CACHING
   eaccelerator_content_cache_shutdown();
 #endif

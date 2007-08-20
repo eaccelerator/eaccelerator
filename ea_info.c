@@ -455,6 +455,8 @@ PHP_FUNCTION(eaccelerator_cached_scripts)
             array_init(script);
             add_assoc_string(script, "file", p->realfilename, 1);
             add_assoc_long(script, "mtime", p->mtime);
+            add_assoc_long(script, "ts", p->ts);
+            add_assoc_long(script, "ttl", p->ttl);
             add_assoc_long(script, "size", p->size);
             add_assoc_long(script, "reloads", p->nreloads);
             add_assoc_long(script, "usecount", p->use_cnt);

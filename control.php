@@ -473,9 +473,11 @@ switch ($sec) {
 <tr>
     <td class="h"><?php echo colheadstr('File', 0)?></td>
     <td class="h"><?php echo colheadstr('Last Modified', 1)?></td>
-    <td class="h"><?php echo colheadstr('Size', 2)?></td>
-    <td class="h"><?php echo colheadstr('Reloads', 3)?></td>
-    <td class="h"><?php echo colheadstr('Hits', 4)?></td>
+    <td class="h"><?php echo colheadstr('Added', 2)?></td>
+    <td class="h"><?php echo colheadstr('TTL', 3)?></td>
+    <td class="h"><?php echo colheadstr('Size', 4)?></td>
+    <td class="h"><?php echo colheadstr('Reloads', 5)?></td>
+    <td class="h"><?php echo colheadstr('Hits', 6)?></td>
 </tr>
 <?php
             $disassembler = function_exists('eaccelerator_dasm_file');
@@ -488,10 +490,21 @@ switch ($sec) {
                 } else {
                     $file_col = $scripts[$i]['file'];
                 }
+
+                if ($scripts[$i]['ttl'] != 0) {
+                    $ttl_col = $scripts[$i]['ttl'] - time();
+                    if ($ttl_col <= 0) {
+                        $ttl_col = "expired";
+                    }
+                } else {
+                    $ttl_col = "&infin;";
+                }
 ?>
 <tr>
     <td class="el"><small><?php echo $file_col ?></small></td>
     <td class="fl"><small><?php echo date('Y-m-d H:i:s', $scripts[$i]['mtime'])?></small></td>
+    <td class="fl"><small><?php echo date('Y-m-d H:i:s', $scripts[$i]['ts'])?></small></td>
+    <td class="fr"><small><?php echo $ttl_col ?></small></td>
     <td class="fr"><small><?php echo format_size($scripts[$i]['size'])?></small></td>
     <td class="fr"><small><?php echo $scripts[$i]['reloads']?> (<?php echo $scripts[$i]['usecount']?>)</small></td>
     <td class="fr"><small><?php echo number_format($scripts[$i]['hits'])?></small></td>

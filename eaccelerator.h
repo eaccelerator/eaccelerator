@@ -277,25 +277,26 @@ typedef struct _ea_fc_entry {
 
 
 /*
- * A mm_cache_entry is a bucket for one PHP script file.
- * Nested  functions and classes which defined in the file goes
- * into the list of mm_fc_entry.
+ * A ea_cache_entry is a bucket for one PHP script file.
+ * User functions and classes defined in the file go into
+ * the list of ea_fc_entry.
  */
 typedef struct _ea_cache_entry {
 	struct _ea_cache_entry *next;
 #ifdef EACCELERATOR_USE_INODE
-	dev_t st_dev;				/* file's device                     */
-	ino_t st_ino;				/* file's inode                      */
+	dev_t st_dev;				/* file's device                         */
+	ino_t st_ino;				/* file's inode                          */
 #else
-	unsigned int hv;			/* hash value                        */
+	unsigned int hv;			/* hash value                            */
 #endif
 	off_t filesize;				/* file size */
-	time_t mtime;				/* file last modification time       */
-	time_t ttl;					/* expiration time                   */
-	int size;					/* entry size (bytes)                */
-	int nhits;					/* hits count                        */
-	int nreloads;				/* count of reloads                  */
-	int use_cnt;				/* how many processes uses the entry */
+	time_t mtime;				/* file last modification time           */
+	time_t ttl;				/* expiration time (updated on each hit) */
+	time_t ts;				/* timestamp of cache entry              */
+	unsigned int size;			/* entry size (bytes)                    */
+	unsigned int nhits;			/* hits count                            */
+	unsigned int nreloads;			/* count of reloads                      */
+	int use_cnt;			/* how many processes uses the entry     */
 	ea_op_array *op_array;	/* script's global scope code        */
 	ea_fc_entry *f_head;		/* list of nested functions          */
 	ea_fc_entry *c_head;		/* list of nested classes            */
@@ -317,7 +318,7 @@ typedef struct _ea_user_cache_entry {
 } ea_user_cache_entry;
 
 /*
- * Linked list of mm_cache_entry which are used by process/thread
+ * Linked list of ea_cache_entry which are used by process/thread
  */
 typedef struct _ea_used_entry {
 	struct _ea_used_entry *next;
@@ -343,6 +344,7 @@ typedef struct _ea_file_header {
 	int php_version[2];
 	int size;
 	time_t mtime;
+	time_t ts;
 	unsigned int crc32;
 } ea_file_header;
 
