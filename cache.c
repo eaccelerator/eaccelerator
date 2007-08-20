@@ -248,8 +248,8 @@ int eaccelerator_put(const char *key, int key_len, zval * val, time_t ttl, ea_ca
         q->hv = zend_get_hash_value(xkey, xlen);
         memcpy(q->key, xkey, xlen + 1);
         memcpy(&q->value, val, sizeof(zval));
-        q->ttl = ttl ? time(0) + ttl : 0;
-        q->create = time(0);
+        q->ttl = ttl ? EAG(req_start) + ttl : 0;
+        q->create = EAG(req_start);
         /* set the refcount to 1 */
         q->value.refcount = 1;
         store_zval(&q->value TSRMLS_CC);
@@ -341,7 +341,7 @@ int eaccelerator_get(const char *key, int key_len, zval * return_value, ea_cache
         while (p != NULL) {
             if ((p->hv == hv) && (strcmp(p->key, xkey) == 0)) {
                 x = p;
-                if (p->ttl != 0 && p->ttl < time(0)) {
+                if (p->ttl != 0 && p->ttl < EAG(req_start)) {
                     if (q == NULL) {
                         eaccelerator_mm_instance->user_hash[slot] = p->next;
                     } else {
@@ -373,7 +373,6 @@ int eaccelerator_get(const char *key, int key_len, zval * return_value, ea_cache
      */
     if ((where == ea_shm_and_disk || where == ea_shm || where == ea_disk_only) && 
             eaccelerator_md5(s, "/eaccelerator-user-", xkey TSRMLS_CC)) {
-        time_t t = time(0);
         int use_shm = 1;
         int ret = 0;
         int f;
@@ -390,7 +389,7 @@ int eaccelerator_get(const char *key, int key_len, zval * return_value, ea_cache
                     efree(xkey);
                 return 0;
             }
-            if (hdr.mtime == 0 || hdr.mtime > t) {
+            if (hdr.mtime == 0 || hdr.mtime > EAG(req_start)) {
                 /*
                  * try to put it into shared memory 
                  */
@@ -548,14 +547,13 @@ int eaccelerator_rm(const char *key, int key_len, ea_cache_place where TSRMLS_DC
     }
     return 1;
 }
-#endif
 
 /* do garbage collection on the keys */
 size_t eaccelerator_gc(TSRMLS_D)
 {
     size_t size = 0;
     unsigned int i;
-    time_t t = time(0);
+    time_t t = EAG(req_start);
 
     if (eaccelerator_mm_instance == NULL) {
         return 0;
@@ -589,7 +587,6 @@ int eaccelerator_list_keys(zval *return_value TSRMLS_DC)
     zval *list;
     char *xkey = "";
     ea_user_cache_entry *p;
-    time_t t = time(0);
 
     // create key prefix for current host / namespace
     xlen = strlen(EAG(name_space));
@@ -622,7 +619,7 @@ int eaccelerator_list_keys(zval *return_value TSRMLS_DC)
                 }
                 
                 if (p->ttl) {
-                    if (p->ttl > t) {
+                    if (p->ttl > EAG(req_start)) {
                         add_assoc_long(list, "ttl", p->ttl); // ttl
                     } else {
                         add_assoc_long(list, "ttl", -1); // expired
@@ -644,6 +641,8 @@ int eaccelerator_list_keys(zval *return_value TSRMLS_DC)
     return 1;
 }
 #endif /* WITH_EACCELERATOR_INFO */
+
+#endif /* WITH_EACCELERATOR_CONTENT_CACHING) || WITH_EACCELERATOR_SESSIONS || WITH_EACCELERATOR_SHM */
 
 #endif /* HAVE_EACCELERATOR */
 

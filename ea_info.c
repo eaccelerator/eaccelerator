@@ -501,6 +501,7 @@ PHP_FUNCTION(eaccelerator_removed_scripts)
 }
 /* }}} */
 
+#if defined (WITH_EACCELERATOR_CONTENT_CACHING) || defined(WITH_EACCELERATOR_SESSIONS) || defined(WITH_EACCELERATOR_SHM)
 /* {{{ PHP_FUNCTION(eaccelerator_list_keys): returns list of keys in shared memory that matches actual hostname or namespace */
 PHP_FUNCTION(eaccelerator_list_keys)
 {
@@ -511,8 +512,9 @@ PHP_FUNCTION(eaccelerator_list_keys)
 	}
 }
 /* }}} */
-
 #endif
+
+#endif	/* WITH_EACCELERATOR_INFO */
 
 /*
  * Local variables:

@@ -438,8 +438,8 @@ struct ea_pattern_t {
  * Globals (different for each process/thread)
  */
 ZEND_BEGIN_MODULE_GLOBALS (eaccelerator)
-void *used_entries;				/* list of files which are used     */
-								/* by process/thread                */
+void *used_entries;			/* list of files which are used     */
+					/* by process/thread                */
 zend_bool enabled;
 zend_bool optimizer_enabled;
 zend_bool compression_enabled;
@@ -454,11 +454,14 @@ char *eaccelerator_log_file;
 char *name_space;
 char *mem;
 char *allowed_admin_path;
+time_t req_start;			/* time of request start (set in RINIT) */
 HashTable strings;
 HashTable restored;
 zend_class_entry *class_entry;
 zend_uint refcount_helper;
+#if defined(WITH_EACCELERATOR_CONTENT_CACHING) || defined(WITH_EACCELERATOR_SESSIONS) || defined(WITH_EACCELERATOR_SHM)
 char hostname[32];
+#endif
 struct ea_pattern_t *pattern_list;
 #ifdef WITH_EACCELERATOR_CRASH_DETECTION
 #ifdef SIGSEGV

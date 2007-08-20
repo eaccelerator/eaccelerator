@@ -272,7 +272,16 @@ $info = eaccelerator_info();
 <div class="head1"><span class="head1_item">eAccelerator control panel</span></div>
 <div class="head2">
 <?php
-$items = array(0 => 'Status', 1 => 'Script Cache', 2 => 'User Cache');
+/*
+    Check if eA was compiled with WITH_EACCELERATOR_CONTENT_CACHING) || WITH_EACCELERATOR_SESSIONS || WITH_EACCELERATOR_SHM 
+    if yes, show 'User Cache' tab, else dont
+*/
+if (function_exists(eaccelerator_list_keys)) {
+    $items = array(0 => 'Status', 1 => 'Script Cache', 2 => 'User Cache');
+} else {
+    $items = array(0 => 'Status', 1 => 'Script Cache');
+}
+
 foreach ($items as $i => $item) {
     echo '<span class="menuitem'.(($sec == $i)?'_sel':'').'" onmouseover="menusel(this)" onmouseout="menusel(this)" onclick="gosec('.$i.')">'.(($sec != $i)?'<a href="'.$_SERVER['PHP_SELF'].'?sec='.$i.'">'.$item.'</a>':$item).'</span>';
 }  

@@ -289,7 +289,7 @@ static int init_mm(TSRMLS_D) {
   eaccelerator_mm_instance->removed = NULL;
   eaccelerator_mm_instance->locks = NULL;
   eaccelerator_mm_instance->user_hash_cnt = 0;
-  eaccelerator_mm_instance->last_prune = time(0);
+  eaccelerator_mm_instance->last_prune = time(NULL);	/* this time() call is harmless since this is init phase */
   EACCELERATOR_PROTECT();
   return SUCCESS;
 }
@@ -462,7 +462,7 @@ int eaccelerator_md5(char* s, const char* prefix, const char* key TSRMLS_DC) {
   return 1;
 }
 
-/* Remove expired keys, content and scripts from the cache */
+/* Remove expired keys, content and scripts from the memory cache */
 void eaccelerator_prune(time_t t) {
   unsigned int i;
 
@@ -495,18 +495,18 @@ void eaccelerator_prune(time_t t) {
 /* Allocate a new cache chunk */
 void* eaccelerator_malloc2(size_t size TSRMLS_DC) {
   void *p = NULL;
-  time_t t;
 
+#if defined(WITH_EACCELERATOR_CONTENT_CACHING) || defined(WITH_EACCELERATOR_SESSIONS) || defined(WITH_EACCELERATOR_SHM)
   if (eaccelerator_gc(TSRMLS_C) > 0) {
     p = eaccelerator_malloc(size);
     if (p != NULL) {
       return p;
     }
   }
+#endif
   if (ea_shm_prune_period > 0) {
-    t = time(0);
-    if (t - eaccelerator_mm_instance->last_prune > ea_shm_prune_period) {
-      eaccelerator_prune(t);
+    if (EAG(req_start) - eaccelerator_mm_instance->last_prune > ea_shm_prune_period) {
+      eaccelerator_prune(EAG(req_start));
       p = eaccelerator_malloc(size);
     }
   }
@@ -739,7 +739,7 @@ static ea_cache_entry* hash_find_file(const char  *key, struct stat *buf TSRMLS_
       p->use_cnt  = 1;
       p->removed  = 0;
       if (ea_shm_ttl > 0) {
-        p->ttl = time(0) + ea_shm_ttl;
+        p->ttl = EAG(req_start) + ea_shm_ttl;
       } else {
         p->ttl = 0;
       }
@@ -808,7 +808,7 @@ static int eaccelerator_store(char* key, struct stat *buf, int nreloads,
   if (size == 0) {
     return 0;
   }
-  
+
   DBG(ea_debug_pad, (EA_DEBUG TSRMLS_CC));
   DBG(ea_debug_printf, (EA_DEBUG, "[%d] eaccelerator_store:  returned %d, mm=%x\n", getpid(), size, eaccelerator_mm_instance->mm));
   
@@ -835,7 +835,7 @@ static int eaccelerator_store(char* key, struct stat *buf, int nreloads,
 #endif
     if (use_shm) {
       if (ea_shm_ttl > 0) {
-        p->ttl = time(0) + ea_shm_ttl;
+        p->ttl = EAG(req_start) + ea_shm_ttl;
       } else {
         p->ttl = 0;
       }
@@ -1124,14 +1124,10 @@ ZEND_DLEXPORT zend_op_array* eaccelerator_compile_file(zend_file_handle *file_ha
   EAG(xpad)+=2;
 #endif
 
-  compile_time = time(0);
   stat_result = eaccelerator_stat(file_handle, realname, &buf TSRMLS_CC);
-  if (buf.st_mtime >= compile_time && eaccelerator_debug > 0) {
-	ea_debug_log("EACCELERATOR: Warning: \"%s\" is cached but it's mtime is in the future.\n", file_handle->filename);
-  }
 
   ok_to_cache = ea_match(EAG(pattern_list), file_handle->filename);
- 
+
   // eAccelerator isn't working, so just compile the file
   if (!EAG(enabled) || (eaccelerator_mm_instance == NULL) || 
       !eaccelerator_mm_instance->enabled || file_handle == NULL ||
@@ -1150,6 +1146,11 @@ ZEND_DLEXPORT zend_op_array* eaccelerator_compile_file(zend_file_handle *file_ha
   /* only restore file when open_basedir allows it */
   if (php_check_open_basedir(file_handle->filename TSRMLS_CC)) {
     zend_error(E_ERROR, "Can't load %s, open_basedir restriction.", file_handle->filename);
+  }
+
+  compile_time = EAG(req_start);
+  if (buf.st_mtime >= compile_time && eaccelerator_debug > 0) {
+	ea_debug_log("EACCELERATOR: Warning: \"%s\" is cached but it's mtime is in the future.\n", file_handle->filename);
   }
 
   t = eaccelerator_restore(realname, &buf, &nreloads, compile_time TSRMLS_CC);
@@ -1177,22 +1178,26 @@ ZEND_DLEXPORT zend_op_array* eaccelerator_compile_file(zend_file_handle *file_ha
 #ifdef ZEND_ENGINE_2
     if (file_handle->opened_path == NULL && file_handle->type != ZEND_HANDLE_STREAM) {
       file_handle->handle.stream.handle = (void*)1;
-      file_handle->opened_path = EAG(mem);
+      file_handle->opened_path = EAG(mem);	/* EAG(mem) = p->realfilename from eaccelerator_restore here */
+    }
 #else
     if (file_handle->opened_path == NULL && file_handle->type != ZEND_HANDLE_FP) {
       int dummy = 1;
-      file_handle->opened_path = EAG(mem);
+      file_handle->opened_path = EAG(mem);	/* EAG(mem) = p->realfilename from eaccelerator_restore here */
       zend_hash_add(&EG(included_files), file_handle->opened_path, strlen(file_handle->opened_path)+1, (void *)&dummy, sizeof(int), NULL);
       file_handle->handle.fp = NULL;
-#endif
     }
+#endif
+
     DBG(ea_debug_printf, (EA_TEST_PERFORMANCE, "\t[%d] compile_file: restored (%ld)\n", getpid(), ea_debug_elapsed_time(&tv_start)));
     DBG(ea_debug_printf, (EA_DEBUG, "\t[%d] compile_file: restored\n", getpid()));
 #ifdef DEBUG
     EAG(xpad)-=2;
 #endif
     DBG(ea_debug_printf, (EA_DEBUG, "[%d] Leave COMPILE\n", getpid()));
+
     return t;
+
   } else { // not in cache or must be recompiled
 		Bucket *function_table_tail;
 		Bucket *class_table_tail;
@@ -1266,10 +1271,12 @@ ZEND_DLEXPORT zend_op_array* eaccelerator_compile_file(zend_file_handle *file_ha
     EAG(compiler) = 0;
     if (t != NULL && file_handle->opened_path != NULL && (eaccelerator_check_mtime ||
          ((stat(file_handle->opened_path, &buf) == 0) && S_ISREG(buf.st_mode)))) {
+
       DBG(ea_debug_printf, (EA_TEST_PERFORMANCE, "\t[%d] compile_file: storing in cache (%ld)\n", getpid(), ea_debug_elapsed_time(&tv_start)));
       DBG(ea_debug_printf, (EA_DEBUG, "\t[%d] compile_file: storing in cache\n", getpid()));
       function_table_tail = function_table_tail ? function_table_tail->pListNext : CG(function_table)->pListHead;
       class_table_tail = class_table_tail ? class_table_tail->pListNext : CG(class_table)->pListHead;
+
       if (eaccelerator_store(file_handle->opened_path, &buf, nreloads, t, function_table_tail, class_table_tail TSRMLS_CC)) {
 #ifdef DEBUG
         ea_debug_log("[%d] EACCELERATOR %s: \"%s\"\n", getpid(), (nreloads == 1) ? "cached" : "re-cached", file_handle->opened_path);
@@ -1646,6 +1653,8 @@ void _fini(void)
 /* signal handlers */
 #ifdef WITH_EACCELERATOR_CRASH_DETECTION
 static void eaccelerator_crash_handler(int dummy) {
+  struct tm *loctime;
+
   TSRMLS_FETCH();
   fflush(stdout);
   fflush(stderr);
@@ -1685,15 +1694,19 @@ static void eaccelerator_crash_handler(int dummy) {
   }
 #endif
   eaccelerator_clean_request(TSRMLS_C);
+
+  loctime = localtime(&EAG(req_start));
+
   if (EG(active_op_array)) {
-    fprintf(stderr, "[%d] EACCELERATOR: PHP crashed on opline %ld of %s() at %s:%u\n\n",
+    fprintf(stderr, "[%s] [notice] EACCELERATOR(%d): PHP crashed on opline %ld of %s() at %s:%u\n\n",
+      asctime(loctime),
       getpid(),
       (long)(active_opline-EG(active_op_array)->opcodes),
       get_active_function_name(TSRMLS_C),
       zend_get_executed_filename(TSRMLS_C),
       zend_get_executed_lineno(TSRMLS_C));
   } else {
-    fprintf(stderr, "[%d] EACCELERATOR: PHP crashed\n\n",getpid());
+    fprintf(stderr, "[%s] [notice] EACCELERATOR(%d): PHP crashed\n\n", asctime(loctime), getpid());
   }
 #if !defined(WIN32) && !defined(NETWARE)
   kill(getpid(), dummy);
@@ -1716,7 +1729,9 @@ static void eaccelerator_init_globals(zend_eaccelerator_globals *eag)
 #endif
 	eag->eaccelerator_log_file = '\000';
 	eag->name_space = '\000';
+#if defined(WITH_EACCELERATOR_CONTENT_CACHING) || defined(WITH_EACCELERATOR_SESSIONS) || defined(WITH_EACCELERATOR_SHM)
 	eag->hostname[0] = '\000';
+#endif
 	eag->in_request = 0;
 	eag->allowed_admin_path= NULL;
 	eag->pattern_list = NULL;
@@ -1884,10 +1899,12 @@ PHP_MSHUTDOWN_FUNCTION(eaccelerator) {
 
 PHP_RINIT_FUNCTION(eaccelerator)
 {
+#if defined(WITH_EACCELERATOR_CONTENT_CACHING) || defined(WITH_EACCELERATOR_SESSIONS) || defined(WITH_EACCELERATOR_SHM)
   union {
 		zval **v;
     void *ptr;
   } server_vars, hostname;
+#endif
 
 	if (eaccelerator_mm_instance == NULL) {
 		return SUCCESS;
@@ -1902,7 +1919,9 @@ PHP_RINIT_FUNCTION(eaccelerator)
 	EAG(refcount_helper) = 1;
 	EAG(compress_content) = 1;
 	EAG(content_headers) = NULL;
+	EAG(req_start) = time(NULL);	/* record request start time for later use */
 
+#if defined(WITH_EACCELERATOR_CONTENT_CACHING) || defined(WITH_EACCELERATOR_SESSIONS) || defined(WITH_EACCELERATOR_SHM)
 	/* Storing Host Name */
 	EAG(hostname)[0] = '\000';
   if (zend_hash_find(&EG(symbol_table), "_SERVER", sizeof("_SERVER"), &server_vars.ptr) == SUCCESS &&
@@ -1916,10 +1935,10 @@ PHP_RINIT_FUNCTION(eaccelerator)
 			EAG(hostname)[sizeof(EAG(hostname))-1] = '\000';
 		}
   }
+#endif
 
 	zend_hash_init(&EAG(restored), 0, NULL, NULL, 0);
 
-	DBG(ea_debug_printf, (EA_DEBUG, "[%d] Leave RINIT\n",getpid()));
 #ifdef DEBUG
 	EAG(xpad) = 0;
 	EAG(profile_level) = 0;
@@ -1942,6 +1961,9 @@ PHP_RINIT_FUNCTION(eaccelerator)
 	EAG(original_sigabrt_handler) = signal(SIGABRT, eaccelerator_crash_handler);
 #endif
 #endif
+
+	DBG(ea_debug_printf, (EA_DEBUG, "[%d] Leave RINIT\n",getpid()));
+	
 	return SUCCESS;
 }
 
@@ -2023,7 +2045,9 @@ function_entry eaccelerator_functions[] = {
   PHP_FE(eaccelerator_purge, NULL)
   PHP_FE(eaccelerator_cached_scripts, NULL)
   PHP_FE(eaccelerator_removed_scripts, NULL)
+#  if defined(WITH_EACCELERATOR_CONTENT_CACHING) || defined(WITH_EACCELERATOR_SESSIONS) || defined(WITH_EACCELERATOR_SHM)
   PHP_FE(eaccelerator_list_keys, NULL)
+#  endif
 #endif
 #ifdef WITH_EACCELERATOR_CONTENT_CACHING
   PHP_FE(_eaccelerator_output_handler, NULL)

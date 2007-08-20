@@ -1,3 +1,18 @@
+2007-08-20  Hans Rakers <hans at react.nl>
+        * Changed crash handler error message format to Apache-style error log
+          format as suggested in ticket #217
+        * Fixed ticket #274
+        * Performance: eliminated a bunch of time() syscalls
+        * Performance: eliminated calls to eaccelerator_gc when not build with
+          either session, shm or user cache functionality (which are all off
+          by default)
+        * Disable eaccelerator_list_keys function when not build with either
+          session, shm or user cache functionality (which are all off by
+          default)
+        * Disable 'User Cache' tab in control panel when not build with either
+          session, shm or user cache functionality (which are all off by
+          default)
+
 2007-08-20  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
         * Rewrite the calc_* values so it no longer uses the EAG(mem) global.
 
@@ -11,8 +26,8 @@
 2007-08-14  Hans Rakers <hans at react.nl>
 
         * Optimizer fix for #242. PHP-5.2.1 introduces a ZEND_JMP before a
-	      ZEND_FETCH_CLASS/ZEND_CATCH which the optimizer did not handle
-	      correctly, resulting in uncaught exceptions. (Thanks to warwickshaw)
+          ZEND_FETCH_CLASS/ZEND_CATCH which the optimizer did not handle
+          correctly, resulting in uncaught exceptions. (Thanks to warwickshaw)
 
 2007-05-09  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
