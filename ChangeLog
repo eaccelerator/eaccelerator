@@ -14,7 +14,8 @@
           default)
 
 2007-08-20  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
-        * Rewrite the calc_* values so it no longer uses the EAG(mem) global.
+        * Rewrite the calc_* funtions so they no longer uses the EAG(mem) global.
+        * Rewrite the fixup_* functions they no longer use the EAG(mem) global
 
 2007-08-19  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
         * Fix an E_NOTICE error in the control panel

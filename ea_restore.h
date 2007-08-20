@@ -28,9 +28,9 @@
 #ifndef EA_RESTORE_H
 #define EA_RESTORE_H
 
-#define FIXUP(x) if((x)!=NULL) {(x) = (void*)(((char*)(x)) + ((long)(EAG(mem))));}
-void fixup_zval(zval *z TSRMLS_DC);
-void eaccelerator_fixup (ea_cache_entry * p TSRMLS_DC);
+#define FIXUP(b, x) if((x)!=NULL) {(x) = (void*)(((char*)(x)) + ((long)(b)));}
+void fixup_zval(char *base, zval *z TSRMLS_DC);
+void eaccelerator_fixup(ea_cache_entry * p TSRMLS_DC);
 
 void restore_zval(zval *zv TSRMLS_DC);
 void restore_class(ea_fc_entry *p TSRMLS_DC);

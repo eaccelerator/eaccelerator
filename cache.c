@@ -415,7 +415,7 @@ int eaccelerator_get(const char *key, int key_len, zval * return_value, ea_cache
                             && hdr.crc32 == eaccelerator_crc32((const char *) p, p->size)) {
                         EAG(mem) = (char *) ((long) p - (long) p->next);
                         EAG(compress) = 1;
-                        fixup_zval(&p->value TSRMLS_CC);
+                        fixup_zval(((char *) ((long) p - (long) p->next)), &p->value TSRMLS_CC);
 
                         if (strcmp(xkey, p->key) != 0) {
                             if (use_shm) {
