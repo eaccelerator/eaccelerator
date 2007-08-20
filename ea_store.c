@@ -35,21 +35,24 @@
 /******************************************************************************/
 /* Functions to calculate the size of different structure that a compiled php */
 /* script contains.                                                           */
+/* Each function needs to return a size that is aligned to the machine word   */
+/* size.                                                                      */
 /******************************************************************************/
 
 #ifndef DEBUG
 inline
 #endif
-static void calc_string(char *str, int len TSRMLS_DC)
+static size_t calc_string(char *str, int len TSRMLS_DC)
 {
 	if (len > MAX_DUP_STR_LEN || 
             zend_hash_add(&EAG(strings), str, len, &str, sizeof(char *), NULL) == SUCCESS) {
-		EACCELERATOR_ALIGN(EAG(mem));
-		EAG(mem) += len;
+        EA_SIZE_ALIGN(len);
+        return len;
 	}
+    return 0;
 }
 
-typedef void (*calc_bucket_t) (void *TSRMLS_DC);
+typedef size_t (*calc_bucket_t) (void * TSRMLS_DC);
 
 #define calc_hash_ex(from, start, calc_bucket) \
   calc_hash_int(from, start, calc_bucket TSRMLS_CC)
@@ -63,87 +66,103 @@ typedef void (*calc_bucket_t) (void *TSRMLS_DC);
 #define calc_zval_hash_ex(from, start) \
   calc_hash_ex(from, start, (calc_bucket_t)calc_zval_ptr)
 
-
-static void calc_zval_ptr(zval ** from TSRMLS_DC)
+static size_t calc_zval_ptr(zval ** from TSRMLS_DC)
 {
-	EACCELERATOR_ALIGN(EAG(mem));
-	EAG(mem) += sizeof(zval);
-	calc_zval(*from TSRMLS_CC);
+    size_t size = 0;
+
+	size += sizeof(zval);
+    EA_SIZE_ALIGN(size);
+	size += calc_zval(*from TSRMLS_CC);
+
+    return size;
 }
 
 #ifdef ZEND_ENGINE_2
-static void calc_property_info(zend_property_info * from TSRMLS_DC)
+static size_t calc_property_info(zend_property_info * from TSRMLS_DC)
 {
-	EACCELERATOR_ALIGN(EAG(mem));
-	EAG(mem) += sizeof(zend_property_info);
-	calc_string(from->name, from->name_length + 1 TSRMLS_CC);
+    size_t size = 0;
+
+	size += sizeof(zend_property_info);
+    EA_SIZE_ALIGN(size);
+
+	size += calc_string(from->name, from->name_length + 1 TSRMLS_CC);
 #ifdef INCLUDE_DOC_COMMENTS
 #ifdef ZEND_ENGINE_2_1
      if (from->doc_comment != NULL) {
-        calc_string(from->doc_comment, from->doc_comment_len + 1 TSRMLS_CC);
+        size += calc_string(from->doc_comment, from->doc_comment_len + 1 TSRMLS_CC);
      }
 #endif
 #endif
+     return size;
 }
 #endif
 
 /* Calculate the size of an HashTable */
-static void calc_hash_int(HashTable * source, Bucket * start,
+static size_t calc_hash_int(HashTable * source, Bucket * start,
 						  calc_bucket_t calc_bucket TSRMLS_DC)
 {
 	Bucket *p;
+    size_t size = 0;
 
 	if (source->nNumOfElements > 0) {
 		if (!EAG(compress)) {
-			EACCELERATOR_ALIGN(EAG(mem));
-			EAG(mem) += source->nTableSize * sizeof(Bucket *);
+			size += source->nTableSize * sizeof(Bucket *);
+            EA_SIZE_ALIGN(size);
 		}
 		p = start;
 		while (p) {
-			EACCELERATOR_ALIGN(EAG(mem));
-			EAG(mem) += offsetof(Bucket, arKey) + p->nKeyLength;
-			calc_bucket(p->pData TSRMLS_CC);
+			size += offsetof(Bucket, arKey) + p->nKeyLength;
+            EA_SIZE_ALIGN(size);
+			size += calc_bucket(p->pData TSRMLS_CC);
 			p = p->pListNext;
 		}
 	}
+    return size;
 }
 
-void calc_zval(zval * zv TSRMLS_DC)
+size_t calc_zval(zval *zv TSRMLS_DC)
 {
+    size_t size = 0;
+
 	switch (Z_TYPE_P(zv) & ~IS_CONSTANT_INDEX) {
-	case IS_CONSTANT:
-    case IS_OBJECT: /* object should have been serialized before storing them */
-	case IS_STRING:
-		calc_string(Z_STRVAL_P(zv), Z_STRLEN_P(zv) + 1 TSRMLS_CC);
-		break;
-	case IS_ARRAY:
-	case IS_CONSTANT_ARRAY:
-		if (Z_ARRVAL_P(zv) != NULL && Z_ARRVAL_P(zv) != &EG(symbol_table)) {
-			EACCELERATOR_ALIGN(EAG(mem));
-			EAG(mem) += sizeof(HashTable);
-			calc_zval_hash(Z_ARRVAL_P(zv));
-		}
-		break;
-	case IS_RESOURCE:
-		DBG(ea_debug_error, ("[%d] EACCELERATOR can't cache resources\n", getpid()));
-		zend_bailout();
-	default:
-		break;
+    	case IS_CONSTANT:
+        case IS_OBJECT: /* object should have been serialized before storing them */
+    	case IS_STRING:
+    		size += calc_string(Z_STRVAL_P(zv), Z_STRLEN_P(zv) + 1 TSRMLS_CC);
+    		break;
+
+    	case IS_ARRAY:
+    	case IS_CONSTANT_ARRAY:
+    		if (Z_ARRVAL_P(zv) != NULL && Z_ARRVAL_P(zv) != &EG(symbol_table)) {
+    			size += sizeof(HashTable);
+                EA_SIZE_ALIGN(size);
+    			size += calc_zval_hash(Z_ARRVAL_P(zv));
+    		}
+    		break;
+
+    	case IS_RESOURCE:
+    		DBG(ea_debug_error, ("[%d] EACCELERATOR can't cache resources\n", getpid()));
+    		zend_bailout();
+            break;
+    	default:
+    		break;
 	}
+    return size;
 }
 
 /* Calculate the size of an op_array */
-static void calc_op_array(zend_op_array * from TSRMLS_DC)
+static size_t calc_op_array(zend_op_array * from TSRMLS_DC)
 {
 	zend_op *opline;
 	zend_op *end;
+    size_t size = 0;
 
 	if (from->type == ZEND_INTERNAL_FUNCTION) {
-		EACCELERATOR_ALIGN(EAG(mem));
-		EAG(mem) += sizeof(zend_internal_function);
+		size += sizeof(zend_internal_function);
+        EA_SIZE_ALIGN(size);
 	} else if (from->type == ZEND_USER_FUNCTION) {
-		EACCELERATOR_ALIGN(EAG(mem));
-		EAG(mem) += sizeof(ea_op_array);
+		size += sizeof(ea_op_array);
+        EA_SIZE_ALIGN(size);
 	} else {
 		DBG(ea_debug_error, ("[%d] EACCELERATOR can't cache function \"%s\"\n", getpid(), from->function_name));
 		zend_bailout();
@@ -151,174 +170,195 @@ static void calc_op_array(zend_op_array * from TSRMLS_DC)
 #ifdef ZEND_ENGINE_2
 	if (from->num_args > 0) {
 		zend_uint i;
-		EACCELERATOR_ALIGN(EAG(mem));
-		EAG(mem) += from->num_args * sizeof(zend_arg_info);
+		size += from->num_args * sizeof(zend_arg_info);
+        EA_SIZE_ALIGN(size);
 		for (i = 0; i < from->num_args; i++) {
-			if (from->arg_info[i].name)
-				calc_string(from->arg_info[i].name, from->arg_info[i].name_len + 1 TSRMLS_CC);
-			if (from->arg_info[i].class_name)
-				calc_string(from->arg_info[i].class_name, from->arg_info[i].class_name_len + 1 TSRMLS_CC);
+			if (from->arg_info[i].name) {
+				size += calc_string(from->arg_info[i].name, from->arg_info[i].name_len + 1 TSRMLS_CC);
+            }
+			if (from->arg_info[i].class_name) {
+				size += calc_string(from->arg_info[i].class_name, from->arg_info[i].class_name_len + 1 TSRMLS_CC);
+            }
 		}
 	}
 #else
-	if (from->arg_types != NULL)
-		calc_string((char *) from->arg_types, (from->arg_types[0] + 1) * sizeof(zend_uchar) TSRMLS_CC);
+	if (from->arg_types != NULL) {
+	    size += calc_string((char *) from->arg_types, (from->arg_types[0] + 1) * sizeof(zend_uchar) TSRMLS_CC);
+    }
 #endif
-	if (from->function_name != NULL)
-		calc_string(from->function_name, strlen(from->function_name) + 1 TSRMLS_CC);
+	if (from->function_name != NULL) {
+		size += calc_string(from->function_name, strlen(from->function_name) + 1 TSRMLS_CC);
+    }
 #ifdef ZEND_ENGINE_2
 	if (from->scope != NULL) {
 		// HOESH: the same problem?
 		Bucket *q = CG(class_table)->pListHead;
 		while (q != NULL) {
 			if (*(zend_class_entry **) q->pData == from->scope) {
-				calc_string(q->arKey, q->nKeyLength TSRMLS_CC);
+				size += calc_string(q->arKey, q->nKeyLength TSRMLS_CC);
 				break;
 			}
 			q = q->pListNext;
 		}
 	}
 #endif
-	if (from->type == ZEND_INTERNAL_FUNCTION)
+	if (from->type == ZEND_INTERNAL_FUNCTION) {
 		return;
+    }
 
 	if (from->opcodes != NULL) {
-		EACCELERATOR_ALIGN(EAG(mem));
-		EAG(mem) += from->last * sizeof(zend_op);
+        size += from->last * sizeof(zend_op);
+        EA_SIZE_ALIGN(size);
 
 		opline = from->opcodes;
 		end = opline + from->last;
 		EAG(compress) = 0;
 		for (; opline < end; opline++) {
-			if (opline->op1.op_type == IS_CONST)
-				calc_zval(&opline->op1.u.constant TSRMLS_CC);
-			if (opline->op2.op_type == IS_CONST)
-				calc_zval(&opline->op2.u.constant TSRMLS_CC);
+			if (opline->op1.op_type == IS_CONST) {
+				size += calc_zval(&opline->op1.u.constant TSRMLS_CC);
+            }
+			if (opline->op2.op_type == IS_CONST) {
+				size += calc_zval(&opline->op2.u.constant TSRMLS_CC);
+            }
 		}
 		EAG(compress) = 1;
 	}
 	if (from->brk_cont_array != NULL) {
-		EACCELERATOR_ALIGN(EAG(mem));
-		EAG(mem) += sizeof(zend_brk_cont_element) * from->last_brk_cont;
+		size += sizeof(zend_brk_cont_element) * from->last_brk_cont;
+        EA_SIZE_ALIGN(size);
 	}
 #ifdef ZEND_ENGINE_2
 	if (from->try_catch_array != NULL) {
-		EACCELERATOR_ALIGN(EAG(mem));
-		EAG(mem) += sizeof(zend_try_catch_element) * from->last_try_catch;
+		size += sizeof(zend_try_catch_element) * from->last_try_catch;
+        EA_SIZE_ALIGN(size);
 	}
 #endif
 	if (from->static_variables != NULL) {
-		EACCELERATOR_ALIGN(EAG(mem));
-		EAG(mem) += sizeof(HashTable);
-		calc_zval_hash(from->static_variables);
+		size += sizeof(HashTable);
+        EA_SIZE_ALIGN(size);
+		size += calc_zval_hash(from->static_variables);
 	}
 #ifdef ZEND_ENGINE_2_1
 	if (from->vars != NULL) {
 		int i;
-		EACCELERATOR_ALIGN(EAG(mem));
-		EAG(mem) += sizeof(zend_compiled_variable) * from->last_var;
+		size += sizeof(zend_compiled_variable) * from->last_var;
+        EA_SIZE_ALIGN(size);
 		for (i = 0; i < from->last_var; i ++) {
-			calc_string(from->vars[i].name, from->vars[i].name_len+1 TSRMLS_CC);
+			size += calc_string(from->vars[i].name, from->vars[i].name_len+1 TSRMLS_CC);
 		}
 	}
 #endif
-	if (from->filename != NULL)
-		calc_string(from->filename, strlen(from->filename) + 1 TSRMLS_CC);
+	if (from->filename != NULL) {
+		size += calc_string(from->filename, strlen(from->filename) + 1 TSRMLS_CC);
+    }
 #ifdef INCLUDE_DOC_COMMENTS
 #ifdef ZEND_ENGINE_2
-    if (from->doc_comment != NULL)
-        calc_string(from->doc_comment, from->doc_comment_len + 1 TSRMLS_CC);
+    if (from->doc_comment != NULL) {
+        size += calc_string(from->doc_comment, from->doc_comment_len + 1 TSRMLS_CC);
+    }
 #endif
 #endif
+
+    return size;
 }
 
 /* Calculate the size of a class entry */
-static void calc_class_entry(zend_class_entry * from TSRMLS_DC)
+static size_t calc_class_entry(zend_class_entry * from TSRMLS_DC)
 {
+    size_t size = 0;
 	if (from->type != ZEND_USER_CLASS) {
 		DBG(ea_debug_error, ("[%d] EACCELERATOR can't cache internal class \"%s\"\n", getpid(), from->name));
 		zend_bailout();
 	}
-	EACCELERATOR_ALIGN(EAG(mem));
-	EAG(mem) += sizeof(ea_class_entry);
+	size += sizeof(ea_class_entry);
+    EA_SIZE_ALIGN(size);
 
-	if (from->name != NULL)
-		calc_string(from->name, from->name_length + 1 TSRMLS_CC);
-	if (from->parent != NULL && from->parent->name)
-		calc_string(from->parent->name, from->parent->name_length + 1 TSRMLS_CC);
+	if (from->name != NULL) {
+		size += calc_string(from->name, from->name_length + 1 TSRMLS_CC);
+    }
+	if (from->parent != NULL && from->parent->name) {
+		size += calc_string(from->parent->name, from->parent->name_length + 1 TSRMLS_CC);
+    }
 #ifdef ZEND_ENGINE_2
-	if (from->filename != NULL)
-		calc_string(from->filename, strlen(from->filename) + 1 TSRMLS_CC);
+	if (from->filename != NULL) {
+		size += calc_string(from->filename, strlen(from->filename) + 1 TSRMLS_CC);
+    }
 #ifdef INCLUDE_DOC_COMMENTS
-     if (from->doc_comment != NULL) 
-        calc_string(from->doc_comment, from->doc_comment_len + 1 TSRMLS_CC);
+     if (from->doc_comment != NULL) {
+        size += calc_string(from->doc_comment, from->doc_comment_len + 1 TSRMLS_CC);
+     }
 #endif
 	
-    calc_zval_hash(&from->constants_table);
-	calc_zval_hash(&from->default_properties);
-	calc_hash(&from->properties_info, (calc_bucket_t) calc_property_info);
+    size += calc_zval_hash(&from->constants_table);
+	size += calc_zval_hash(&from->default_properties);
+	size += calc_hash(&from->properties_info, (calc_bucket_t) calc_property_info);
 
 #  ifdef ZEND_ENGINE_2_1
-	calc_zval_hash(&from->default_static_members);
+	size += calc_zval_hash(&from->default_static_members);
 	if ((from->static_members != NULL) && (from->static_members != &from->default_static_members)) {
 #  else
 	if (from->static_members != NULL) {
 #  endif
-		EACCELERATOR_ALIGN(EAG(mem));
-		EAG(mem) += sizeof(HashTable);
-		calc_zval_hash(from->static_members);
+		size += sizeof(HashTable);
+        EA_SIZE_ALIGN(size);
+		size += calc_zval_hash(from->static_members);
 	}
 #else
-	calc_zval_hash(&from->default_properties);
+	size += calc_zval_hash(&from->default_properties);
 #endif
-	calc_hash(&from->function_table, (calc_bucket_t) calc_op_array);
+	size += calc_hash(&from->function_table, (calc_bucket_t) calc_op_array);
+
+    return size;
 }
 
 /* Calculate the size of a cache entry with its given op_array and function and
    class bucket */
-int calc_size(char *key, zend_op_array * op_array, Bucket * f, Bucket * c TSRMLS_DC)
+size_t calc_size(char *key, zend_op_array * op_array, Bucket * f, Bucket * c TSRMLS_DC)
 {
 	Bucket *b;
 	char *x;
 	int len = strlen(key);
 	EAG(compress) = 1;
-	EAG(mem) = NULL;
+    size_t size = 0;
 
 	zend_hash_init(&EAG(strings), 0, NULL, NULL, 0);
-	EAG(mem) += offsetof(ea_cache_entry, realfilename) + len + 1;
+	size += offsetof(ea_cache_entry, realfilename) + len + 1;
+    EA_SIZE_ALIGN(size);
 	zend_hash_add(&EAG(strings), key, len + 1, &key, sizeof(char *), NULL);
 	b = c;
 	while (b != NULL) {
-		EACCELERATOR_ALIGN(EAG(mem));
-		EAG(mem) += offsetof(ea_fc_entry, htabkey) + b->nKeyLength;
+		size += offsetof(ea_fc_entry, htabkey) + b->nKeyLength;
+        EA_SIZE_ALIGN(size);
+
 		x = b->arKey;
 		zend_hash_add(&EAG(strings), b->arKey, b->nKeyLength, &x, sizeof(char *), NULL);
 		b = b->pListNext;
 	}
 	b = f;
 	while (b != NULL) {
-		EACCELERATOR_ALIGN(EAG(mem));
-		EAG(mem) += offsetof(ea_fc_entry, htabkey) + b->nKeyLength;
+		size += offsetof(ea_fc_entry, htabkey) + b->nKeyLength;
+        EA_SIZE_ALIGN(size);
+    
 		x = b->arKey;
 		zend_hash_add(&EAG(strings), b->arKey, b->nKeyLength, &x, sizeof(char *), NULL);
 		b = b->pListNext;
 	}
 	while (c != NULL) {
 #ifdef ZEND_ENGINE_2
-		calc_class_entry(*(zend_class_entry **) c->pData TSRMLS_CC);
+		size += calc_class_entry(*(zend_class_entry **) c->pData TSRMLS_CC);
 #else
-		calc_class_entry((zend_class_entry *) c->pData TSRMLS_CC);
+		size += calc_class_entry((zend_class_entry *) c->pData TSRMLS_CC);
 #endif
 		c = c->pListNext;
 	}
 	while (f != NULL) {
-		calc_op_array((zend_op_array *) f->pData TSRMLS_CC);
+		size += calc_op_array((zend_op_array *) f->pData TSRMLS_CC);
 		f = f->pListNext;
 	}
-	calc_op_array(op_array TSRMLS_CC);
-	EACCELERATOR_ALIGN(EAG(mem));
+	size += calc_op_array(op_array TSRMLS_CC);
 	zend_hash_destroy(&EAG(strings));
-	return (size_t) EAG(mem);
+
+	return size;
 }
 
 static inline char *store_string(char *str, int len TSRMLS_DC)

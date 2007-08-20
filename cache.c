@@ -218,11 +218,9 @@ int eaccelerator_put(const char *key, int key_len, zval * val, time_t ttl, ea_ca
     EAG(mem) = NULL;
     zend_hash_init(&EAG(strings), 0, NULL, NULL, 0);
     EACCELERATOR_ALIGN(EAG(mem));
-    EAG(mem) += offsetof(ea_user_cache_entry, key) + xlen + 1;
-    calc_zval(val TSRMLS_CC);
+    size = offsetof(ea_user_cache_entry, key) + xlen + 1;
+    size += calc_zval(val TSRMLS_CC);
     zend_hash_destroy(&EAG(strings));
-
-    size = (long) EAG(mem);
 
     EAG(mem) = NULL;
     if (eaccelerator_mm_instance != NULL && (where == ea_shm_and_disk || where == ea_shm || where == ea_shm_only)) {
