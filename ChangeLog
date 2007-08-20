@@ -1,4 +1,5 @@
 2007-08-20  Hans Rakers <hans at react.nl>
+
         * Changed crash handler error message format to Apache-style error log
           format as suggested in ticket #217
         * Fixed ticket #274
@@ -14,14 +15,21 @@
           default)
 
 2007-08-20  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
+
         * Rewrite the calc_* funtions so they no longer uses the EAG(mem) global.
-        * Rewrite the fixup_* functions they no longer use the EAG(mem) global
+        * Rewrite the fixup_* functions so they no longer use the EAG(mem) global.
+        * Rewrite store_* functions so they no longer use the EAG(mem) global.
+        * Add code that checks the shared memory chunks if needed to make sure
+          no data was written past the boundary. Change #undef MM_CHECK in mm.c
+          to #define MM_CHECK
 
 2007-08-19  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
+
         * Fix an E_NOTICE error in the control panel
         * Improve storing of objects and fix bug #264
 
 2007-08-16  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
+
         * Fix a typo in the config file. #269
 
 2007-08-14  Hans Rakers <hans at react.nl>

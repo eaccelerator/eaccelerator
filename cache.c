@@ -252,7 +252,7 @@ int eaccelerator_put(const char *key, int key_len, zval * val, time_t ttl, ea_ca
         q->create = EAG(req_start);
         /* set the refcount to 1 */
         q->value.refcount = 1;
-        store_zval(&q->value TSRMLS_CC);
+        store_zval(&EAG(mem), &q->value TSRMLS_CC);
         zend_hash_destroy(&EAG(strings));
 
         /*

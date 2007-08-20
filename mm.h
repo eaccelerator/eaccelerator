@@ -66,6 +66,7 @@ size_t _mm_sizeof(MM* mm, void* x);
 
 const char* mm_shm_type();
 const char* mm_sem_type();
+void mm_check_mem(void *x);
 
 #define MM_PROT_NONE  1
 #define MM_PROT_READ  2
