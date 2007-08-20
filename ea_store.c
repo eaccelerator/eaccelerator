@@ -199,7 +199,7 @@ static size_t calc_op_array(zend_op_array * from TSRMLS_DC)
     }
 #endif
     if (from->type == ZEND_INTERNAL_FUNCTION) {
-        return;
+        return size;
     }
 
     if (from->opcodes != NULL) {
@@ -915,7 +915,8 @@ void eaccelerator_store_int(ea_cache_entry *entry, char *key, int len, zend_op_a
     zend_hash_init(&EAG(strings), 0, NULL, NULL, 0);
 
     p = (char *)entry;
-    ALLOCATE(&p, offsetof(ea_cache_entry, realfilename) + len + 1);
+    x = ALLOCATE(&p, offsetof(ea_cache_entry, realfilename) + len + 1);
+    x = NULL;
 
     entry->nhits = 0;
     entry->use_cnt = 0;

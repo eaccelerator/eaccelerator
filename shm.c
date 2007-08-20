@@ -102,7 +102,7 @@ PHP_FUNCTION (eaccelerator_put)
 {
 	char *key;
 	int key_len;
-	zval *val, *result;
+	zval *val, *result = NULL;
 	time_t ttl = 0;
 	long where = eaccelerator_keys_cache_place;
     int ret_val = 0;
@@ -153,7 +153,6 @@ PHP_FUNCTION (eaccelerator_get)
         if ((Z_TYPE_P(return_value) & ~IS_CONSTANT_INDEX) == IS_OBJECT) {
             const unsigned char *p;
             php_unserialize_data_t var_hash;
-            zval *object;
 
             /*
              * We serialized the object to a string but stored the object type 
@@ -164,8 +163,8 @@ PHP_FUNCTION (eaccelerator_get)
             PHP_VAR_UNSERIALIZE_INIT(var_hash);
             p = (const unsigned char *)Z_STRVAL_P(return_value);
             if (!php_var_unserialize(&return_value, &p, p + Z_STRLEN_P(return_value), &var_hash TSRMLS_CC)) {
-                zval_dtor(object);
-                Z_TYPE_P(object) = IS_NULL;
+                zval_dtor(return_value);
+                Z_TYPE_P(return_value) = IS_NULL;
             }
             PHP_VAR_UNSERIALIZE_DESTROY(var_hash);
         }

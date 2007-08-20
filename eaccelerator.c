@@ -367,6 +367,7 @@ void encode_version(const char *str, int *version, int *extra)
     *extra = ((a & 0xf) << 28) | (0x0fffffff & b);
 }
 
+#ifdef DEBUG
 static void decode_version(int version, int extra, char *str, size_t len)
 {
     int number;
@@ -405,6 +406,7 @@ static void decode_version(int version, int extra, char *str, size_t len)
         }
     }
 }
+#endif
 
 static char num2hex[] = {'0','1','2','3','4','5','6','7','8','9','a','b','c','d','e','f'};
 
