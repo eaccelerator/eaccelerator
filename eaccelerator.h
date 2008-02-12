@@ -49,6 +49,10 @@
 #   define ZEND_ENGINE_2_2
 #endif
 
+#if PHP_MAJOR_VERSION == 5 && PHP_MINOR_VERSION >= 3
+#   define ZEND_ENGINE_2_3
+#endif
+
 /* fixes compile errors on php5.1 */
 #ifdef STR_EMPTY_ALLOC
 #	define empty_string STR_EMPTY_ALLOC()

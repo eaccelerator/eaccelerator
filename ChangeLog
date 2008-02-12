@@ -1,3 +1,7 @@
+2008-02-12  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
+		
+		* Add new opcodes introduced in PHP 5.3
+
 2007-08-20  Hans Rakers <hans at react.nl>
 
         * Changed crash handler error message format to Apache-style error log

@@ -147,7 +147,11 @@ static const opcode_dsc opcodes[] = {
 #else
   OPDEF("NEW",                       EXT_UNUSED | OP1_STD    | OP2_UNUSED | RES_VAR), /* 68 */
 #endif
+#ifdef ZEND_ENGINE_2_3
+  OPDEF("INIT_NS_FCALL_BY_NAME",     EXT_STD    | OP1_STD    | OP1_STD    | RES_STD), /* 69 */
+#else
   OPDEF("JMP_NO_CTOR",               EXT_UNUSED | OP1_STD    | OP2_OPLINE | RES_UNUSED), /* 69 */
+#endif
   OPDEF("FREE",                      EXT_UNUSED | OP1_TMP    | OP2_UNUSED | RES_UNUSED), /* 70 */
   OPDEF("INIT_ARRAY",                EXT_BIT    | OP1_STD    | OP2_STD    | RES_TMP), /* 71 */
   OPDEF("ADD_ARRAY_ELEMENT",         EXT_BIT    | OP1_STD    | OP2_STD    | RES_TMP), /* 72 */
@@ -238,7 +242,11 @@ static const opcode_dsc opcodes[] = {
   OPDEF("DECLARE_INHERITED_CLASS",   EXT_CLASS  | OP1_STD    | OP2_STD    | RES_CLASS), /* 140 */
   OPDEF("DECLARE_FUNCTION",          EXT_UNUSED | OP1_STD    | OP2_STD    | RES_UNUSED), /* 141 */
   OPDEF("RAISE_ABSTRACT_ERROR",      EXT_UNUSED | OP1_UNUSED | OP2_UNUSED | RES_UNUSED), /* 142 */
+#ifdef ZEND_ENGINE_2_3
+  OPDEF("DECLARE_CONST",             EXT_DECLARE| OP1_STD    | OP2_STD    | RES_UNUSED), /* 143 */
+#else
   OPDEF("START_NAMESPACE",           EXT_UNUSED | OP1_STD    | OP2_UNUSED | RES_UNUSED), /* 143 */
+#endif
   OPDEF("ADD_INTERFACE",             EXT_IFACE  | OP1_CLASS  | OP2_CLASS  | RES_UNUSED), /* 144 */
   OPDEF("VERIFY_INSTANCEOF",         EXT_UNUSED | OP1_CLASS  | OP2_STD    | RES_UNUSED), /* 145 */
   OPDEF("VERIFY_ABSTRACT_CLASS",     EXT_UNUSED | OP1_CLASS  | OP2_UNUSED | RES_UNUSED), /* 146 */
@@ -248,7 +256,12 @@ static const opcode_dsc opcodes[] = {
 # ifdef ZEND_ENGINE_2_1
   ,
   OPDEF("USER_OPCODE",               EXT_STD    | OP1_UNUSED | OP2_UNUSED | RES_STD)  /* 150 */
-# endif    
+# endif
+# ifdef ZEND_ENGINE_2_3
+  ,
+  OPDEF("UNDEF",                    EXT_UNUSED | OP1_UNUSED | OP2_UNUSED | RES_UNUSED), /* 151 */
+  OPDEF("JMP_SET",                  EXT_UNUSED | OP1_STD    | OP2_JMPADDR| RES_UNUSED) /* 152 */
+# endif
 #endif
 };
 
