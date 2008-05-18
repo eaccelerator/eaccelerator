@@ -1,3 +1,8 @@
+2008-05-18  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
+	
+        * Add patch from ticket 232: removes an unlock that isn't
+		  needed there.
+
 2008-02-12  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 		
 		* Add new opcodes introduced in PHP 5.3
