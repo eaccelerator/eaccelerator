@@ -1752,7 +1752,6 @@ static void eaccelerator_clean_request(TSRMLS_D) {
   mm_used_entry  *p = (mm_used_entry*)EAG(used_entries);
   if (eaccelerator_mm_instance != NULL) {
     EACCELERATOR_UNPROTECT();
-    mm_unlock(eaccelerator_mm_instance->mm);
     if (p != NULL || eaccelerator_mm_instance->locks != NULL) {
       EACCELERATOR_LOCK_RW();
       while (p != NULL) {
