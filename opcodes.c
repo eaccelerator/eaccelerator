@@ -118,20 +118,10 @@ static const opcode_dsc opcodes[] = {
   OPDEF("INIT_ARRAY",                EXT_BIT    | OP1_STD    | OP2_STD    | RES_TMP), /* 71 */
   OPDEF("ADD_ARRAY_ELEMENT",         EXT_BIT    | OP1_STD    | OP2_STD    | RES_TMP), /* 72 */
   OPDEF("INCLUDE_OR_EVAL",           EXT_UNUSED | OP1_STD    | OP2_INCLUDE| RES_VAR), /* 73 */
-#ifdef ZEND_ENGINE_2_1
-  /* php 5.1 and up */
   OPDEF("UNSET_VAR",                 EXT_UNUSED | OP1_STD    | OP2_FETCH  | RES_UNUSED), /* 74 */
   OPDEF("UNSET_DIM",                 EXT_STD    | OP1_STD    | OP2_STD    | RES_UNUSED), /* 75 */
   OPDEF("UNSET_OBJ",                 EXT_STD    | OP1_STD    | OP2_STD    | RES_UNUSED), /* 76 */
   OPDEF("FE_RESET",                  EXT_BIT    | OP1_STD    | OP2_OPLINE | RES_VAR), /* 77 */
-#else
-  /* <= php 5.0 */
-  /* though there is no ISSET_ISEMPTY in php 5.0 it's better to leave it here i guess */
-  OPDEF("UNSET_VAR",                 EXT_UNUSED | OP1_STD    | OP2_UNUSED | RES_UNUSED), /* 74 */
-  OPDEF("UNSET_DIM_OBJ",             EXT_UNUSED | OP1_VAR    | OP2_STD    | RES_UNUSED), /* 75 */
-  OPDEF("ISSET_ISEMPTY",             EXT_UNUSED | OP1_VAR    | OP2_ISSET  | RES_TMP), /* 76 */
-  OPDEF("FE_RESET",                  EXT_BIT    | OP1_STD    | OP2_UNUSED | RES_VAR), /* 77 */
-#endif
   OPDEF("FE_FETCH",                  EXT_FE     | OP1_STD    | OP2_OPLINE | RES_TMP), /* 78 */
   OPDEF("EXIT",                      EXT_UNUSED | OP1_STD    | OP2_UNUSED | RES_UNUSED), /* 79 */
   OPDEF("FETCH_R",                   EXT_UNUSED | OP1_STD    | OP2_FETCH  | RES_VAR), /* 80 */
@@ -209,10 +199,6 @@ static const opcode_dsc opcodes[] = {
   OPDEF("ASSIGN_DIM",                EXT_UNUSED | OP1_STD    | OP2_STD    | RES_VAR),  /* 147 */
   OPDEF("ISSET_ISEMPTY_PROP_OBJ",    EXT_ISSET  | OP1_STD    | OP2_STD    | RES_TMP), /* 148 */
   OPDEF("HANDLE_EXCEPTION",          EXT_STD    | OP1_UNUSED | OP2_UNUSED | RES_STD)  /* 149 */
-# ifdef ZEND_ENGINE_2_1
-  ,
-  OPDEF("USER_OPCODE",               EXT_STD    | OP1_UNUSED | OP2_UNUSED | RES_STD)  /* 150 */
-# endif
 # ifdef ZEND_ENGINE_2_3
   ,
   OPDEF("UNDEF",                    EXT_UNUSED | OP1_UNUSED | OP2_UNUSED | RES_UNUSED), /* 151 */
