@@ -101,10 +101,8 @@ int binary_eaccelerator_version[2];
 int binary_php_version[2];
 int binary_zend_version[2];
 
-#ifdef ZEND_ENGINE_2
 /* pointer to the properties_info hashtable destructor */
 extern dtor_func_t properties_info_dtor;
-#endif
 
 /* saved original functions */
 static zend_op_array *(*ea_saved_zend_compile_file)(zend_file_handle *file_handle, int type TSRMLS_DC);
@@ -1165,7 +1163,6 @@ ZEND_DLEXPORT zend_op_array* eaccelerator_compile_file(zend_file_handle *file_ha
 
 // segv74: really cheap work around to auto_global problem.
 //         it makes just in time to every time.
-#ifdef ZEND_ENGINE_2
   zend_is_auto_global("_GET", sizeof("_GET")-1 TSRMLS_CC);
   zend_is_auto_global("_POST", sizeof("_POST")-1 TSRMLS_CC);
   zend_is_auto_global("_COOKIE", sizeof("_COOKIE")-1 TSRMLS_CC);
@@ -1173,7 +1170,6 @@ ZEND_DLEXPORT zend_op_array* eaccelerator_compile_file(zend_file_handle *file_ha
   zend_is_auto_global("_ENV", sizeof("_ENV")-1 TSRMLS_CC);
   zend_is_auto_global("_REQUEST", sizeof("_REQUEST")-1 TSRMLS_CC);
   zend_is_auto_global("_FILES", sizeof("_FILES")-1 TSRMLS_CC);
-#endif
 
   if (t != NULL) { // restore from cache
 #ifdef DEBUG
@@ -1183,19 +1179,10 @@ ZEND_DLEXPORT zend_op_array* eaccelerator_compile_file(zend_file_handle *file_ha
 #endif
 
     zend_llist_add_element(&CG(open_files), file_handle);
-#ifdef ZEND_ENGINE_2
     if (file_handle->opened_path == NULL && file_handle->type != ZEND_HANDLE_STREAM) {
       file_handle->handle.stream.handle = (void*)1;
       file_handle->opened_path = EAG(mem);	/* EAG(mem) = p->realfilename from eaccelerator_restore here */
     }
-#else
-    if (file_handle->opened_path == NULL && file_handle->type != ZEND_HANDLE_FP) {
-      int dummy = 1;
-      file_handle->opened_path = EAG(mem);	/* EAG(mem) = p->realfilename from eaccelerator_restore here */
-      zend_hash_add(&EG(included_files), file_handle->opened_path, strlen(file_handle->opened_path)+1, (void *)&dummy, sizeof(int), NULL);
-      file_handle->handle.fp = NULL;
-    }
-#endif
 
     DBG(ea_debug_printf, (EA_TEST_PERFORMANCE, "\t[%d] compile_file: restored (%ld)\n", getpid(), ea_debug_elapsed_time(&tv_start)));
     DBG(ea_debug_printf, (EA_DEBUG, "\t[%d] compile_file: restored\n", getpid()));
@@ -1236,18 +1223,12 @@ ZEND_DLEXPORT zend_op_array* eaccelerator_compile_file(zend_file_handle *file_ha
     CG(function_table) = &tmp_function_table;
 
     zend_hash_init_ex(&tmp_class_table, 10, NULL, ZEND_CLASS_DTOR, 1, 0);
-#ifdef ZEND_ENGINE_2
 		zend_hash_copy(&tmp_class_table, &eaccelerator_global_class_table, (copy_ctor_func_t)zend_class_add_ref, &tmp_class, sizeof(zend_class_entry *));
-#else
-    zend_hash_copy(&tmp_class_table, &eaccelerator_global_class_table, NULL, &tmp_class, sizeof(zend_class_entry));
-#endif
 
     orig_class_table = CG(class_table);;
     CG(class_table) = &tmp_class_table;
-#ifdef ZEND_ENGINE_2
     orig_eg_class_table = EG(class_table);;
     EG(class_table) = &tmp_class_table;
-#endif
 
     /* Storing global pre-compiled functions and classes */
     function_table_tail = CG(function_table)->pListTail;
@@ -1266,9 +1247,7 @@ ZEND_DLEXPORT zend_op_array* eaccelerator_compile_file(zend_file_handle *file_ha
     } zend_catch {
       CG(function_table) = orig_function_table;
       CG(class_table) = orig_class_table;
-#ifdef ZEND_ENGINE_2
       EG(class_table) = orig_eg_class_table;
-#endif
       ea_bailout = 1;
     } zend_end_try();
     if (ea_bailout) {
@@ -1304,11 +1283,9 @@ ZEND_DLEXPORT zend_op_array* eaccelerator_compile_file(zend_file_handle *file_ha
     }
     CG(function_table) = orig_function_table;
     CG(class_table) = orig_class_table;
-#ifdef ZEND_ENGINE_2
     EG(class_table) = orig_eg_class_table;
     DBG(ea_debug_printf, (EA_DEBUG, "\t[%d] restoring CG(class_table)[%08x] != EG(class_table)[%08x]\n", 
                 getpid(), CG(class_table), EG(class_table)));
-#endif
     while (function_table_tail != NULL) {
       zend_op_array *op_array = (zend_op_array*)function_table_tail->pData;
       if (op_array->type == ZEND_USER_FUNCTION) {
@@ -1316,18 +1293,13 @@ ZEND_DLEXPORT zend_op_array* eaccelerator_compile_file(zend_file_handle *file_ha
                     sizeof(zend_op_array), NULL) == FAILURE && function_table_tail->arKey[0] != '\000') {
           CG(in_compilation) = 1;
           CG(compiled_filename) = file_handle->opened_path;
-#ifdef ZEND_ENGINE_2
           CG(zend_lineno) = op_array->line_start;
-#else
-          CG(zend_lineno) = op_array->opcodes[0].lineno;
-#endif
           zend_error(E_ERROR, "Cannot redeclare %s()", function_table_tail->arKey);
         }
       }
       function_table_tail = function_table_tail->pListNext;
     }
     while (class_table_tail != NULL) {
-#ifdef ZEND_ENGINE_2
       zend_class_entry **ce = (zend_class_entry**)class_table_tail->pData;
       if ((*ce)->type == ZEND_USER_CLASS) {
         if (zend_hash_add(CG(class_table), class_table_tail->arKey, class_table_tail->nKeyLength, 
@@ -1335,20 +1307,6 @@ ZEND_DLEXPORT zend_op_array* eaccelerator_compile_file(zend_file_handle *file_ha
           CG(in_compilation) = 1;
           CG(compiled_filename) = file_handle->opened_path;
           CG(zend_lineno) = (*ce)->line_start;
-#else
-      zend_class_entry *ce = (zend_class_entry*)class_table_tail->pData;
-      if (ce->type == ZEND_USER_CLASS) {
-        if (ce->parent != NULL) {
-          if (zend_hash_find(CG(class_table), (void*)ce->parent->name, ce->parent->name_length+1, (void **)&ce->parent) != SUCCESS) {
-            ce->parent = NULL;
-          }
-        }
-        if (zend_hash_add(CG(class_table), class_table_tail->arKey, class_table_tail->nKeyLength, ce, 
-                    sizeof(zend_class_entry), NULL) == FAILURE && class_table_tail->arKey[0] != '\000') {
-          CG(in_compilation) = 1;
-          CG(compiled_filename) = file_handle->opened_path;
-          CG(zend_lineno) = 0;
-#endif
           zend_error(E_ERROR, "Cannot redeclare class %s", class_table_tail->arKey);
         }
       }
@@ -1530,10 +1488,6 @@ static PHP_INI_MH(eaccelerator_OnUpdateBool) {
   }
   return SUCCESS;
 }
-
-#ifndef ZEND_ENGINE_2
-#define OnUpdateLong OnUpdateInt
-#endif
 
 PHP_INI_BEGIN()
 STD_PHP_INI_ENTRY("eaccelerator.enable",         "1", PHP_INI_ALL, OnUpdateBool, enabled, zend_eaccelerator_globals, eaccelerator_globals)
@@ -1873,10 +1827,8 @@ PHP_MINIT_FUNCTION(eaccelerator) {
     register_eaccelerator_as_zend_extension();
   }
   
-#ifdef ZEND_ENGINE_2
   /* cache the properties_info destructor */
   properties_info_dtor = get_zend_destroy_property_info(TSRMLS_C);
-#endif
   return SUCCESS;
 }
 
@@ -2023,14 +1975,10 @@ PHP_RSHUTDOWN_FUNCTION(eaccelerator)
 	return SUCCESS;
 }
 
-#ifdef ZEND_ENGINE_2
 ZEND_BEGIN_ARG_INFO(eaccelerator_second_arg_force_ref, 0)
   ZEND_ARG_PASS_INFO(0)
   ZEND_ARG_PASS_INFO(1)
 ZEND_END_ARG_INFO();
-#else
-static unsigned char eaccelerator_second_arg_force_ref[] = {2, BYREF_NONE, BYREF_FORCE};
-#endif
 
 function_entry eaccelerator_functions[] = {
 #ifdef WITH_EACCELERATOR_SHM
@@ -2066,11 +2014,7 @@ function_entry eaccelerator_functions[] = {
 #ifdef WITH_EACCELERATOR_DISASSEMBLER
   PHP_FE(eaccelerator_dasm_file, NULL)
 #endif
-#ifdef ZEND_ENGINE_2
   {NULL, NULL, NULL, 0U, 0U}
-#else
-  {NULL, NULL, NULL}
-#endif
 };
 
 zend_module_entry eaccelerator_module_entry = {

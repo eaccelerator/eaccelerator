@@ -1,4 +1,8 @@
 2008-05-18  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
+
+        * Remove support for all php versions older than php 5.1
+
+2008-05-18  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 	
         * Add patch from ticket 232: removes an unlock that isn't
 		  needed there.

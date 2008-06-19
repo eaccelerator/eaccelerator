@@ -268,11 +268,8 @@ void ea_debug_dump_ea_class_entry(ea_class_entry *ce)
     fprintf(F_fp, "\ttype: %d\n", ce->type);
     fprintf(F_fp, "\tfunction_table: %u entries\n", ce->function_table.nNumOfElements);
     fprintf(F_fp, "\tdefault_properties: %u entries\n", ce->default_properties.nNumOfElements);
-#ifdef ZEND_ENGINE_2
     fprintf(F_fp, "\tproperties_info: %u entries\n", ce->properties_info.nNumOfElements);
-#  ifdef ZEND_ENGINE_2_1
     fprintf(F_fp, "\tdefault_static_members: %u entries\n", ce->default_static_members.nNumOfElements);
-#  endif
     fprintf(F_fp, "\tstatic_members: %u entries\n", ce->static_members->nNumOfElements);
     fprintf(F_fp, "\tconstants_Table: %u entries\n", ce->constants_table.nNumOfElements);
     fprintf(F_fp, "\tce_flags: %u\n", ce->ce_flags);
@@ -284,7 +281,6 @@ void ea_debug_dump_ea_class_entry(ea_class_entry *ce)
     fprintf(F_fp, "\tdoc_comment: %s\n", ce->doc_comment);
     fprintf(F_fp, "\tdoc_comment_len: %u\n", ce->doc_comment_len);
 #  endif
-#endif
     fflush(F_fp);
 }
 
@@ -298,11 +294,8 @@ void ea_debug_dump_zend_class_entry(zend_class_entry *ce)
     fprintf(F_fp, "\ttype: %d\n", ce->type);
     fprintf(F_fp, "\tfunction_table: %u entries\n", ce->function_table.nNumOfElements);
     fprintf(F_fp, "\tdefault_properties: %u entries\n", ce->default_properties.nNumOfElements);
-#ifdef ZEND_ENGINE_2
     fprintf(F_fp, "\tproperties_info: %u entries\n", ce->properties_info.nNumOfElements);
-#  ifdef ZEND_ENGINE_2_1
     fprintf(F_fp, "\tdefault_static_members: %u entries\n", ce->default_static_members.nNumOfElements);
-#  endif
     fprintf(F_fp, "\tstatic_members: %u entries\n", ce->static_members->nNumOfElements);
     fprintf(F_fp, "\tconstants_Table: %u entries\n", ce->constants_table.nNumOfElements);
     fprintf(F_fp, "\tce_flags: %u\n", ce->ce_flags);
@@ -314,7 +307,6 @@ void ea_debug_dump_zend_class_entry(zend_class_entry *ce)
     fprintf(F_fp, "\tdoc_comment: %s\n", ce->doc_comment);
     fprintf(F_fp, "\tdoc_comment_len: %u\n", ce->doc_comment_len);
 #  endif
-#endif
     fflush(F_fp);
 }
 

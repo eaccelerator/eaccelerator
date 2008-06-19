@@ -41,8 +41,8 @@
 #  endif
 #endif
 
-#if PHP_MAJOR_VERSION == 5 && PHP_MINOR_VERSION >= 1
-#   define ZEND_ENGINE_2_1
+#if PHP_MAJOR_VERSION == 4 || (PHP_MAJOR_VERSION == 5 && PHP_MINOR_VERSION < 1)
+    #error "eAccelerator only supports PHP 5.1 and higher"
 #endif
 
 #if PHP_MAJOR_VERSION == 5 && PHP_MINOR_VERSION >= 2
@@ -197,48 +197,32 @@
 
 typedef struct _eaccelerator_op_array {
 	zend_uchar type;
-#ifdef ZEND_ENGINE_2
 	zend_bool uses_this;
-#else
-	zend_bool uses_globals;
-#endif
 	zend_bool return_reference;
-#ifdef ZEND_ENGINE_2
 	zend_uint num_args;
 	zend_uint required_num_args;
 	zend_arg_info *arg_info;
 	zend_bool pass_rest_by_reference;
-#else
-	zend_uchar *arg_types;
-#endif
 	char *function_name;
-#ifdef ZEND_ENGINE_2
 	char *scope_name;
 	int scope_name_len;
 	zend_uint fn_flags;
-#endif
 	zend_op *opcodes;
 	zend_uint last;
-#ifdef ZEND_ENGINE_2_1
 	zend_compiled_variable *vars;
     int last_var;
-#endif
 	zend_uint T;
 	zend_brk_cont_element *brk_cont_array;
 	zend_uint last_brk_cont;
-#ifdef ZEND_ENGINE_2
 	zend_try_catch_element *try_catch_array;
 	int last_try_catch;
-#endif
 	HashTable *static_variables;
 	char *filename;
-#ifdef ZEND_ENGINE_2
 	zend_uint line_start;
 	zend_uint line_end;
 #ifdef INCLUDE_DOC_COMMENTS
     char *doc_comment;
     zend_uint doc_comment_len;
-#endif
 #endif
 } ea_op_array;
 
@@ -249,11 +233,8 @@ typedef struct _eaccelerator_class_entry {
 	char *parent;
 	HashTable function_table;
 	HashTable default_properties;
-#ifdef ZEND_ENGINE_2
 	HashTable properties_info;
-#  ifdef ZEND_ENGINE_2_1
 	HashTable default_static_members;
-#  endif
 	HashTable *static_members;
 	HashTable constants_table;
 	zend_uint ce_flags;
@@ -266,7 +247,6 @@ typedef struct _eaccelerator_class_entry {
     char *doc_comment;
     zend_uint doc_comment_len;
 #  endif
-#endif
 } ea_class_entry;
 
 /*

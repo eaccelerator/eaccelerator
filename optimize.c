@@ -196,28 +196,18 @@ static void compute_live_var(BB* bb, zend_op_array* op_array, char* global)
         }
         if ((op->op2.op_type == IS_VAR || op->op2.op_type == IS_TMP_VAR) &&
             !def[VAR_NUM(op->op2.u.var)] && !global[VAR_NUM(op->op2.u.var)]) {
-#ifdef ZEND_ENGINE_2
           if (op->opcode != ZEND_OP_DATA) {
             global[VAR_NUM(op->op2.u.var)] = 1;
           }
-#else
-          global[VAR_NUM(op->op2.u.var)] = 1;
-#endif
         }
-#ifdef ZEND_ENGINE_2
         if (op->opcode == ZEND_DECLARE_INHERITED_CLASS &&
             !def[VAR_NUM(op->extended_value)] &&
             !global[VAR_NUM(op->extended_value)]) {
           global[VAR_NUM(op->extended_value)] = 1;
         }
-#endif
         if ((op->result.op_type == IS_VAR &&
-#ifdef ZEND_ENGINE_2
              (op->opcode == ZEND_RECV || op->opcode == ZEND_RECV_INIT ||
               (op->result.u.EA.type & EXT_TYPE_UNUSED) == 0)) ||
-#else
-             (op->result.u.EA.type & EXT_TYPE_UNUSED) == 0) ||
-#endif
             (op->result.op_type == IS_TMP_VAR)) {
           if (!def[VAR_NUM(op->result.u.var)] && !global[VAR_NUM(op->result.u.var)]) {
             switch (op->opcode) {
@@ -246,12 +236,8 @@ static void compute_live_var(BB* bb, zend_op_array* op_array, char* global)
       while (op < end) {
         end--;
         if (((end->result.op_type == IS_VAR &&
-#ifdef ZEND_ENGINE_2
              (end->opcode == ZEND_RECV || end->opcode == ZEND_RECV_INIT ||
               (end->result.u.EA.type & EXT_TYPE_UNUSED) == 0)) ||
-#else
-             (end->result.u.EA.type & EXT_TYPE_UNUSED) == 0) ||
-#endif
              (end->result.op_type == IS_TMP_VAR)) &&
             !global[VAR_NUM(end->result.u.var)] && !used[VAR_NUM(end->result.u.var)]) {
            switch(end->opcode) {
@@ -287,37 +273,23 @@ static void compute_live_var(BB* bb, zend_op_array* op_array, char* global)
                }
                break;
              case ZEND_UNSET_VAR:
-#ifndef ZEND_ENGINE_2_1
-/* Pre-PHP 5.1 only */
-             case ZEND_UNSET_DIM_OBJ:
-               end->result.op_type = IS_UNUSED;
-               break;
-#else
              case ZEND_UNSET_DIM:
              case ZEND_UNSET_OBJ:
                end->result.op_type = IS_UNUSED;
                break;
-#endif
              case ZEND_RECV:
              case ZEND_RECV_INIT:
              /*case ZEND_ADD_ARRAY_ELEMENT:*/
              case ZEND_INCLUDE_OR_EVAL:
-#ifndef ZEND_ENGINE_2_1
-/* Pre-PHP 5.1 only */
-             case ZEND_JMP_NO_CTOR:
-#else
              case ZEND_NEW:
-#endif
              case ZEND_FE_FETCH:
              case ZEND_PRINT:
-#ifdef ZEND_ENGINE_2
              case ZEND_INIT_METHOD_CALL:
              case ZEND_INIT_STATIC_METHOD_CALL:
              case ZEND_ASSIGN_DIM:
              case ZEND_ASSIGN_OBJ:
              case ZEND_DECLARE_CLASS:
              case ZEND_DECLARE_INHERITED_CLASS:
-#endif
               break;
             default:
               if (end->op1.op_type == IS_CONST) {
@@ -330,19 +302,13 @@ static void compute_live_var(BB* bb, zend_op_array* op_array, char* global)
           }
         } else if (end->result.op_type == IS_VAR &&
                    (end->result.u.EA.type & EXT_TYPE_UNUSED) != 0 &&
-#ifdef ZEND_ENGINE_2
                    end->opcode != ZEND_RECV && end->opcode != ZEND_RECV_INIT &&
-#endif
                    used[VAR_NUM(end->result.u.var)]) {
           end->result.u.EA.type &= ~EXT_TYPE_UNUSED;
         }
         if ((end->result.op_type == IS_VAR &&
-#ifdef ZEND_ENGINE_2
             (end->opcode == ZEND_RECV || end->opcode == ZEND_RECV_INIT ||
              (end->result.u.EA.type & EXT_TYPE_UNUSED) == 0)) ||
-#else
-            (end->result.u.EA.type & EXT_TYPE_UNUSED) == 0) ||
-#endif
             (end->result.op_type == IS_TMP_VAR)) {
           switch (end->opcode) {
             case ZEND_RECV:
@@ -360,11 +326,9 @@ static void compute_live_var(BB* bb, zend_op_array* op_array, char* global)
         if (end->op2.op_type == IS_VAR || end->op2.op_type == IS_TMP_VAR) {
           used[VAR_NUM(end->op2.u.var)] = 1;
         }
-#ifdef ZEND_ENGINE_2
         if (end->opcode == ZEND_DECLARE_INHERITED_CLASS) {
           used[VAR_NUM(end->extended_value)] = 1;
         }
-#endif
       }
       p = p->next;
     }
@@ -1333,12 +1297,7 @@ jmp_nz_ex:
               goto jmp_nz;
             }
             goto jmp_2;
-#ifndef ZEND_ENGINE_2_1
-/* Pre-PHP 5.1 only */
-          case ZEND_JMP_NO_CTOR:
-#else
           case ZEND_NEW:
-#endif
           case ZEND_FE_FETCH:
 jmp_2:
             while (p->jmp_2->len == 1 && p->jmp_2->start->opcode == ZEND_JMP) {
@@ -1625,12 +1584,7 @@ static int opt_result_is_numeric(zend_op* x) {
   return 0;
 }
 
-#ifndef ZEND_ENGINE_2
-#define FETCH_TYPE(op) ((op)->op2.u.fetch_type)
-#else
 #define FETCH_TYPE(op) ((op)->op2.u.EA.type)
-#endif
-
 #define SET_UNDEFINED(op) Ts[VAR_NUM((op).u.var)] = NULL;
 #define SET_DEFINED(op)   Ts[VAR_NUM((op)->result.u.var)] = (op);
 #define IS_DEFINED(op)    (Ts[VAR_NUM((op).u.var)] != NULL)
@@ -2081,9 +2035,6 @@ static void optimize_bb(BB* bb, zend_op_array* op_array, char* global, int pass 
        FETCH_DIM_X  $x,$y,$z               NOP
     */
     } else if (
-#ifndef ZEND_ENGINE_2
-               op_array->uses_globals &&
-#endif
                ((op->opcode == ZEND_FETCH_DIM_R &&
                 op->op1.op_type == IS_VAR &&
 /*???               op->extended_value == ZEND_FETCH_STANDARD &&*/
@@ -2109,11 +2060,7 @@ static void optimize_bb(BB* bb, zend_op_array* op_array, char* global, int pass 
                 op->op1.op_type == IS_VAR &&
                 IS_DEFINED(op->op1) &&
                 DEFINED_OP(op->op1)->opcode == ZEND_FETCH_UNSET)) &&
-#ifdef ZEND_ENGINE_2
                 FETCH_TYPE(DEFINED_OP(op->op1)) == ZEND_FETCH_GLOBAL &&
-#else
-                FETCH_TYPE(DEFINED_OP(op->op1)) == ZEND_FETCH_LOCAL &&
-#endif
                 DEFINED_OP(op->op1)->op1.op_type == IS_CONST &&
                 DEFINED_OP(op->op1)->op1.u.constant.type == IS_STRING &&
                 DEFINED_OP(op->op1)->op1.u.constant.value.str.len == (sizeof("GLOBALS")-1) &&
@@ -2128,15 +2075,7 @@ static void optimize_bb(BB* bb, zend_op_array* op_array, char* global, int pass 
         memcpy(&x->result,&op->result,sizeof(znode));
         SET_DEFINED(x);
         SET_TO_NOP(op);
-#ifndef ZEND_ENGINE_2
-        if (x->op1.op_type == IS_VAR) {
-          memcpy(&op->op1,&x->op1,sizeof(znode));
-          op->opcode = ZEND_SWITCH_FREE;
-          op->extended_value = 0;
-        }
-#endif
       }
-#ifdef ZEND_ENGINE_2
     /* FETCH_IS               local("GLOBALS"),$x    ISSET_ISEMPTY_VAR $y(global),res
        ISSET_ISEMPTY_DIM_OBJ  $x,$y,$res          => NOP
     */
@@ -2158,7 +2097,6 @@ static void optimize_bb(BB* bb, zend_op_array* op_array, char* global, int pass 
       memcpy(&x->result,&op->result,sizeof(znode));
       SET_DEFINED(x);
       SET_TO_NOP(op);
-#endif
     } else if (op->opcode == ZEND_FREE &&
                op->op1.op_type == IS_TMP_VAR &&
                IS_DEFINED(op->op1)) {
@@ -2499,19 +2437,11 @@ else if (prev != NULL &&
           op->opcode == ZEND_DO_FCALL_BY_NAME ||
           op->opcode == ZEND_POST_INC ||
           op->opcode == ZEND_POST_DEC ||
-#ifndef ZEND_ENGINE_2_1
-/* Pre-PHP 5.1 only */
-          op->opcode == ZEND_UNSET_DIM_OBJ ||
-#else
           op->opcode == ZEND_UNSET_DIM ||
           op->opcode == ZEND_UNSET_OBJ ||
-#endif
-          op->opcode == ZEND_INCLUDE_OR_EVAL
-#ifdef ZEND_ENGINE_2
-          || op->opcode == ZEND_ASSIGN_DIM
-          || op->opcode == ZEND_ASSIGN_OBJ
-#endif
-          ) {
+          op->opcode == ZEND_INCLUDE_OR_EVAL ||
+          op->opcode == ZEND_ASSIGN_DIM ||
+          op->opcode == ZEND_ASSIGN_OBJ) {
         zend_hash_clean(&assigns);
         zend_hash_clean(&fetch_dim);
       } else if (op->opcode == ZEND_ASSIGN_REF ||
@@ -2533,10 +2463,8 @@ else if (prev != NULL &&
         zend_hash_clean(&fetch_dim);
         if ((op->result.u.EA.type & EXT_TYPE_UNUSED) != 0 &&
             op->op1.op_type == IS_VAR &&
-#ifdef  ZEND_ENGINE_2
             op->extended_value != ZEND_ASSIGN_DIM &&
             op->extended_value != ZEND_ASSIGN_OBJ &&
-#endif
             IS_DEFINED(op->op1)) {
           zend_op *x = DEFINED_OP(op->op1);
           if ((x->opcode == ZEND_FETCH_W || x->opcode == ZEND_FETCH_RW) && 
@@ -2641,12 +2569,8 @@ else if (prev != NULL &&
       prev = op;
     }
     if ((op->result.op_type == IS_VAR &&
-#ifdef ZEND_ENGINE_2
         (op->opcode == ZEND_RECV || op->opcode == ZEND_RECV_INIT ||
          (op->result.u.EA.type & EXT_TYPE_UNUSED) == 0)) ||
-#else
-        (op->result.u.EA.type & EXT_TYPE_UNUSED) == 0) ||
-#endif
         (op->result.op_type == IS_TMP_VAR)) {
       if (op->opcode == ZEND_RECV ||
           op->opcode == ZEND_RECV_INIT) {
@@ -2695,11 +2619,8 @@ static int build_cfg(zend_op_array *op_array, BB* bb)
 	int line_num;
 	BB* p;
 	int remove_brk_cont_array = 1;
-#ifndef ZEND_ENGINE_2
-	int* overload_var = do_alloca(op_array->T * sizeof(int));
-	memset(overload_var,-1,op_array->T * sizeof(int));
-#else
-	/* HOESH: Just to use later... */
+
+    /* HOESH: Just to use later... */
 	zend_uint innermost_ketchup;
 
 	/* HOESH: Mark try & catch blocks */
@@ -2716,12 +2637,11 @@ static int build_cfg(zend_op_array *op_array, BB* bb)
 			bb[tc_element->catch_op].protect_merge = 1;
 		}
 	}
-#endif
-	/* Find Starts of Basic Blocks */
+	
+    /* Find Starts of Basic Blocks */
 	bb[0].start = op;
 	for (line_num=0; line_num < len; op++,line_num++)
 	{
-#ifdef ZEND_ENGINE_2
 		const opcode_dsc* dsc = get_opcode_dsc(op->opcode);
 		if (dsc != NULL)
 		{
@@ -2763,7 +2683,6 @@ static int build_cfg(zend_op_array *op_array, BB* bb)
 				op->result.op_type = IS_UNUSED;
 			}
 		}
-#endif
 		switch(op->opcode)
 		{
 			case ZEND_RETURN:
@@ -2783,13 +2702,8 @@ static int build_cfg(zend_op_array *op_array, BB* bb)
 			case ZEND_JMPNZ:
 			case ZEND_JMPZ_EX:
 			case ZEND_JMPNZ_EX:
-#ifndef ZEND_ENGINE_2_1
-/* Pre-PHP 5.1 only */
-			case ZEND_JMP_NO_CTOR:
-#else
 			case ZEND_NEW:
 			case ZEND_FE_RESET:
-#endif
 			case ZEND_FE_FETCH:
 				bb[line_num+1].start = op+1;
 				bb[op->op2.u.opline_num].start = &op_array->opcodes[op->op2.u.opline_num];
@@ -2874,7 +2788,6 @@ cont_failed:
 				}
 				bb[line_num+1].start = op+1;
 				break;
-#ifdef ZEND_ENGINE_2
 			case ZEND_CATCH:
 				bb[op->extended_value].start = &op_array->opcodes[op->extended_value];
 				bb[line_num+1].start = op+1;
@@ -2894,49 +2807,22 @@ cont_failed:
 					bb[line_num+1].start = op+1;
 				}
 				break;
-#else
-			case ZEND_INIT_FCALL_BY_NAME:
-				if (op->op1.op_type == IS_VAR && op->result.op_type == IS_VAR)
-				{
-					overload_var[op->result.u.var] = op->op1.u.var;
-					op->result.u.var = op->op1.u.var;
-				}
-				break;
-			case ZEND_DO_FCALL_BY_NAME:
-				if (op->op1.op_type == IS_VAR && overload_var[op->op1.u.var] >= 0)
-				{
-					op->op1.u.var = overload_var[op->op1.u.var];
-				}
-				break;
-#endif
 			case ZEND_UNSET_VAR:
-#ifndef ZEND_ENGINE_2_1
-/* Pre-PHP 5.1 only */
-			case ZEND_UNSET_DIM_OBJ:
-				op->result.op_type = IS_UNUSED;
-				break;
-#else
 			case ZEND_UNSET_DIM:
 				op->result.op_type = IS_UNUSED;
 				break;
 			case ZEND_UNSET_OBJ:
 				op->result.op_type = IS_UNUSED;
 				break;
-#endif
 			default:
 				break;
 		}
 	}
 
-#ifndef ZEND_ENGINE_2
-	free_alloca(overload_var);
-#endif
-
 	/* Find Lengths of Basic Blocks and build CFG */
 	p = bb;
 	for (line_num=1; line_num < len; line_num++)
 	{
-#ifdef ZEND_ENGINE_2
 		/* Calculate innermost CATCH op */
 		innermost_ketchup = 0;
 		if (op_array->last_try_catch > 0)
@@ -2956,7 +2842,6 @@ cont_failed:
 				}
 			}
 		}
-#endif
 		if (bb[line_num].start != NULL)
 		{
 			p->len  = bb[line_num].start - p->start;
@@ -2966,7 +2851,6 @@ cont_failed:
 			{
 				case ZEND_JMP:
 					p->jmp_1 = &bb[op->op1.u.opline_num];
-#ifdef ZEND_ENGINE_2
 					if (op->extended_value == ZEND_BRK || op->extended_value == ZEND_CONT)
 					{
 						/* This was a ZEND_BRK or ZEND_CONT opcode changed into a ZEND_JMP in an earlier stage.
@@ -2982,7 +2866,6 @@ cont_failed:
 						p->follow = &bb[line_num];
 					}
 #  endif
-#endif
 					break;
 				case ZEND_JMPZNZ:
 					p->jmp_2 = &bb[op->op2.u.opline_num];
@@ -2992,13 +2875,8 @@ cont_failed:
 				case ZEND_JMPNZ:
 				case ZEND_JMPZ_EX:
 				case ZEND_JMPNZ_EX:
-#ifndef ZEND_ENGINE_2_1
-/* Pre-PHP 5.1 only */
-				case ZEND_JMP_NO_CTOR:
-#else
 				case ZEND_NEW:
 				case ZEND_FE_RESET:
-#endif
 				case ZEND_FE_FETCH:
 					p->jmp_2 = &bb[op->op2.u.opline_num];
 					p->follow = &bb[line_num];
@@ -3007,7 +2885,6 @@ cont_failed:
 				case ZEND_EXIT:
 				case ZEND_BRK:
 				case ZEND_CONT:
-#ifdef ZEND_ENGINE_2
 					/* HOESH: The control might flow to the innermost CATCH
 					 * op if an exception thrown earlier. We can follow to CATCH
 					 * to protect it against unnecessary K.O. In that case,
@@ -3035,7 +2912,6 @@ cont_failed:
 						p->jmp_2 = &bb[op->op2.u.opline_num];
 					}
 					p->follow = &bb[line_num];
-#endif
 					break;
 				default:
 					p->follow = &bb[line_num];
@@ -3110,7 +2986,6 @@ static void emit_cfg(zend_op_array *op_array, BB* bb)
     p = p->next;
   }
 
-#ifdef ZEND_ENGINE_2
 	/*
 	 * HOESH: Reassign try & catch blocks
 	 */
@@ -3159,7 +3034,6 @@ static void emit_cfg(zend_op_array *op_array, BB* bb)
 			op_array->last_try_catch = last_try_catch;
 		}
 	}
-#endif
 }
 
 #define GET_REG(R) {\
@@ -3185,9 +3059,6 @@ static void emit_cfg(zend_op_array *op_array, BB* bb)
 void reassign_registers(zend_op_array *op_array, BB* p, char *global) {
   zend_uint i;
   zend_uint n = 0;
-#ifndef ZEND_ENGINE_2
-  int uses_globals = 0;
-#endif
   int* assigned = do_alloca(op_array->T * sizeof(int));
   char* reg_pool = do_alloca(op_array->T * sizeof(char));
   char* used     = do_alloca(op_array->T * sizeof(char));
@@ -3202,9 +3073,7 @@ void reassign_registers(zend_op_array *op_array, BB* p, char *global) {
     if (p->used && p->len > 0) {
       zend_op* start = p->start;
       zend_op* op    = start + p->len;
-#ifdef ZEND_ENGINE_2
       zend_op* op_data;
-#endif
 
       for (i = 0; i < op_array->T; i++) {
         if (!global[i]) {
@@ -3216,23 +3085,7 @@ void reassign_registers(zend_op_array *op_array, BB* p, char *global) {
       while (start < op) {
         --op;
         /* zend_printf("op=%d\n", op-op_array->opcodes); */
-#ifdef ZEND_ENGINE_2
         op_data = NULL;
-#else
-        if (op_array->uses_globals &&
-            (op->opcode == ZEND_FETCH_R ||
-             op->opcode == ZEND_FETCH_W ||
-             op->opcode == ZEND_FETCH_RW ||
-             op->opcode == ZEND_FETCH_IS ||
-             op->opcode == ZEND_FETCH_FUNC_ARG ||
-             op->opcode == ZEND_FETCH_UNSET) &&
-             op->op1.op_type == IS_CONST &&
-             op->op1.u.constant.type == IS_STRING &&
-             op->op1.u.constant.value.str.len == (sizeof("GLOBALS")-1) &&
-             memcmp(op->op1.u.constant.value.str.val, "GLOBALS", sizeof("GLOBALS")-1) == 0) {
-          uses_globals = 1;
-        }
-#endif
         if (op->opcode == ZEND_DO_FCALL_BY_NAME &&
             op->op1.op_type == IS_CONST) {
           zval_dtor(&op->op1.u.constant);
@@ -3256,22 +3109,18 @@ void reassign_registers(zend_op_array *op_array, BB* p, char *global) {
           GET_REG(r);
           op->op2.u.var = VAR_VAL(assigned[r]);
         }
-#ifdef ZEND_ENGINE_2
         if (op->opcode == ZEND_DECLARE_INHERITED_CLASS) {
           int r = VAR_NUM(op->extended_value);
           GET_REG(r);
           op->extended_value = VAR_VAL(assigned[r]);
         }
-#endif
         if (op->result.op_type == IS_VAR ||
             op->result.op_type == IS_TMP_VAR) {
           int r = VAR_NUM(op->result.u.var);
           GET_REG(r);
           op->result.u.var = VAR_VAL(assigned[r]);
           if (op->result.op_type == IS_VAR &&
-#ifdef ZEND_ENGINE_2
               op->opcode != ZEND_RECV && op->opcode != ZEND_RECV_INIT &&
-#endif
               ((op->result.u.EA.type & EXT_TYPE_UNUSED) != 0)) {
             FREE_REG(VAR_NUM(op->result.u.var))
           } else if (!(op->op1.op_type == op->result.op_type &&
@@ -3294,11 +3143,6 @@ void reassign_registers(zend_op_array *op_array, BB* p, char *global) {
     p = p->next;
   }
   op_array->T = n;
-#ifndef ZEND_ENGINE_2
-  if (op_array->uses_globals && !uses_globals) {
-    op_array->uses_globals = 0;
-  }
-#endif
   free_alloca(used);
   free_alloca(reg_pool);
   free_alloca(assigned);
@@ -3328,11 +3172,6 @@ void eaccelerator_optimize(zend_op_array *op_array)
   BB* bb;
 
   TSRMLS_FETCH();
-/*???
-#ifdef ZEND_ENGINE_2
-  return;
-#endif
-*/
   if (!EAG(compiler) || op_array->type != ZEND_USER_FUNCTION) {
     return;
   }
@@ -3389,7 +3228,6 @@ void eaccelerator_optimize(zend_op_array *op_array)
 
     free_alloca(global);
   }
-#  ifdef ZEND_ENGINE_2_1
   else {
     /* build_cfg encountered some nested ZEND_BRK or ZEND_CONT's
        which it could not replace with JMP's
@@ -3401,7 +3239,6 @@ void eaccelerator_optimize(zend_op_array *op_array)
     */
     restore_operand_types(op_array);
   }
-#  endif
   free_alloca(bb);
 }
 #endif

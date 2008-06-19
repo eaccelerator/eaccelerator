@@ -35,9 +35,7 @@
 #include "zend.h"
 #include "zend_API.h"
 #include "zend_extensions.h"
-#ifdef ZEND_ENGINE_2_1
 #include "zend_vm.h"
-#endif
 
 #ifndef INCOMPLETE_CLASS
 #  define INCOMPLETE_CLASS "__PHP_Incomplete_Class"
@@ -51,7 +49,6 @@ extern zend_extension *ZendOptimizer;
 extern unsigned int zend_hash_canary;
 #endif
 
-#ifdef ZEND_ENGINE_2
 /* pointer to the properties_info hashtable destructor */
 dtor_func_t properties_info_dtor = NULL;
 
@@ -71,16 +68,9 @@ dtor_func_t get_zend_destroy_property_info(TSRMLS_D)
     zend_hash_destroy(&dummy_class_entry.function_table);
     zend_hash_destroy(&dummy_class_entry.constants_table);
     zend_hash_destroy(&dummy_class_entry.properties_info);
-#  ifdef ZEND_ENGINE_2_1
     zend_hash_destroy(&dummy_class_entry.default_static_members);
-#  endif
-#  if defined(ZEND_ENGINE_2) && !defined(ZEND_ENGINE_2_1)
-    zend_hash_destroy(dummy_class_entry.static_members);
-        FREE_HASHTABLE(dummy_class_entry.static_members);
-#  endif
     return property_dtor;
 }
-#endif
 
 /******************************************************************************/
 /* Functions to restore a cached script from file cache                       */
@@ -91,15 +81,11 @@ typedef void (*fixup_bucket_t) (char *, void *TSRMLS_DC);
 #define fixup_zval_hash(base, from) \
     fixup_hash(base, from, (fixup_bucket_t)fixup_zval TSRMLS_CC)
 
-#ifdef ZEND_ENGINE_2
 static void fixup_property_info(char *base, zend_property_info * from TSRMLS_DC)
 {
     FIXUP(base, from->name);
-#ifdef ZEND_ENGINE_2_1
     FIXUP(base, from->doc_comment);
-#endif
 }
-#endif
 
 static void fixup_hash(char *base, HashTable * source,
                        fixup_bucket_t fixup_bucket TSRMLS_DC)
@@ -164,7 +150,6 @@ static void fixup_op_array(char *base, ea_op_array * from TSRMLS_DC)
     zend_op *opline;
     zend_op *end;
 
-#ifdef ZEND_ENGINE_2
     if (from->num_args > 0) {
         zend_uint i;
         FIXUP(base, from->arg_info);
@@ -173,13 +158,8 @@ static void fixup_op_array(char *base, ea_op_array * from TSRMLS_DC)
             FIXUP(base, from->arg_info[i].class_name);
         }
     }
-#else
-    FIXUP(base, from->arg_types);
-#endif
     FIXUP(base, from->function_name);
-#ifdef ZEND_ENGINE_2
     FIXUP(base, from->scope_name);
-#endif
     if (from->type == ZEND_INTERNAL_FUNCTION) {
         return;
     }
@@ -199,7 +179,6 @@ static void fixup_op_array(char *base, ea_op_array * from TSRMLS_DC)
                 fixup_zval(base, &opline->op1.u.constant TSRMLS_CC);
             if (opline->op2.op_type == IS_CONST)
                 fixup_zval(base, &opline->op2.u.constant TSRMLS_CC);
-#ifdef ZEND_ENGINE_2
             switch (opline->opcode) {
             case ZEND_JMP:
                 FIXUP(base, opline->op1.u.jmp_addr);
@@ -211,27 +190,16 @@ static void fixup_op_array(char *base, ea_op_array * from TSRMLS_DC)
                 FIXUP(base, opline->op2.u.jmp_addr);
                 break;
             }
-#  ifdef ZEND_ENGINE_2_1
             ZEND_VM_SET_OPCODE_HANDLER(opline);
-#  elif defined(ZEND_ENGINE_2)
-            opline->handler = zend_opcode_handlers[opline->opcode];
-#  else
-            opline->handler = get_opcode_handler(opline->opcode TSRMLS_CC);
-#  endif
-
-#endif
         }
         EAG(compress) = 1;
     }
     FIXUP(base, from->brk_cont_array);
-#ifdef ZEND_ENGINE_2
     FIXUP(base, from->try_catch_array);
-#endif
     if (from->static_variables != NULL) {
         FIXUP(base, from->static_variables);
         fixup_zval_hash(base, from->static_variables);
     }
-#ifdef ZEND_ENGINE_2_1
     if (from->vars != NULL) {
         int i;
         FIXUP(base, from->vars);
@@ -239,12 +207,9 @@ static void fixup_op_array(char *base, ea_op_array * from TSRMLS_DC)
             FIXUP(base, from->vars[i].name);
         }
     }
-#endif
     FIXUP(base, from->filename);
 #ifdef INCLUDE_DOC_COMMENTS
-#ifdef ZEND_ENGINE_2
     FIXUP(base, from->doc_comment);
-#endif
 #endif
 }
 
@@ -252,13 +217,11 @@ static void fixup_class_entry(char *base, ea_class_entry *from TSRMLS_DC)
 {
     FIXUP(base, from->name);
     FIXUP(base, from->parent);
-#ifdef ZEND_ENGINE_2
     FIXUP(base, from->filename);
     fixup_zval_hash(base, &from->constants_table);
     fixup_zval_hash(base, &from->default_properties);
     fixup_hash(base, &from->properties_info,
                (fixup_bucket_t) fixup_property_info TSRMLS_CC);
-#  ifdef ZEND_ENGINE_2_1
     fixup_zval_hash(base, &from->default_static_members);
     if (from->static_members != NULL) {
         FIXUP(base, from->static_members);
@@ -266,15 +229,6 @@ static void fixup_class_entry(char *base, ea_class_entry *from TSRMLS_DC)
             fixup_zval_hash(base, from->static_members);
         }
     }
-#  else
-    if (from->static_members != NULL) {
-        FIXUP(base, from->static_members);
-        fixup_zval_hash(base, from->static_members);
-    }
-#  endif
-#else
-    fixup_zval_hash(base, &from->default_properties);
-#endif
     fixup_hash(base, &from->function_table,(fixup_bucket_t) fixup_op_array TSRMLS_CC);
 }
 
@@ -432,10 +386,8 @@ zend_op_array *restore_op_array(zend_op_array * to, ea_op_array * from TSRMLS_DC
         zend_function *v;
         void *ptr;
     } function;
-#ifdef ZEND_ENGINE_2
     int fname_len = 0;
     char *fname_lc = NULL;
-#endif
 
     DBG(ea_debug_pad, (EA_DEBUG TSRMLS_CC));
     DBG(ea_debug_printf, (EA_DEBUG, "[%d] restore_op_array: %s type=%x\n", getpid(),
@@ -457,17 +409,12 @@ zend_op_array *restore_op_array(zend_op_array * to, ea_op_array * from TSRMLS_DC
         }
     }
     to->type = from->type;
-#ifdef ZEND_ENGINE_2
     to->num_args = from->num_args;
     to->required_num_args = from->required_num_args;
     to->arg_info = from->arg_info;
     to->pass_rest_by_reference = from->pass_rest_by_reference;
-#else
-    to->arg_types = from->arg_types;
-#endif
     to->function_name = from->function_name;
 
-#ifdef ZEND_ENGINE_2
     if (to->function_name) {
         fname_len = strlen(to->function_name);
         fname_lc = zend_str_tolower_dup(to->function_name, fname_len);
@@ -537,7 +484,6 @@ zend_op_array *restore_op_array(zend_op_array * to, ea_op_array * from TSRMLS_DC
     DBG(ea_debug_pad, (EA_DEBUG TSRMLS_CC));
     DBG(ea_debug_printf, (EA_DEBUG, "[%d]                   %s's scope is '%s'\n", getpid(), 
             from->function_name ? from->function_name : "(top)", to->scope ? to->scope->name : "NULL"));
-#endif
     if (from->type == ZEND_INTERNAL_FUNCTION) {
         zend_class_entry *class_entry = EAG(class_entry);
         DBG(ea_debug_pad, (EA_DEBUG TSRMLS_CC));
@@ -550,11 +496,7 @@ zend_op_array *restore_op_array(zend_op_array * to, ea_op_array * from TSRMLS_DC
         }
         if (class_entry != NULL && class_entry->parent != NULL && 
                 zend_hash_find(&class_entry->parent->function_table,
-#ifdef ZEND_ENGINE_2
                 fname_lc, fname_len + 1,
-#else
-                to->function_name, strlen(to->function_name) + 1,
-#endif
                 &function.ptr) == SUCCESS && function.v->type == ZEND_INTERNAL_FUNCTION) {
             DBG(ea_debug_pad, (EA_DEBUG TSRMLS_CC));
             DBG(ea_debug_printf, (EA_DEBUG, "[%d]                                       found in function table\n", getpid()));
@@ -566,7 +508,6 @@ zend_op_array *restore_op_array(zend_op_array * to, ea_op_array * from TSRMLS_DC
             DBG(ea_debug_pad, (EA_DEBUG TSRMLS_CC));
             DBG(ea_debug_printf, (EA_DEBUG, "[%d]                                       can't find\n", getpid()));
         }       
-#ifdef ZEND_ENGINE_2
         /* hrak: slight memleak here. dont forget to free the lowercase function name! */
         if (fname_lc != NULL) {
             efree(fname_lc);
@@ -575,15 +516,12 @@ zend_op_array *restore_op_array(zend_op_array * to, ea_op_array * from TSRMLS_DC
         to->return_reference = from->return_reference;
         /* this gets set by zend_do_inheritance */
         to->prototype = NULL;
-#endif
         return to;
     }
-#ifdef ZEND_ENGINE_2
     /* hrak: slight memleak here. dont forget to free the lowercase function name! */
     if (fname_lc != NULL) {
         efree(fname_lc);
     }
-#endif
     to->opcodes = from->opcodes;
     to->last = to->size = from->last;
     to->T = from->T;
@@ -598,7 +536,6 @@ zend_op_array *restore_op_array(zend_op_array * to, ea_op_array * from TSRMLS_DC
     to->done_pass_two = 1;
     to->filename = from->filename;
 
-#ifdef ZEND_ENGINE_2
     to->try_catch_array = from->try_catch_array;
     to->last_try_catch = from->last_try_catch;
     to->uses_this = from->uses_this;
@@ -612,13 +549,9 @@ zend_op_array *restore_op_array(zend_op_array * to, ea_op_array * from TSRMLS_DC
     to->doc_comment_len = 0;
     to->doc_comment = NULL;
 #endif
-#else
-    to->uses_globals = from->uses_globals;
-#endif
     if (from->static_variables) {
         to->static_variables = restore_zval_hash(NULL, from->static_variables);
         to->static_variables->pDestructor = ZVAL_PTR_DTOR;
-#ifndef ZEND_ENGINE_2
         if (EAG(class_entry) != NULL) {
             Bucket *p = to->static_variables->pListHead;
             while (p != NULL) {
@@ -626,14 +559,11 @@ zend_op_array *restore_op_array(zend_op_array * to, ea_op_array * from TSRMLS_DC
                 p = p->pListNext;
             }
         }
-#endif
     }
 
-#ifdef ZEND_ENGINE_2_1
     to->vars             = from->vars;
     to->last_var         = from->last_var;
     to->size_var         = 0;
-#endif
 
     /* disable deletion in destroy_op_array */
     ++EAG(refcount_helper);
@@ -647,7 +577,6 @@ static zend_op_array *restore_op_array_ptr(ea_op_array *from TSRMLS_DC)
     return restore_op_array(NULL, from TSRMLS_CC);
 }
 
-#ifdef ZEND_ENGINE_2
 static zend_property_info *restore_property_info(zend_property_info *
                                                  from TSRMLS_DC)
 {
@@ -655,52 +584,34 @@ static zend_property_info *restore_property_info(zend_property_info *
     memcpy(to, from, sizeof(zend_property_info));
     to->name = emalloc(from->name_length + 1);
     memcpy(to->name, from->name, from->name_length + 1);
-#  ifdef ZEND_ENGINE_2_1
-#    ifdef INCLUDE_DOC_COMMENTS
+#ifdef INCLUDE_DOC_COMMENTS
     if (from->doc_comment != NULL) {
         to->doc_comment = emalloc(from->doc_comment_len + 1);
         memcpy(to->doc_comment, from->doc_comment, from->doc_comment_len + 1);
     }
-#    else
-    to->doc_comment_len = 0;
-    to->doc_comment = NULL;
-#    endif
-#    ifdef ZEND_ENGINE_2_2
+# ifdef ZEND_ENGINE_2_2
     to->ce = EAG(class_entry);
-#    endif
-#  endif
+# endif
+#endif
     return to;
 }
-#endif
 
 /* restore the parent class with the given name for the given class */
 static void restore_class_parent(char *parent, int len, zend_class_entry * to TSRMLS_DC)
 {
-#ifdef ZEND_ENGINE_2
     zend_class_entry** parent_ptr = NULL;
     if (zend_lookup_class(parent, len, &parent_ptr TSRMLS_CC) != SUCCESS)
-#else
-    char *name_lc = estrndup(parent, len);
-    zend_str_tolower(name_lc, len);
-    if (zend_hash_find(CG(class_table), (void *) name_lc, len + 1, (void **) &to->parent) != SUCCESS)
-#endif
     {
         ea_debug_error("[%d] EACCELERATOR can't restore parent class \"%s\" of class \"%s\"\n", getpid(), (char *) parent, to->name);
         to->parent = NULL;
     } else {
         /* parent found */
-#ifdef ZEND_ENGINE_2
         to->parent = *parent_ptr;
-#endif
         DBG(ea_debug_printf, (EA_DEBUG, "restore_class_parent: found parent %s..\n", to->parent->name));
         DBG(ea_debug_printf, (EA_DEBUG, "restore_class_parent: parent type=%d child type=%d\n", to->parent->type, to->type));
     }
-#ifndef ZEND_ENGINE_2
-    efree(name_lc);
-#endif
 }
 
-#ifdef ZEND_ENGINE_2
 static void restore_class_methods(zend_class_entry * to TSRMLS_DC)
 {
     int cname_len = to->name_length;
@@ -737,14 +648,12 @@ static void restore_class_methods(zend_class_entry * to TSRMLS_DC)
             else if (fname_len == sizeof(ZEND_SET_FUNC_NAME) - 1 &&
                      memcmp(fname_lc, ZEND_SET_FUNC_NAME, sizeof(ZEND_SET_FUNC_NAME)) == 0)
                 to->__set = f;
-#  ifdef ZEND_ENGINE_2_1
             else if (fname_len == sizeof(ZEND_UNSET_FUNC_NAME) - 1 &&
                     memcmp(fname_lc, ZEND_UNSET_FUNC_NAME, sizeof(ZEND_UNSET_FUNC_NAME)) == 0)
                 to->__unset = f;
             else if (fname_len == sizeof(ZEND_ISSET_FUNC_NAME) - 1 &&
                     memcmp(fname_lc, ZEND_ISSET_FUNC_NAME, sizeof(ZEND_ISSET_FUNC_NAME)) == 0)
                 to->__isset = f;
-#  endif
             else if (fname_len == sizeof(ZEND_CALL_FUNC_NAME) - 1 &&
                      memcmp(fname_lc, ZEND_CALL_FUNC_NAME, sizeof(ZEND_CALL_FUNC_NAME)) == 0)
                 to->__call = f;
@@ -765,7 +674,6 @@ static void restore_class_methods(zend_class_entry * to TSRMLS_DC)
     }
     efree(cname_lc);
 }
-#endif
 
 static zend_class_entry *restore_class_entry(zend_class_entry * to, ea_class_entry * from TSRMLS_DC)
 {
@@ -791,7 +699,6 @@ static zend_class_entry *restore_class_entry(zend_class_entry * to, ea_class_ent
     old = EAG(class_entry);
     EAG(class_entry) = to;
 
-#ifdef ZEND_ENGINE_2
     to->ce_flags = from->ce_flags;
     to->num_interfaces = from->num_interfaces;
     to->interfaces = NULL;
@@ -827,7 +734,6 @@ static zend_class_entry *restore_class_entry(zend_class_entry * to, ea_class_ent
     restore_hash(&to->properties_info, &from->properties_info, (restore_bucket_t) restore_property_info TSRMLS_CC);
     to->properties_info.pDestructor = properties_info_dtor;
 
-#  ifdef ZEND_ENGINE_2_1
     /* restore default_static_members */
     restore_zval_hash(&to->default_static_members, &from->default_static_members);
     to->default_static_members.pDestructor = ZVAL_PTR_DTOR;
@@ -839,28 +745,6 @@ static zend_class_entry *restore_class_entry(zend_class_entry * to, ea_class_ent
     } else {
         to->static_members = &(to->default_static_members);
     }
-#  else
-    if (from->static_members != NULL) {
-        ALLOC_HASHTABLE(to->static_members);
-        restore_zval_hash(to->static_members, from->static_members);
-        to->static_members->pDestructor = ZVAL_PTR_DTOR;
-    }
-#  endif
-#else
-    to->refcount = emalloc(sizeof(*to->refcount));
-    *to->refcount = 1;
-
-    restore_zval_hash(&to->default_properties, &from->default_properties);
-    to->default_properties.pDestructor = ZVAL_PTR_DTOR;
-    /* Clearing references */
-    {
-        Bucket *p = to->default_properties.pListHead;
-        while (p != NULL) {
-            ((zval *) (p->pDataPtr))->refcount = 1;
-            p = p->pListNext;
-        }
-    }
-#endif
 
     if (from->parent != NULL) {
         restore_class_parent(from->parent, strlen(from->parent), to TSRMLS_CC);
@@ -873,16 +757,10 @@ static zend_class_entry *restore_class_entry(zend_class_entry * to, ea_class_ent
     restore_hash(&to->function_table, &from->function_table, (restore_bucket_t)restore_op_array_ptr TSRMLS_CC);
     to->function_table.pDestructor = ZEND_FUNCTION_DTOR;
 
-#ifdef ZEND_ENGINE_2
     restore_class_methods(to TSRMLS_CC);
-#endif
 
     if (to->parent) {
-#ifdef ZEND_ENGINE_2
         zend_do_inheritance(to, to->parent TSRMLS_CC);
-#else
-        zend_do_inheritance(to, to->parent);
-#endif
     }
     EAG(class_entry) = old;
 
@@ -903,11 +781,7 @@ void restore_function(ea_fc_entry * p TSRMLS_DC)
         if (zend_hash_add(CG(function_table), p->htabkey, p->htablen, &op_array, sizeof(zend_op_array), NULL) == FAILURE) {
             CG(in_compilation) = 1;
             CG(compiled_filename) = EAG(mem);
-#ifdef ZEND_ENGINE_2
             CG(zend_lineno) = op_array.line_start;
-#else
-            CG(zend_lineno) = op_array.opcodes[0].lineno;
-#endif
             zend_error(E_ERROR, "Cannot redeclare %s()", p->htabkey);
         }
     }
@@ -918,35 +792,19 @@ void restore_function(ea_fc_entry * p TSRMLS_DC)
  */
 void restore_class(ea_fc_entry * p TSRMLS_DC)
 {
-#ifdef ZEND_ENGINE_2
     zend_class_entry *ce;
-#else
-    zend_class_entry ce;
-#endif
 
     if ((p->htabkey[0] == '\000') && zend_hash_exists(CG(class_table), p->htabkey, p->htablen)) {
         return;
     }
-#ifdef ZEND_ENGINE_2
     ce = restore_class_entry(NULL, (ea_class_entry *) p->fc TSRMLS_CC);
     if (ce != NULL)
-#else
-    if (restore_class_entry(&ce, (ea_class_entry *) p->fc TSRMLS_CC) != NULL)
-#endif
     {
-#ifdef ZEND_ENGINE_2
         if (zend_hash_add(CG(class_table), p->htabkey, p->htablen, &ce, sizeof(zend_class_entry *), NULL) == FAILURE)
-#else
-        if (zend_hash_add(CG(class_table), p->htabkey, p->htablen, &ce, sizeof(zend_class_entry), NULL) == FAILURE)
-#endif
         {
             CG(in_compilation) = 1;
             CG(compiled_filename) = EAG(mem);
-#ifdef ZEND_ENGINE_2
             CG(zend_lineno) = ce->line_start;
-#else
-            CG(zend_lineno) = 0;
-#endif
             zend_error(E_ERROR, "Cannot redeclare class %s", p->htabkey);
         }
     }

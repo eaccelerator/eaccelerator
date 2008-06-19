@@ -80,7 +80,6 @@ static size_t calc_zval_ptr(zval ** from TSRMLS_DC)
     return size;
 }
 
-#ifdef ZEND_ENGINE_2
 static size_t calc_property_info(zend_property_info * from TSRMLS_DC)
 {
     size_t size = 0;
@@ -89,15 +88,12 @@ static size_t calc_property_info(zend_property_info * from TSRMLS_DC)
 
     size += calc_string(from->name, from->name_length + 1 TSRMLS_CC);
 #ifdef INCLUDE_DOC_COMMENTS
-#ifdef ZEND_ENGINE_2_1
      if (from->doc_comment != NULL) {
         size += calc_string(from->doc_comment, from->doc_comment_len + 1 TSRMLS_CC);
      }
 #endif
-#endif
      return size;
 }
-#endif
 
 /* Calculate the size of an HashTable */
 static size_t calc_hash_int(HashTable * source, Bucket * start,
@@ -164,7 +160,6 @@ static size_t calc_op_array(zend_op_array * from TSRMLS_DC)
         DBG(ea_debug_error, ("[%d] EACCELERATOR can't cache function \"%s\"\n", getpid(), from->function_name));
         zend_bailout();
     }
-#ifdef ZEND_ENGINE_2
     if (from->num_args > 0) {
         zend_uint i;
         ADDSIZE(size, from->num_args * sizeof(zend_arg_info));
@@ -177,15 +172,9 @@ static size_t calc_op_array(zend_op_array * from TSRMLS_DC)
             }
         }
     }
-#else
-    if (from->arg_types != NULL) {
-        size += calc_string((char *) from->arg_types, (from->arg_types[0] + 1) * sizeof(zend_uchar) TSRMLS_CC);
-    }
-#endif
     if (from->function_name != NULL) {
         size += calc_string(from->function_name, strlen(from->function_name) + 1 TSRMLS_CC);
     }
-#ifdef ZEND_ENGINE_2
     if (from->scope != NULL) {
         // HOESH: the same problem?
         Bucket *q = CG(class_table)->pListHead;
@@ -197,7 +186,6 @@ static size_t calc_op_array(zend_op_array * from TSRMLS_DC)
             q = q->pListNext;
         }
     }
-#endif
     if (from->type == ZEND_INTERNAL_FUNCTION) {
         return size;
     }
@@ -221,16 +209,13 @@ static size_t calc_op_array(zend_op_array * from TSRMLS_DC)
     if (from->brk_cont_array != NULL) {
         ADDSIZE(size, sizeof(zend_brk_cont_element) * from->last_brk_cont);
     }
-#ifdef ZEND_ENGINE_2
     if (from->try_catch_array != NULL) {
         ADDSIZE(size, sizeof(zend_try_catch_element) * from->last_try_catch);
     }
-#endif
     if (from->static_variables != NULL) {
         ADDSIZE(size, sizeof(HashTable));
         size += calc_zval_hash(from->static_variables);
     }
-#ifdef ZEND_ENGINE_2_1
     if (from->vars != NULL) {
         int i;
         ADDSIZE(size, sizeof(zend_compiled_variable) * from->last_var);
@@ -238,16 +223,13 @@ static size_t calc_op_array(zend_op_array * from TSRMLS_DC)
             size += calc_string(from->vars[i].name, from->vars[i].name_len+1 TSRMLS_CC);
         }
     }
-#endif
     if (from->filename != NULL) {
         size += calc_string(from->filename, strlen(from->filename) + 1 TSRMLS_CC);
     }
 #ifdef INCLUDE_DOC_COMMENTS
-#ifdef ZEND_ENGINE_2
     if (from->doc_comment != NULL) {
         size += calc_string(from->doc_comment, from->doc_comment_len + 1 TSRMLS_CC);
     }
-#endif
 #endif
 
     return size;
@@ -269,7 +251,6 @@ static size_t calc_class_entry(zend_class_entry * from TSRMLS_DC)
     if (from->parent != NULL && from->parent->name) {
         size += calc_string(from->parent->name, from->parent->name_length + 1 TSRMLS_CC);
     }
-#ifdef ZEND_ENGINE_2
     if (from->filename != NULL) {
         size += calc_string(from->filename, strlen(from->filename) + 1 TSRMLS_CC);
     }
@@ -283,18 +264,11 @@ static size_t calc_class_entry(zend_class_entry * from TSRMLS_DC)
     size += calc_zval_hash(&from->default_properties);
     size += calc_hash(&from->properties_info, (calc_bucket_t) calc_property_info);
 
-#  ifdef ZEND_ENGINE_2_1
     size += calc_zval_hash(&from->default_static_members);
     if ((from->static_members != NULL) && (from->static_members != &from->default_static_members)) {
-#  else
-    if (from->static_members != NULL) {
-#  endif
         ADDSIZE(size, sizeof(HashTable));
         size += calc_zval_hash(from->static_members);
     }
-#else
-    size += calc_zval_hash(&from->default_properties);
-#endif
     size += calc_hash(&from->function_table, (calc_bucket_t) calc_op_array);
 
     return size;
@@ -330,11 +304,7 @@ size_t calc_size(char *key, zend_op_array * op_array, Bucket * f, Bucket * c TSR
         b = b->pListNext;
     }
     while (c != NULL) {
-#ifdef ZEND_ENGINE_2
         size += calc_class_entry(*(zend_class_entry **) c->pData TSRMLS_CC);
-#else
-        size += calc_class_entry((zend_class_entry *) c->pData TSRMLS_CC);
-#endif
         c = c->pListNext;
     }
     while (f != NULL) {
@@ -503,19 +473,11 @@ static ea_op_array *store_op_array(char **at, zend_op_array * from TSRMLS_DC)
     zend_op *end;
 
     DBG(ea_debug_pad, (EA_DEBUG TSRMLS_CC));
-#ifdef ZEND_ENGINE_2
     DBG(ea_debug_printf, (EA_DEBUG, "[%d] store_op_array: %s [scope=%s type=%x]\n", 
             getpid(), from->function_name ? from->function_name : "(top)",
             from->scope ? from->scope->name : "NULL"
             , from->type
         ));
-#else
-    DBG(ea_debug_printf, (EA_DEBUG, "[%d] store_op_array: %s [scope=%s type=%x]\n", 
-            getpid(), from->function_name ? from->function_name : "(top)",
-            "NULL"
-            , from->type
-        ));
-#endif      
 
     if (from->type == ZEND_INTERNAL_FUNCTION) {
         to = (ea_op_array *)ALLOCATE(at, offsetof(ea_op_array, opcodes));
@@ -526,7 +488,6 @@ static ea_op_array *store_op_array(char **at, zend_op_array * from TSRMLS_DC)
     }
 
     to->type = from->type;
-#ifdef ZEND_ENGINE_2
     to->num_args = from->num_args;
     to->required_num_args = from->required_num_args;
     if (from->num_args > 0) {
@@ -542,23 +503,16 @@ static ea_op_array *store_op_array(char **at, zend_op_array * from TSRMLS_DC)
                 to->arg_info[i].class_name = store_string(at, from->arg_info[i].class_name, from->arg_info[i].class_name_len + 1 TSRMLS_CC);
                 to->arg_info[i].class_name_len = from->arg_info[i].class_name_len;
             }
-#  ifdef ZEND_ENGINE_2_1
             /* php 5.1 introduces this in zend_arg_info for array type hinting */
             to->arg_info[i].array_type_hint = from->arg_info[i].array_type_hint;
-#  endif
             to->arg_info[i].allow_null = from->arg_info[i].allow_null;
             to->arg_info[i].pass_by_reference = from->arg_info[i].pass_by_reference;
             to->arg_info[i].return_reference = from->arg_info[i].return_reference;
         }
     }
     to->pass_rest_by_reference = from->pass_rest_by_reference;
-#else
-    if (from->arg_types != NULL)
-        to->arg_types = (unsigned char *)store_string(at, (char *)from->arg_types, (from->arg_types[0] + 1) * sizeof(zend_uchar) TSRMLS_CC);
-#endif
     if (from->function_name != NULL)
         to->function_name = store_string(at, from->function_name, strlen(from->function_name) + 1 TSRMLS_CC);
-#ifdef ZEND_ENGINE_2
     to->fn_flags = from->fn_flags;
     to->scope_name = NULL;
     to->scope_name_len = 0;
@@ -584,14 +538,11 @@ static ea_op_array *store_op_array(char **at, zend_op_array * from TSRMLS_DC)
                         getpid(), from->scope->name ? from->scope->name : "NULL"));
         }
     }
-#endif
 
     if (from->type == ZEND_INTERNAL_FUNCTION) {
-#ifdef ZEND_ENGINE_2
         /* zend_internal_function also contains return_reference in ZE2 */
         to->return_reference = from->return_reference;
-#endif      
-            return to;
+        return to;
     }
     
     to->opcodes = from->opcodes;
@@ -599,7 +550,6 @@ static ea_op_array *store_op_array(char **at, zend_op_array * from TSRMLS_DC)
     to->T = from->T;
     to->brk_cont_array = from->brk_cont_array;
     to->last_brk_cont = from->last_brk_cont;
-#ifdef ZEND_ENGINE_2
     to->try_catch_array = from->try_catch_array;
     to->last_try_catch = from->last_try_catch;
     to->uses_this = from->uses_this;
@@ -609,9 +559,6 @@ static ea_op_array *store_op_array(char **at, zend_op_array * from TSRMLS_DC)
     } else {
         to->last_try_catch = 0;
     }
-#else
-    to->uses_globals = from->uses_globals;
-#endif
 
     to->static_variables = from->static_variables;
     to->return_reference = from->return_reference;
@@ -631,7 +578,6 @@ static ea_op_array *store_op_array(char **at, zend_op_array * from TSRMLS_DC)
             if (opline->op2.op_type == IS_CONST) {
                 store_zval(at, &opline->op2.u.constant TSRMLS_CC);
             }
-#ifdef ZEND_ENGINE_2
             switch (opline->opcode) {
             case ZEND_JMP:
                 opline->op1.u.jmp_addr = to->opcodes + (opline->op1.u.jmp_addr - from->opcodes);
@@ -643,7 +589,6 @@ static ea_op_array *store_op_array(char **at, zend_op_array * from TSRMLS_DC)
                 opline->op2.u.jmp_addr = to->opcodes + (opline->op2.u.jmp_addr - from->opcodes);
                 break;
             }
-#endif
         }
         EAG(compress) = 1;
     }
@@ -658,7 +603,6 @@ static ea_op_array *store_op_array(char **at, zend_op_array * from TSRMLS_DC)
         to->static_variables = (HashTable *)ALLOCATE(at, sizeof(HashTable));
         store_zval_hash(at, to->static_variables, from->static_variables);
     }
-#ifdef ZEND_ENGINE_2_1
     if (from->vars != NULL) {
             int i;
             to->last_var = from->last_var;
@@ -673,12 +617,11 @@ static ea_op_array *store_op_array(char **at, zend_op_array * from TSRMLS_DC)
     }
     to->line_start = from->line_start;
     to->line_end = from->line_end;
-#  ifdef INCLUDE_DOC_COMMENTS
+#ifdef INCLUDE_DOC_COMMENTS
     to->doc_comment_len = from->doc_comment_len;
     if (from->doc_comment != NULL) {
         to->doc_comment = store_string(at, from->doc_comment, from->doc_comment_len + 1 TSRMLS_CC);
     }
-#  endif
 #endif
 
     if (from->filename != NULL) {
@@ -687,7 +630,6 @@ static ea_op_array *store_op_array(char **at, zend_op_array * from TSRMLS_DC)
     return to;
 }
 
-#ifdef ZEND_ENGINE_2
 static zend_property_info *store_property_info(char **at, zend_property_info * from TSRMLS_DC)
 {
     zend_property_info *to;
@@ -696,16 +638,14 @@ static zend_property_info *store_property_info(char **at, zend_property_info * f
 
     memcpy(to, from, sizeof(zend_property_info));
     to->name = store_string(at, from->name, from->name_length + 1 TSRMLS_CC);
-#ifdef ZEND_ENGINE_2_1
-#  ifdef INCLUDE_DOC_COMMENTS
+#ifdef INCLUDE_DOC_COMMENTS
     to->doc_comment_len = from->doc_comment_len; 
     if (from->doc_comment != NULL) { 
        to->doc_comment = store_string(at, from->doc_comment, from->doc_comment_len + 1 TSRMLS_CC);
     }
-#  else
+#else
     to->doc_comment_len = 0;
     to->doc_comment = NULL;
-#endif
 #endif
     return to;
 }
@@ -769,11 +709,7 @@ static int store_static_member_access_check(Bucket * p, zend_class_entry * from_
                 return ZEND_HASH_APPLY_REMOVE;
             }
             /* If the static member points to the same value in parent and child, remove for proper inheritance during restore */
-#  ifdef ZEND_ENGINE_2_1
             if(zend_hash_quick_find(&parent->default_static_members, p->arKey, p->nKeyLength, p->h, &pprop.ptr) == SUCCESS) {
-#  else
-            if(zend_hash_quick_find(parent->static_members, p->arKey, p->nKeyLength, p->h, &pprop.ptr) == SUCCESS) {
-#  endif
                 if(*pprop.v == *cprop.v) {
                     return ZEND_HASH_APPLY_REMOVE;
                 }
@@ -801,7 +737,6 @@ static int store_function_inheritance_check(Bucket * p, zend_class_entry * from_
     }
     return ZEND_HASH_APPLY_REMOVE;
 }
-#endif
 
 static ea_class_entry *store_class_entry(char **at, zend_class_entry * from TSRMLS_DC)
 {
@@ -830,7 +765,6 @@ static ea_class_entry *store_class_entry(char **at, zend_class_entry * from TSRM
         to->parent = store_string(at, from->parent->name, from->parent->name_length + 1 TSRMLS_CC);
     }
 
-#ifdef ZEND_ENGINE_2 /* php >= 5.0 */
     to->ce_flags = from->ce_flags;
     to->static_members = NULL;
 
@@ -867,7 +801,6 @@ static ea_class_entry *store_class_entry(char **at, zend_class_entry * from TSRM
     store_zval_hash(at, &to->default_properties, &from->default_properties);
     store_hash(at, &to->properties_info, &from->properties_info, (store_bucket_t) store_property_info, (check_bucket_t) store_property_access_check, from);
     
-#  ifdef ZEND_ENGINE_2_1 /* php >= 5.1 */
     if ((from->static_members != NULL) && (from->static_members != &from->default_static_members)) {
         store_zval_hash(at, &to->default_static_members, &from->default_static_members);
         
@@ -878,20 +811,8 @@ static ea_class_entry *store_class_entry(char **at, zend_class_entry * from TSRM
         store_hash(at, &to->default_static_members, &from->default_static_members, (store_bucket_t) store_zval_ptr, (check_bucket_t) store_static_member_access_check, from);
         to->static_members = &to->default_static_members;
     }
-#  else /* php == 5.0 */
-    if (from->static_members != NULL) {
-        to->static_members = (HashTable *)ALLOCATE(at, sizeof(HashTable));
-
-        store_hash(at, to->static_members, from->static_members, (store_bucket_t) store_zval_ptr, (check_bucket_t) store_static_member_access_check, from);
-    }   
-#  endif
     store_hash(at, &to->function_table, &from->function_table, (store_bucket_t) store_op_array, (check_bucket_t) store_function_inheritance_check, from);
     
-#else /* PHP 4 */
-    store_zval_hash(at, &to->default_properties, &from->default_properties);
-    store_hash(at, &to->function_table, &from->function_table, (store_bucket_t) store_op_array, NULL, NULL);
-#endif
-
 #ifdef DEBUG
     EAG(xpad)--;
 #endif
@@ -939,11 +860,7 @@ void eaccelerator_store_int(ea_cache_entry *entry, char *key, int len, zend_op_a
         memcpy(fc->htabkey, c->arKey, c->nKeyLength);
         fc->htablen = c->nKeyLength;
         fc->next = NULL;
-#ifdef ZEND_ENGINE_2
         fc->fc = *(zend_class_entry **) c->pData;
-#else
-        fc->fc = c->pData;
-#endif
         c = c->pListNext;
         x = fc->htabkey;
         zend_hash_add(&EAG(strings), fc->htabkey, fc->htablen, &x, sizeof(char *), NULL);

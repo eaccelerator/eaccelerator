@@ -98,15 +98,9 @@ static const char *extopnames_sendnoref[] = {
 static const char *fetchtypename[] = {
 	"FETCH_GLOBAL",				/* 0 */
 	"FETCH_LOCAL",				/* 1 */
-	"FETCH_STATIC"				/* 2 */
-#ifdef ZEND_ENGINE_2
-	,
-	"FETCH_STATIC_MEMBER"		/* 3 */
-#ifdef ZEND_ENGINE_2_1
-    ,
+	"FETCH_STATIC",				/* 2 */
+	"FETCH_STATIC_MEMBER",		/* 3 */
     "UNKNOWN 1"                 /* 4 */
-#endif
-#endif
 };
 /* }}} */
 
@@ -271,7 +265,6 @@ static zval *get_op_array(ea_op_array *op_array TSRMLS_DC)
                 } else {
 					buf[0] = '\0';
                 }
-#ifdef ZEND_ENGINE_2
             } else if ((op->ops & EXT_MASK) == EXT_ASSIGN) {
                 if (opline->extended_value == ZEND_ASSIGN_OBJ) {
                     snprintf(buf, sizeof(buf), "ZEND_ASSIGN_OBJ");
@@ -280,17 +273,6 @@ static zval *get_op_array(ea_op_array *op_array TSRMLS_DC)
                 } else {
 					buf[0] = '\0';
                 }
-#ifndef ZEND_ENGINE_2_1
-            } else if (opline->opcode == ZEND_UNSET_DIM_OBJ) {
-                if (opline->extended_value == ZEND_UNSET_DIM) {
-                    snprintf(buf, sizeof(buf), "ZEND_UNSET_DIM");
-                } else if (opline->extended_value == ZEND_UNSET_OBJ) {
-                    snprintf(buf, sizeof(buf), "ZEND_UNSET_OBJ");
-                } else {
-					buf[0] = '\0';
-                }
-#endif
-#endif
             } else if (opline->extended_value != 0) {
                 snprintf(buf, sizeof(buf), "%ld", opline->extended_value);
             } else {
@@ -300,14 +282,10 @@ static zval *get_op_array(ea_op_array *op_array TSRMLS_DC)
 
             /* op1 */
             zval_used = 0;
-#ifdef ZEND_ENGINE_2_1
             if (opline->op1.op_type == IS_CV) {
                 snprintf(buf, sizeof(buf), "$cv%u(%s)", opline->op1.u.var, op_array->vars[opline->op1.u.var].name);
-            } else
-#endif
-            if ((op->ops & OP1_MASK) == OP1_OPLINE) {
+            } else if ((op->ops & OP1_MASK) == OP1_OPLINE) {
                 snprintf(buf, sizeof(buf), "opline(%d)", opline->op1.u.opline_num);
-#ifdef ZEND_ENGINE_2
             } else if ((op->ops & OP1_MASK) == OP1_JMPADDR) {
                 snprintf(buf, sizeof(buf), "opline(%u)", (unsigned int)(opline->op1.u.jmp_addr - op_array->opcodes));
             } else if ((op->ops & OP1_MASK) == OP1_CLASS) {
@@ -318,7 +296,6 @@ static zval *get_op_array(ea_op_array *op_array TSRMLS_DC)
                 } else {
                     snprintf(buf, sizeof(buf), "$class%u", VAR_NUM(opline->op1.u.var));
                 }
-#endif
             } else if ((op->ops & OP1_MASK) == OP1_BRK) {
                 if (opline->op1.u.opline_num != -1 && opline->op2.op_type == IS_CONST && opline->op2.u.constant.type == IS_LONG) {
                     int level = opline->op2.u.constant.value.lval;
@@ -379,31 +356,22 @@ cont_failed:
 
             /* op2 */
             zval_used = 0;
-#ifdef ZEND_ENGINE_2_1
             if (opline->op2.op_type == IS_CV) {
                 snprintf(buf, sizeof(buf), "$cv%u(%s)", opline->op2.u.var, op_array->vars[opline->op2.u.var].name);
-            } else 
-#endif
-			if ((op->ops & OP2_MASK) == OP2_OPLINE) {
+            } else if ((op->ops & OP2_MASK) == OP2_OPLINE) {
 				snprintf(buf, sizeof(buf), "opline(%d)", opline->op2.u.opline_num);
-#ifdef ZEND_ENGINE_2
 			} else if ((op->ops & OP2_MASK) == OP2_JMPADDR) {
 				snprintf(buf, sizeof(buf), "opline(%u)", (unsigned int) (opline->op2.u.jmp_addr - op_array->opcodes));
 			} else if ((op->ops & OP2_MASK) == OP2_CLASS) {
 				snprintf(buf, sizeof(buf), "$class%u", VAR_NUM(opline->op2.u.var));
-#endif
 			} else if ((op->ops & OP2_MASK) == OP2_VAR) {
 				snprintf(buf, sizeof(buf), "$var%u", VAR_NUM(opline->op2.u.var));
 			} else if ((op->ops & OP2_MASK) == OP2_FETCH) {
-#ifdef ZEND_ENGINE_2
 				if (opline->op2.u.EA.type == ZEND_FETCH_STATIC_MEMBER) {
 					snprintf(buf, sizeof(buf), "%s $class%u", fetchtypename[opline->op2.u.EA.type], VAR_NUM(opline->op2.u.var));
 				} else {
 					snprintf(buf, sizeof(buf), "%s", fetchtypename[opline->op2.u.EA.type]);
 				}
-#else
-				strncpy(buf, fetchtypename[opline->op2.u.fetch_type], sizeof(buf));
-#endif
 			} else if ((op->ops & OP2_MASK) == OP2_INCLUDE) {
 				if (opline->op2.u.constant.value.lval == ZEND_EVAL) {
 					snprintf(buf, sizeof(buf), "ZEND_EVAL");
@@ -448,11 +416,9 @@ cont_failed:
 
             /* result */
             zval_used = 0;
-#ifdef ZEND_ENGINE_2_1
             if (opline->result.op_type == IS_CV) {
                 snprintf(buf, sizeof(buf), "$cv%u(%s)", opline->result.u.var, op_array->vars[opline->result.u.var].name);
             } else 
-#endif 
 			switch (op->ops & RES_MASK) {
 			    case RES_STD:
     				if (opline->result.op_type == IS_CONST) {

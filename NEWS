@@ -1,3 +1,30 @@
+May 18, 2008 - Bart Vanbrabant
+------------------------------
+ * Released 0.9.5.3
+    An other 0.9.5 maintenance release
+    Changes in this version (from 0.9.5.2)
+        - Remove an unlock statement that shouldn't be there. This should
+          fix the problems reported in #232 and a lot of related bugs. 
+          Thanks to Terry Duncan for the fix!
+
+September 03, 2007 - Bart Vanbrabant
+------------------------------------
+ * Released 0.9.5.2
+    Changes in this version (from 0.9.5.1)
+        - This release fixes the optimizer bugs with php 5.2 that caused 
+          exception handlers to be optimized out. 
+
+May 06, 2007 - Bart Vanbrabant
+----------------------------------
+
+ * Released 0.9.5.1
+    Changes in this version (from 0.9.5)
+        - Fix bug that causes problems with protected attributes and php 5.2
+        - Fix ttl bug in list_keys
+        Known issues:
+            Exceptions aren't catched by try catch due to optimizer bug, see
+            bugreport #242.
+
 Oct 11, 2006 - Bart Vanbrabant
 ----------------------------------
 
