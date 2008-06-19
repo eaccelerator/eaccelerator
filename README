@@ -43,14 +43,14 @@ http://snapshots.eaccelerator.net
 
 Requirements
 ------------
-apache >= 1.3, mod_php >= 4.1, autoconf, automake, libtool, m4
-
+* apache >= 1.3, mod_php >= 5.1 or php with fastcgi support
+* autoconf, automake, libtool, m4
 
 Compatibility
 -------------
-eAccelerator has been reported working with php4 and php5, php 5.1 support
-hasn't been integrated yet. It is being used on Linux, FreeBSD, MacOS X, 
-Solaris and Windows with apache 1.3 and 2, lighttpd and IIS.
+eAccelerator has been reported working with php 5.1 and higher.
+It is being used on Linux, FreeBSD, MacOS X, Solaris and Windows 
+with apache 1.3 and 2, lighttpd and IIS.
 
 
 Quick install
