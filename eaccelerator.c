@@ -329,7 +329,7 @@ void encode_version(const char *str, int *version, int *extra)
 
     len = strlen(str);
     memcpy(buf, str, (len > 255) ? 255 : len);
-    buf[255] = '\0';
+    buf[254] = '\0';
 
     memset(s, 0, 255);
     sscanf(str, "%u.%u.%u%s", &a, &b, &c, s);
@@ -1439,13 +1439,11 @@ PHP_MINFO_FUNCTION(eaccelerator) {
  */
 static struct ea_pattern_t *ea_parse_filter(char *filter)
 {
-	char *saveptr, *token;
-	struct ea_pattern_t *list_head, *p;
+	char *saveptr = NULL, *token = NULL;
+	struct ea_pattern_t *list_head = NULL, *p = NULL;
 	size_t len;
 
 	// tokenize the filter string on a space
-	list_head = NULL;
-	p = NULL;
 	while ((token = php_strtok_r(filter, " ", &saveptr)) != NULL) {
 		filter = NULL;
 		list_head = malloc(sizeof(struct ea_pattern_t));
