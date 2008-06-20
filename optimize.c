@@ -178,10 +178,18 @@ static void dump_array(int nb,void *pos,char type)
 static void compute_live_var(BB* bb, zend_op_array* op_array, char* global)
 {
   BB* p = bb;
+#ifdef ZEND_ENGINE_2_3
+  ALLOCA_FLAG(use_heap)
+#endif
+
   memset(global, 0, op_array->T * sizeof(char));
   if (p != NULL && p->next != NULL) {
     int bb_count = 0;
-    char *def     = do_alloca(op_array->T * sizeof(char));
+#ifdef ZEND_ENGINE_2_3
+    char *def = do_alloca(op_array->T * sizeof(char), use_heap);
+#else
+    char *def = do_alloca(op_array->T * sizeof(char));
+#endif
 #if 0
     zend_printf("<hr>%s::%s<br>", op_array->filename, op_array->function_name);
 #endif
@@ -224,10 +232,18 @@ static void compute_live_var(BB* bb, zend_op_array* op_array, char* global)
       p = p->next;
       bb_count++;
     }
+#ifdef ZEND_ENGINE_2_3
+    free_alloca(def, use_heap);
+#else
     free_alloca(def);
+#endif
   }
   {
+#ifdef ZEND_ENGINE_2_3
+    char *used = do_alloca(op_array->T * sizeof(char), use_heap);
+#else
     char *used = do_alloca(op_array->T * sizeof(char));
+#endif
     p = bb;
     while (p != NULL) {
       zend_op* op = p->start;
@@ -332,7 +348,11 @@ static void compute_live_var(BB* bb, zend_op_array* op_array, char* global)
       }
       p = p->next;
     }
+#ifdef ZEND_ENGINE_2_3
+    free_alloca(used, use_heap);
+#else
     free_alloca(used);
+#endif
   }
 /*
   while (1) {
@@ -1460,7 +1480,12 @@ static int opt_get_constant(const char* name, int name_len, zend_constant** resu
     void *ptr;
   } c;
   int retval;
+#ifdef ZEND_ENGINE_2_3
+  ALLOCA_FLAG(use_heap)
+  char *lookup_name = do_alloca(name_len+1, use_heap);
+#else
   char *lookup_name = do_alloca(name_len+1);
+#endif
   memcpy(lookup_name, name, name_len);
   lookup_name[name_len] = '\0';
 
@@ -1481,7 +1506,11 @@ static int opt_get_constant(const char* name, int name_len, zend_constant** resu
       retval=0;
     }
   }
+#ifdef ZEND_ENGINE_2_3
+  free_alloca(lookup_name, use_heap);
+#else
   free_alloca(lookup_name);
+#endif
   return retval;
 }
 
@@ -1599,7 +1628,12 @@ static void optimize_bb(BB* bb, zend_op_array* op_array, char* global, int pass 
   HashTable assigns;
   HashTable fetch_dim;
 
+#ifdef ZEND_ENGINE_2_3
+  ALLOCA_FLAG(use_heap)
+  zend_op** Ts = do_alloca(sizeof(zend_op*)*op_array->T, use_heap);
+#else
   zend_op** Ts = do_alloca(sizeof(zend_op*)*op_array->T);
+#endif
   memset(Ts, 0, sizeof(zend_op*)*op_array->T);
 
   zend_hash_init(&assigns, 0, NULL, NULL, 0);
@@ -2606,7 +2640,11 @@ else if (prev != NULL &&
   bb->len = end - bb->start;
   zend_hash_destroy(&fetch_dim);
   zend_hash_destroy(&assigns);
+#ifdef ZEND_ENGINE_2_3
+  free_alloca(Ts, use_heap);
+#else
   free_alloca(Ts);
+#endif
 }
 
 /*
@@ -3059,9 +3097,17 @@ static void emit_cfg(zend_op_array *op_array, BB* bb)
 void reassign_registers(zend_op_array *op_array, BB* p, char *global) {
   zend_uint i;
   zend_uint n = 0;
-  int* assigned = do_alloca(op_array->T * sizeof(int));
+    
+#ifdef ZEND_ENGINE_2_3
+  ALLOCA_FLAG(use_heap)
+  int* assigned  = do_alloca(op_array->T * sizeof(int), use_heap);
+  char* reg_pool = do_alloca(op_array->T * sizeof(char), use_heap);
+  char* used     = do_alloca(op_array->T * sizeof(char), use_heap);
+#else
+  int* assigned  = do_alloca(op_array->T * sizeof(int));
   char* reg_pool = do_alloca(op_array->T * sizeof(char));
   char* used     = do_alloca(op_array->T * sizeof(char));
+#endif
 
   for (i = 0; i < op_array->T; i++) {
     assigned[i] = -1;
@@ -3143,9 +3189,15 @@ void reassign_registers(zend_op_array *op_array, BB* p, char *global) {
     p = p->next;
   }
   op_array->T = n;
+#ifdef ZEND_ENGINE_2_3
+  free_alloca(used, use_heap);
+  free_alloca(reg_pool, use_heap);
+  free_alloca(assigned, use_heap);
+#else
   free_alloca(used);
   free_alloca(reg_pool);
   free_alloca(assigned);
+#endif
 }
 
 void restore_operand_types(zend_op_array *op_array) {
@@ -3171,18 +3223,33 @@ void eaccelerator_optimize(zend_op_array *op_array)
   int i;
   BB* bb;
 
+#ifdef ZEND_ENGINE_2_3
+  ALLOCA_FLAG(use_heap)
+#endif
+
   TSRMLS_FETCH();
   if (!EAG(compiler) || op_array->type != ZEND_USER_FUNCTION) {
     return;
   }
 
   /* Allocate memory for CFG */
-  if ((bb = do_alloca(sizeof(BB)*(op_array->last+1))) == NULL) return;
+#ifdef ZEND_ENGINE_2_3
+  bb = do_alloca(sizeof(BB)*(op_array->last+1), use_heap);
+#else
+  bb = do_alloca(sizeof(BB)*(op_array->last+1));
+#endif
+  if (bb == NULL) {
+      return;
+  }
   memset(bb, 0, sizeof(BB)*(op_array->last+1));
 
   /* Find All Basic Blocks and build CFG */
   if (build_cfg(op_array, bb)) {
+#ifdef ZEND_ENGINE_2_3
+    char *global = do_alloca(op_array->T * sizeof(char), use_heap);
+#else
     char *global = do_alloca(op_array->T * sizeof(char));
+#endif
     if (global == NULL) return;
 
     for (i=0; i<2; i++) {
@@ -3226,7 +3293,11 @@ void eaccelerator_optimize(zend_op_array *op_array)
     reassign_registers(op_array, bb, global);
     /* dump_bb(bb, op_array); */
 
+#ifdef ZEND_ENGINE_2_3
+    free_alloca(global, use_heap);
+#else
     free_alloca(global);
+#endif
   }
   else {
     /* build_cfg encountered some nested ZEND_BRK or ZEND_CONT's
@@ -3239,7 +3310,11 @@ void eaccelerator_optimize(zend_op_array *op_array)
     */
     restore_operand_types(op_array);
   }
-  free_alloca(bb);
+#ifdef ZEND_ENGINE_2_3
+    free_alloca(bb, use_heap);
+#else
+    free_alloca(bb);
+#endif
 }
 #endif
 #endif /* #ifdef HAVE_EACCELERATOR */
