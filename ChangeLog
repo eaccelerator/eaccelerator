@@ -2,6 +2,7 @@
 
         * First stab at php 5.3 support. Only fixes the script cache.
           phpMyAdmin seems to work with these changes.
+        * Fix user cache stuff
 
 2008-05-19  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
