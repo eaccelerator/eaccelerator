@@ -49,6 +49,12 @@ extern zend_extension *ZendOptimizer;
 extern unsigned int zend_hash_canary;
 #endif
 
+#ifdef ZEND_ENGINE_2_3
+    #define RESET_PZVAL_REFCOUNT(z) Z_SET_REFCOUNT_P(z, 1)
+#else
+    #define RESET_PZVAL_REFCOUNT(z) (z)->refcount = 1;
+#endif
+
 /* pointer to the properties_info hashtable destructor */
 dtor_func_t properties_info_dtor = NULL;
 
@@ -276,7 +282,7 @@ static zval *restore_zval_ptr(zval * from TSRMLS_DC)
     memcpy(p, from, sizeof(zval));
     restore_zval(p TSRMLS_CC);
     /* hrak: reset refcount to make sure there is one reference to this val, and prevent memleaks */
-    p->refcount = 1;
+    RESET_PZVAL_REFCOUNT(p);
     return p;
 }
 
@@ -538,7 +544,11 @@ zend_op_array *restore_op_array(zend_op_array * to, ea_op_array * from TSRMLS_DC
 
     to->try_catch_array = from->try_catch_array;
     to->last_try_catch = from->last_try_catch;
+#ifdef ZEND_ENGINE_2_3
+    to->this_var = from->this_var;
+#else
     to->uses_this = from->uses_this;
+#endif
 
     to->line_start = from->line_start;
     to->line_end = from->line_end;
@@ -555,7 +565,7 @@ zend_op_array *restore_op_array(zend_op_array * to, ea_op_array * from TSRMLS_DC
         if (EAG(class_entry) != NULL) {
             Bucket *p = to->static_variables->pListHead;
             while (p != NULL) {
-                ((zval *) (p->pDataPtr))->refcount = 1;
+                RESET_PZVAL_REFCOUNT((zval*) p->pDataPtr);
                 p = p->pListNext;
             }
         }

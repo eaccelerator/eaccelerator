@@ -46,7 +46,11 @@
 #ifndef DEBUG
 inline
 #endif
+#ifdef ZEND_ENGINE_2_3
+static size_t calc_string(const char *str, int len TSRMLS_DC)
+#else
 static size_t calc_string(char *str, int len TSRMLS_DC)
+#endif
 {
     if (len > MAX_DUP_STR_LEN || 
             zend_hash_add(&EAG(strings), str, len, &str, sizeof(char *), NULL) == SUCCESS) {
@@ -323,7 +327,11 @@ size_t calc_size(char *key, zend_op_array * op_array, Bucket * f, Bucket * c TSR
     (*at) += (len); \
     EACCELERATOR_ALIGN((*at));
 
+#ifdef ZEND_ENGINE_2_3
+static inline char *store_string(char **at, const char *str, int len TSRMLS_DC)
+#else
 static inline char *store_string(char **at, char *str, int len TSRMLS_DC)
+#endif
 {
     char *p;
     if (len > MAX_DUP_STR_LEN) {
@@ -552,7 +560,11 @@ static ea_op_array *store_op_array(char **at, zend_op_array * from TSRMLS_DC)
     to->last_brk_cont = from->last_brk_cont;
     to->try_catch_array = from->try_catch_array;
     to->last_try_catch = from->last_try_catch;
+#ifdef ZEND_ENGINE_2_3
+    to->this_var = from->this_var;
+#else
     to->uses_this = from->uses_this;
+#endif
     if (from->try_catch_array != NULL) {
         to->try_catch_array = (zend_try_catch_element *)ALLOCATE(at, sizeof(zend_try_catch_element) * from->last_try_catch);
         memcpy(to->try_catch_array, from->try_catch_array, sizeof(zend_try_catch_element) * from->last_try_catch);

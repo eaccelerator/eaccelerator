@@ -197,7 +197,11 @@
 
 typedef struct _eaccelerator_op_array {
 	zend_uchar type;
+#ifdef ZEND_ENGINE_2_3
+    zend_uint this_var;
+#else
 	zend_bool uses_this;
+#endif
 	zend_bool return_reference;
 	zend_uint num_args;
 	zend_uint required_num_args;

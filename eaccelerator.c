@@ -1102,6 +1102,15 @@ static int ea_match(struct ea_pattern_t *list, const char *path)
   return result | !positive;
 }
 
+/* copy of zend_class_add_ref, the linker isn't able to link to it any more
+ * in php 5.3
+ * TODO: see if we can steal the pointer
+ */
+void ea_class_add_ref(zend_class_entry **ce)
+{
+	    (*ce)->refcount++;
+}
+
 /*
  * Intercept compilation of PHP file.  If we already have the file in
  * our cache, restore it.  Otherwise call the original Zend compilation
@@ -1223,7 +1232,7 @@ ZEND_DLEXPORT zend_op_array* eaccelerator_compile_file(zend_file_handle *file_ha
     CG(function_table) = &tmp_function_table;
 
     zend_hash_init_ex(&tmp_class_table, 10, NULL, ZEND_CLASS_DTOR, 1, 0);
-		zend_hash_copy(&tmp_class_table, &eaccelerator_global_class_table, (copy_ctor_func_t)zend_class_add_ref, &tmp_class, sizeof(zend_class_entry *));
+		zend_hash_copy(&tmp_class_table, &eaccelerator_global_class_table, (copy_ctor_func_t)ea_class_add_ref, &tmp_class, sizeof(zend_class_entry *));
 
     orig_class_table = CG(class_table);;
     CG(class_table) = &tmp_class_table;
