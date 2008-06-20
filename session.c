@@ -115,9 +115,16 @@ PS_READ_FUNC(eaccelerator)
 	char *skey;
 	int len;
 	zval ret;
+#ifdef ZEND_ENGINE_2_3
+    ALLOCA_FLAG(use_heap);
+#endif
 
 	len = sizeof("sess_") + strlen(key);
+#ifdef ZEND_ENGINE_2_3
+	skey = do_alloca(len + 1, use_heap);
+#else
 	skey = do_alloca(len + 1);
+#endif
 	strcpy(skey, "sess_");
 	strcat(skey, key);
 	do_session_lock(skey TSRMLS_CC);
@@ -131,7 +138,11 @@ PS_READ_FUNC(eaccelerator)
 		(*val)[0] = '\0';
 		*vallen = 0;
 	}
+#ifdef ZEND_ENGINE_2_3
+    free_alloca(skey, use_heap);
+#else
 	free_alloca(skey);
+#endif
 	return SUCCESS;
 }
 
@@ -139,11 +150,19 @@ PS_WRITE_FUNC(eaccelerator)
 {
 	char *skey;
 	int len;
+    int result;
 	time_t ttl = INI_INT("session.gc_maxlifetime");
 	zval sval;
+#ifdef ZEND_ENGINE_2_3
+    ALLOCA_FLAG(use_heap);
+#endif
 
 	len = sizeof("sess_") + strlen(key);
+#ifdef ZEND_ENGINE_2_3
+	skey = do_alloca(len + 1, use_heap);
+#else
 	skey = do_alloca(len + 1);
+#endif
 	strcpy(skey, "sess_");
 	strcat(skey, key);
 	if (!ttl) {
@@ -155,30 +174,50 @@ PS_WRITE_FUNC(eaccelerator)
 
 	do_session_lock(skey TSRMLS_CC);
 	if (eaccelerator_put(skey, len, &sval, ttl, eaccelerator_sessions_cache_place TSRMLS_CC)) {
-		free_alloca(skey);
-		return SUCCESS;
+		result = SUCCESS;
 	} else {
-		free_alloca(skey);
-		return FAILURE;
+		result = FAILURE;
 	}
+
+#ifdef ZEND_ENGINE_2_3
+    free_alloca(skey, use_heap);
+#else
+	free_alloca(skey);
+#endif
+
+    return result;
 }
 
 PS_DESTROY_FUNC(eaccelerator)
 {
 	char *skey;
 	int len;
+    int result;
+#ifdef ZEND_ENGINE_2_3
+    ALLOCA_FLAG(use_heap);
+#endif
 
 	len = sizeof("sess_") + strlen(key);
+#ifdef ZEND_ENGINE_2_3
+	skey = do_alloca(len + 1, use_heap);
+#else
 	skey = do_alloca(len + 1);
+#endif
 	strcpy(skey, "sess_");
 	strcat(skey, key);
 	if (eaccelerator_rm(skey, len, eaccelerator_sessions_cache_place TSRMLS_CC)) {
-		free_alloca(skey);
-		return SUCCESS;
+		result = SUCCESS;
 	} else {
-		free_alloca(skey);
-		return FAILURE;
+		result = FAILURE;
 	}
+
+#ifdef ZEND_ENGINE_2_3
+    free_alloca(skey, use_heap);
+#else
+	free_alloca(skey);
+#endif
+
+    return result;
 }
 
 PS_GC_FUNC(eaccelerator)

@@ -156,8 +156,7 @@ static void eaccelerator_put_page(const char* key, int key_len, zval* content, t
   }
   memcpy(cache_content, content, sizeof(zval));
   zval_copy_ctor(cache_content);
-  cache_content->is_ref = 0;
-  cache_content->refcount = 1;
+  INIT_PZVAL(cache_content);
   add_assoc_zval(&cache_array, "content", cache_content);
   eaccelerator_put(key, key_len , &cache_array, ttl, eaccelerator_content_cache_place TSRMLS_CC);
   zval_dtor(&cache_array);
@@ -492,6 +491,9 @@ PHP_FUNCTION(eaccelerator_rm_page) {
   int   key_len;
   char* zkey;
   int   zkey_len;
+#ifdef ZEND_ENGINE_2_3
+  ALLOCA_FLAG(use_heap)
+#endif
 
   if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
                           "s", &key, &key_len) == FAILURE) {
@@ -500,7 +502,11 @@ PHP_FUNCTION(eaccelerator_rm_page) {
   if (eaccelerator_content_cache_place == ea_none) {
     RETURN_NULL();
   }
+#ifdef ZEND_ENGINE_2_3
+  zkey = do_alloca(key_len+16, use_heap);
+#else
   zkey = do_alloca(key_len+16);
+#endif
   eaccelerator_rm(key, key_len, eaccelerator_content_cache_place TSRMLS_CC);
   zkey_len = sizeof("gzip_") + key_len - 1;
   memcpy(zkey,"gzip_",sizeof("gzip_")-1);

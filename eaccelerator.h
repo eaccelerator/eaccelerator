@@ -185,6 +185,11 @@
 #define EACCELERATOR_ALIGN(n) (n) = (void*)((((size_t)(n)-1) & ~(EACCELERATOR_PLATFORM_ALIGNMENT-1)) + EACCELERATOR_PLATFORM_ALIGNMENT)
 #define EA_SIZE_ALIGN(n) (n) = ((((size_t)(n)-1) & ~(EACCELERATOR_PLATFORM_ALIGNMENT-1)) + EACCELERATOR_PLATFORM_ALIGNMENT)
 
+#ifdef ZEND_ENGINE_2_3
+    #define RESET_PZVAL_REFCOUNT(z) Z_SET_REFCOUNT_P(z, 1)
+#else
+    #define RESET_PZVAL_REFCOUNT(z) (z)->refcount = 1;
+#endif
 
 #define MAX_DUP_STR_LEN 256
 

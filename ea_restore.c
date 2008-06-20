@@ -49,12 +49,6 @@ extern zend_extension *ZendOptimizer;
 extern unsigned int zend_hash_canary;
 #endif
 
-#ifdef ZEND_ENGINE_2_3
-    #define RESET_PZVAL_REFCOUNT(z) Z_SET_REFCOUNT_P(z, 1)
-#else
-    #define RESET_PZVAL_REFCOUNT(z) (z)->refcount = 1;
-#endif
-
 /* pointer to the properties_info hashtable destructor */
 dtor_func_t properties_info_dtor = NULL;
 
