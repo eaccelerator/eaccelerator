@@ -351,7 +351,7 @@ void restore_zval(zval * zv TSRMLS_DC)
     case IS_CONSTANT:
     case IS_OBJECT:
     case IS_STRING:
-        if (Z_STRVAL_P(zv) == NULL || Z_STRVAL_P(zv) == "" || Z_STRLEN_P(zv) == 0) {
+        if (Z_STRVAL_P(zv) == NULL || Z_STRLEN_P(zv) == 0) {
             Z_STRLEN_P(zv) = 0;
             Z_STRVAL_P(zv) = empty_string;
             return;

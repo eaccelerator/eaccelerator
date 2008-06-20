@@ -1525,7 +1525,11 @@ static int opt_function_exists(const char* name, int name_len TSRMLS_DC) {
   while (p != NULL) {
     zend_module_entry *m = (zend_module_entry*)p->pData;
     if (m->type == MODULE_PERSISTENT) {
+#ifdef ZEND_ENGINE_2_3
+      const zend_function_entry* f = m->functions;
+#else
       zend_function_entry* f = m->functions;
+#endif
       if (f != NULL) {
         while (f->fname) {
         lcfname = estrdup(f->fname);
