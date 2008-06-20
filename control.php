@@ -276,7 +276,7 @@ $info = eaccelerator_info();
     Check if eA was compiled with WITH_EACCELERATOR_CONTENT_CACHING) || WITH_EACCELERATOR_SESSIONS || WITH_EACCELERATOR_SHM 
     if yes, show 'User Cache' tab, else dont
 */
-if (function_exists(eaccelerator_list_keys)) {
+if (function_exists('eaccelerator_list_keys')) {
     $items = array(0 => 'Status', 1 => 'Script Cache', 2 => 'User Cache');
 } else {
     $items = array(0 => 'Status', 1 => 'Script Cache');
