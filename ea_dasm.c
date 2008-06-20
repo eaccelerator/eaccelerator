@@ -34,6 +34,8 @@
 
 extern eaccelerator_mm *eaccelerator_mm_instance;
 
+#define LOOKUP(arr, index, max, ptr) if (index < max) { ptr = arr[index]; } else { ptr = "UNDEFINED (todo)"; };
+
 /* {{{ static const char *extopnames_declare[] */
 static const char *extopnames_declare[] = {
 	"",							/* 0 */
@@ -41,6 +43,8 @@ static const char *extopnames_declare[] = {
 	"DECLARE_FUNCTION",			/* 2 */
 	"DECLARE_INHERITED_CLASS"	/* 3 */
 };
+#define EXTOPNAMES_DECLARE_NUM 4
+#define GET_EXTOPNAMES_DECLARE(index, ptr) LOOKUP(extopnames_declare, index, EXTOPNAMES_DECLARE_NUM, ptr)
 /* }}} */
 
 /* {{{ static const char *extopnames_cast[] */
@@ -56,6 +60,8 @@ static const char *extopnames_cast[] = {
 	"IS_CONSTANT",				/* 8 */
 	"IS_CONSTANT_ARRAY"			/* 9 */
 };
+#define EXTOPNAMES_CAST_NUM 10
+#define GET_EXTOPNAMES_CAST(index, ptr) LOOKUP(extopnames_cast, index, EXTOPNAMES_CAST_NUM, ptr)
 /* }}} */
 
 /* {{{ static const char *extopnames_fetch[] */
@@ -63,6 +69,8 @@ static const char *extopnames_fetch[] = {
 	"FETCH_STANDARD",			/* 0 */
 	"FETCH_ADD_LOCK"			/* 1 */
 };
+#define EXTOPNAMES_FETCH_NUM 2
+#define GET_EXTOPNAMES_FETCH(index, ptr) LOOKUP(extopnames_fetch, index, EXTOPNAMES_FETCH_NUM, ptr)
 /* }}} */
 
 /* {{{ static const char *extopnames_fetch_class[] */
@@ -74,6 +82,8 @@ static const char *extopnames_fetch_class[] = {
 	"FETCH_CLASS_GLOBAL",		/* 4 */
 	"FETCH_CLASS_AUTO"			/* 5 */
 };
+#define EXTOPNAMES_FETCH_CLASS_NUM 6
+#define GET_EXTOPNAMES_FETCH_CLASS(index, ptr) LOOKUP(extopnames_fetch_class, index, EXTOPNAMES_FETCH_CLASS_NUM, ptr)
 /* }}} */
 
 /* {{{ static const char *extopnames_init_fcall[] */
@@ -83,6 +93,8 @@ static const char *extopnames_init_fcall[] = {
 	"CTOR_CALL",				/* 2 */
 	"CTOR_CALL"					/* 3 */
 };
+#define EXTOPNAMES_INIT_FCALL_NUM 4
+#define GET_EXTOPNAMES_INIT_FCALL(index, ptr) LOOKUP(extopnames_init_fcall, index, EXTOPNAMES_INIT_FCALL_NUM, ptr)
 /* }}} */
 
 /* {{{ static const char *extopnames_sendnoref[] */
@@ -92,6 +104,8 @@ static const char *extopnames_sendnoref[] = {
 	"ARG_COMPILE_TIME_BOUND",	/* 2 */
 	"ARG_SEND_BY_REF | ZEND_ARG_COMPILE_TIME_BOUND"	/* 3 */
 };
+#define EXTOPNAMES_SENDNOREF_NUM 4
+#define GET_EXTOPNAMES_SENDNOREF(index, ptr) LOOKUP(extopnames_sendnoref, index, EXTOPNAMES_SENDNOREF_NUM, ptr)
 /* }}} */
 
 /* {{{ static const char *fetchtypename[] */
@@ -102,6 +116,8 @@ static const char *fetchtypename[] = {
 	"FETCH_STATIC_MEMBER",		/* 3 */
     "UNKNOWN 1"                 /* 4 */
 };
+#define FETCHTYPENAME_NUM 5
+#define GET_FETCHTYPENAME(index, ptr) LOOKUP(fetchtypename, index, FETCHTYPENAME_NUM, ptr)
 /* }}} */
 
 /* {{{ static const char *extopnames_fe[] */
@@ -110,6 +126,8 @@ static const char *extopnames_fe[] = {
 	"FE_FETCH_BYREF",			/* 1 */
 	"FE_FETCH_WITH_KEY"			/* 2 */
 };
+#define EXTOPNAMES_FE_NUM 3
+#define GET_EXTOPNAMES_FE(index, ptr) LOOKUP(extopnames_fe, index, EXTOPNAMES_FE_NUM, ptr)
 /* }}} */
 
 /* {{{ get_zval: create a string from the given zval */
@@ -233,20 +251,33 @@ static zval *get_op_array(ea_op_array *op_array TSRMLS_DC)
             } else if ((op->ops & EXT_MASK) == EXT_SEND) {
                 strncpy(buf, get_opcode_dsc(opline->extended_value)->opname, sizeof(buf));
             } else if ((op->ops & EXT_MASK) == EXT_CAST) {
-                strncpy(buf, extopnames_cast[opline->extended_value], sizeof(buf));
+				const char *ptr = NULL;
+				GET_EXTOPNAMES_CAST(opline->extended_value, ptr);
+                strncpy(buf, ptr, sizeof(buf));
             } else if ((op->ops & EXT_MASK) == EXT_INIT_FCALL) {
-                strncpy(buf, extopnames_init_fcall[opline->extended_value], sizeof(buf));
+				const char *ptr = NULL;
+				GET_EXTOPNAMES_INIT_FCALL(opline->extended_value, ptr);
+	            strncpy(buf, ptr, sizeof(buf));
             } else if ((op->ops & EXT_MASK) == EXT_FETCH) {
-                strncpy(buf, extopnames_fetch[opline->extended_value], sizeof(buf));
+				const char *ptr = NULL;
+				GET_EXTOPNAMES_FETCH(opline->extended_value, ptr);
+                strncpy(buf, ptr, sizeof(buf));
             } else if ((op->ops & EXT_MASK) == EXT_FE) {
-                strncpy(buf, extopnames_fe[opline->extended_value], sizeof(buf));
+				const char *ptr = NULL;
+				GET_EXTOPNAMES_FE(opline->extended_value, ptr);
+                strncpy(buf, ptr, sizeof(buf));
             } else if ((op->ops & EXT_MASK) == EXT_DECLARE) {
-                strncpy(buf, extopnames_declare[opline->extended_value], sizeof(buf));
+				const char *ptr = NULL;
+				GET_EXTOPNAMES_DECLARE(opline->extended_value, ptr);
+                strncpy(buf, ptr, sizeof(buf));
             } else if ((op->ops & EXT_MASK) == EXT_SEND_NOREF) {
-                strncpy(buf, extopnames_sendnoref[opline->extended_value], sizeof(buf));
+				const char *ptr = NULL;
+				GET_EXTOPNAMES_SENDNOREF(opline->extended_value, ptr);
+                strncpy(buf, ptr, sizeof(buf));
             } else if ((op->ops & EXT_MASK) == EXT_FCLASS) {
-                // XXX: hack to prevent segfault 
-                snprintf(buf, sizeof(buf), "%s", extopnames_fetch_class[opline->extended_value]);
+				const char *ptr = NULL;
+				GET_EXTOPNAMES_FETCH_CLASS(opline->extended_value, ptr);
+                snprintf(buf, sizeof(buf), "%s", ptr);
             } else if ((op->ops & EXT_MASK) == EXT_IFACE) {
                 snprintf(buf, sizeof(buf), "interface(%lu)", opline->extended_value);
             } else if ((op->ops & EXT_MASK) == EXT_CLASS) {
@@ -367,10 +398,12 @@ cont_failed:
 			} else if ((op->ops & OP2_MASK) == OP2_VAR) {
 				snprintf(buf, sizeof(buf), "$var%u", VAR_NUM(opline->op2.u.var));
 			} else if ((op->ops & OP2_MASK) == OP2_FETCH) {
+				const char *typename = NULL;
+				GET_FETCHTYPENAME(opline->op2.u.EA.type, typename);
 				if (opline->op2.u.EA.type == ZEND_FETCH_STATIC_MEMBER) {
-					snprintf(buf, sizeof(buf), "%s $class%u", fetchtypename[opline->op2.u.EA.type], VAR_NUM(opline->op2.u.var));
+					snprintf(buf, sizeof(buf), "%s $class%u", typename, VAR_NUM(opline->op2.u.var));
 				} else {
-					snprintf(buf, sizeof(buf), "%s", fetchtypename[opline->op2.u.EA.type]);
+					snprintf(buf, sizeof(buf), "%s", typename);
 				}
 			} else if ((op->ops & OP2_MASK) == OP2_INCLUDE) {
 				if (opline->op2.u.constant.value.lval == ZEND_EVAL) {
