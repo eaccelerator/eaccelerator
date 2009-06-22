@@ -276,7 +276,11 @@ static zval *restore_zval_ptr(zval * from TSRMLS_DC)
     memcpy(p, from, sizeof(zval));
     restore_zval(p TSRMLS_CC);
     /* hrak: reset refcount to make sure there is one reference to this val, and prevent memleaks */
-    RESET_PZVAL_REFCOUNT(p);
+#ifdef ZEND_ENGINE_2_3
+    Z_SET_REFCOUNT_P(p, 1);
+#else
+    p->refcount = 1;
+#endif
     return p;
 }
 
@@ -351,7 +355,7 @@ void restore_zval(zval * zv TSRMLS_DC)
     case IS_CONSTANT:
     case IS_OBJECT:
     case IS_STRING:
-        if (Z_STRVAL_P(zv) == NULL || Z_STRLEN_P(zv) == 0) {
+        if (Z_STRVAL_P(zv) == NULL || Z_STRVAL_P(zv) == "" || Z_STRLEN_P(zv) == 0) {
             Z_STRLEN_P(zv) = 0;
             Z_STRVAL_P(zv) = empty_string;
             return;
@@ -540,6 +544,7 @@ zend_op_array *restore_op_array(zend_op_array * to, ea_op_array * from TSRMLS_DC
     to->last_try_catch = from->last_try_catch;
 #ifdef ZEND_ENGINE_2_3
     to->this_var = from->this_var;
+    to->early_binding = from->early_binding;
 #else
     to->uses_this = from->uses_this;
 #endif
@@ -556,13 +561,6 @@ zend_op_array *restore_op_array(zend_op_array * to, ea_op_array * from TSRMLS_DC
     if (from->static_variables) {
         to->static_variables = restore_zval_hash(NULL, from->static_variables);
         to->static_variables->pDestructor = ZVAL_PTR_DTOR;
-        if (EAG(class_entry) != NULL) {
-            Bucket *p = to->static_variables->pListHead;
-            while (p != NULL) {
-                RESET_PZVAL_REFCOUNT((zval*) p->pDataPtr);
-                p = p->pListNext;
-            }
-        }
     }
 
     to->vars             = from->vars;

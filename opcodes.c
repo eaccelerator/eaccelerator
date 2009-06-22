@@ -35,7 +35,7 @@
 #  define OPDEF(NAME, OPS) {OPS}
 #endif
 
-#define OP1_VAR_2 OP1_STD
+#  define OP1_VAR_2 OP1_STD
 
 #define LAST_OPCODE (sizeof(opcodes)/sizeof(opcodes[0]))
 
@@ -100,8 +100,8 @@ static const opcode_dsc opcodes[] = {
   OPDEF("BEGIN_SILENCE",             EXT_UNUSED | OP1_UNUSED | OP2_UNUSED | RES_TMP), /* 57 */
   OPDEF("END_SILENCE",               EXT_UNUSED | OP1_TMP    | OP2_UNUSED | RES_UNUSED), /* 58 */
   OPDEF("INIT_FCALL_BY_NAME",        EXT_INIT_FCALL | OP1_STD | OP2_STD   | RES_UNUSED), /* 59 */
-  OPDEF("DO_FCALL",                  EXT_FCALL  | OP1_STD    | OP2_OPLINE | RES_VAR), /* 60 */
-  OPDEF("DO_FCALL_BY_NAME",          EXT_FCALL  | OP1_STD    | OP2_OPLINE | RES_VAR), /* 61 */
+  OPDEF("DO_FCALL",                  EXT_FCALL  | OP1_STD    | OP2_UNUSED | RES_VAR), /* 60 */
+  OPDEF("DO_FCALL_BY_NAME",          EXT_FCALL  | OP1_UNUSED | OP2_UNUSED | RES_VAR), /* 61 */
   OPDEF("RETURN",                    EXT_UNUSED | OP1_STD    | OP2_UNUSED | RES_UNUSED), /* 62 */
   OPDEF("RECV",                      EXT_UNUSED | OP1_ARG    | OP2_UNUSED | RES_VAR), /* 63 */
   OPDEF("RECV_INIT",                 EXT_UNUSED | OP1_ARG    | OP2_STD    | RES_VAR), /* 64 */
@@ -144,7 +144,6 @@ static const opcode_dsc opcodes[] = {
   OPDEF("FETCH_OBJ_UNSET",           EXT_UNUSED | OP1_VAR_2  | OP2_STD    | RES_VAR), /* 97 */
   OPDEF("FETCH_DIM_TMP_VAR",         EXT_UNUSED | OP1_STD    | OP2_STD    | RES_VAR), /* 98 */
   OPDEF("FETCH_CONSTANT",            EXT_UNUSED | OP1_UCLASS | OP2_STD    | RES_TMP), /* 99 */
-  OPDEF("FETCH_CONSTANT",            EXT_UNUSED | OP1_STD    | OP2_UNUSED | RES_TMP), /* 99 */
   OPDEF("DECLARE_FUNCTION_OR_CLASS", EXT_DECLARE| OP1_STD    | OP2_STD    | RES_UNUSED), /* 100 */
   OPDEF("EXT_STMT",                  EXT_STD    | OP1_STD    | OP2_STD    | RES_STD), /* 101 */
   OPDEF("EXT_FCALL_BEGIN",           EXT_STD    | OP1_STD    | OP2_STD    | RES_STD), /* 102 */
@@ -198,7 +197,8 @@ static const opcode_dsc opcodes[] = {
   OPDEF("VERIFY_ABSTRACT_CLASS",     EXT_UNUSED | OP1_CLASS  | OP2_UNUSED | RES_UNUSED), /* 146 */
   OPDEF("ASSIGN_DIM",                EXT_UNUSED | OP1_STD    | OP2_STD    | RES_VAR),  /* 147 */
   OPDEF("ISSET_ISEMPTY_PROP_OBJ",    EXT_ISSET  | OP1_STD    | OP2_STD    | RES_TMP), /* 148 */
-  OPDEF("HANDLE_EXCEPTION",          EXT_STD    | OP1_UNUSED | OP2_UNUSED | RES_STD)  /* 149 */
+  OPDEF("HANDLE_EXCEPTION",          EXT_STD    | OP1_UNUSED | OP2_UNUSED | RES_STD),  /* 149 */
+  OPDEF("USER_OPCODE",               EXT_STD    | OP1_UNUSED | OP2_UNUSED | RES_STD)  /* 150 */
 # ifdef ZEND_ENGINE_2_3
   ,
   OPDEF("UNDEF",                    EXT_UNUSED | OP1_UNUSED | OP2_UNUSED | RES_UNUSED), /* 151 */

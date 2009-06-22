@@ -356,16 +356,18 @@ int eaccelerator_get(const char *key, int key_len, zval * return_value, ea_cache
             q = p;
             p = p->next;
         }
-        EACCELERATOR_UNLOCK_RW();
-        EACCELERATOR_PROTECT();
         if (x) {
             memcpy(return_value, &x->value, sizeof(zval));
             restore_zval(return_value TSRMLS_CC);
+            EACCELERATOR_UNLOCK_RW();
+            EACCELERATOR_PROTECT();
             if (xlen != key_len) {
                 efree(xkey);
             }
             return 1;
         }
+        EACCELERATOR_UNLOCK_RW();
+        EACCELERATOR_PROTECT();
     }
 
     /*

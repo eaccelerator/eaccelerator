@@ -368,10 +368,6 @@ dnl Determine the best type
     AC_MSG_ERROR([eaccelerator cannot semaphores type, which is required])
   fi
 
-  AC_CHECK_FUNC(sched_yield,[
-      AC_DEFINE(HAVE_SCHED_YIELD, 1, [Define if ou have sched_yield function])
-    ])
-
   AC_CHECK_FUNC(mprotect,[
       AC_DEFINE(HAVE_MPROTECT, 1, [Define if ou have mprotect function])
     ])

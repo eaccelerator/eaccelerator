@@ -562,6 +562,7 @@ static ea_op_array *store_op_array(char **at, zend_op_array * from TSRMLS_DC)
     to->last_try_catch = from->last_try_catch;
 #ifdef ZEND_ENGINE_2_3
     to->this_var = from->this_var;
+    to->early_binding = from->early_binding;
 #else
     to->uses_this = from->uses_this;
 #endif

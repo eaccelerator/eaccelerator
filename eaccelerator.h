@@ -203,6 +203,7 @@
 typedef struct _eaccelerator_op_array {
 	zend_uchar type;
 #ifdef ZEND_ENGINE_2_3
+    zend_uint early_binding;
     zend_uint this_var;
 #else
 	zend_bool uses_this;
