@@ -124,7 +124,7 @@ size_t calc_zval(zval *zv TSRMLS_DC)
 {
     size_t size = 0;
 
-    switch (Z_TYPE_P(zv) & ~IS_CONSTANT_INDEX) {
+    switch (EA_ZV_TYPE_P(zv)) {
         case IS_CONSTANT:
         case IS_OBJECT: /* object should have been serialized before storing them */
         case IS_STRING:
@@ -452,7 +452,7 @@ static void store_hash_int(char **at, HashTable *target, HashTable *source,
 
 void store_zval(char **at, zval *zv TSRMLS_DC)
 {
-    switch (Z_TYPE_P(zv) & ~IS_CONSTANT_INDEX) {
+    switch (EA_ZV_TYPE_P(zv)) {
         case IS_CONSTANT:
         case IS_OBJECT: /* object should have been serialized before storing them */
         case IS_STRING:

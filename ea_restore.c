@@ -127,7 +127,7 @@ static void fixup_hash(char *base, HashTable * source,
 
 void fixup_zval(char *base, zval * zv TSRMLS_DC)
 {
-    switch (Z_TYPE_P(zv) & ~IS_CONSTANT_INDEX) {
+    switch (EA_ZV_TYPE_P(zv)) {
         case IS_CONSTANT:           /* fallthrough */
         case IS_OBJECT:             /* fallthrough: object are serialized */
         case IS_STRING:
@@ -351,7 +351,7 @@ static HashTable *restore_hash(HashTable * target, HashTable * source,
 
 void restore_zval(zval * zv TSRMLS_DC)
 {
-    switch (zv->type & ~IS_CONSTANT_INDEX) {
+    switch (EA_ZV_TYPE_P(zv)) {
     case IS_CONSTANT:
     case IS_OBJECT:
     case IS_STRING:
@@ -729,12 +729,14 @@ static zend_class_entry *restore_class_entry(zend_class_entry * to, ea_class_ent
     /* restore constants table */
     restore_zval_hash(&to->constants_table, &from->constants_table);
     to->constants_table.pDestructor = ZVAL_PTR_DTOR;
-    /* restore default properties */
-    restore_zval_hash(&to->default_properties, &from->default_properties);
-    to->default_properties.pDestructor = ZVAL_PTR_DTOR;
+    
     /* restore properties */
     restore_hash(&to->properties_info, &from->properties_info, (restore_bucket_t) restore_property_info TSRMLS_CC);
     to->properties_info.pDestructor = properties_info_dtor;
+
+    /* restore default properties */
+    restore_zval_hash(&to->default_properties, &from->default_properties);
+    to->default_properties.pDestructor = ZVAL_PTR_DTOR;
 
     /* restore default_static_members */
     restore_zval_hash(&to->default_static_members, &from->default_static_members);

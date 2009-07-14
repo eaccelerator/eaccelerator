@@ -195,6 +195,13 @@
 
 /******************************************************************************/
 
+/* get the type of the zvalue */
+#ifdef ZEND_ENGINE_2_3
+#   define EA_ZV_TYPE_P(zv) (Z_TYPE_P(zv) & IS_CONSTANT_TYPE_MASK)
+#else
+#   define EA_ZV_TYPE_P(zv) (Z_TYPE_P(zv) & ~IS_CONSTANT_INDEX)
+#endif
+
 
 #ifndef offsetof
 #  define offsetof(str,fld) ((size_t)&(((str*)NULL)->fld))
