@@ -3227,6 +3227,11 @@ void eaccelerator_optimize(zend_op_array *op_array)
   int i;
   BB* bb;
 
+#if defined(ZEND_ENGINE_2_3) && !defined(DEBUG)
+  // disable the optimizer for PHP 5.3
+  return;
+#endif
+
 #ifdef ZEND_ENGINE_2_3
   ALLOCA_FLAG(use_heap)
 #endif

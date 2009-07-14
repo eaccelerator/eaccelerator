@@ -591,9 +591,9 @@ static zend_property_info *restore_property_info(zend_property_info *
         to->doc_comment = emalloc(from->doc_comment_len + 1);
         memcpy(to->doc_comment, from->doc_comment, from->doc_comment_len + 1);
     }
-# ifdef ZEND_ENGINE_2_2
+#endif
+#ifdef ZEND_ENGINE_2_2
     to->ce = EAG(class_entry);
-# endif
 #endif
     return to;
 }
