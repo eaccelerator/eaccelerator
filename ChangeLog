@@ -1,3 +1,7 @@
+2009-11-11	Bart Vanbrabant <bart at vanbrabant.eu>
+
+		* Add the optimizer back
+
 2009-11-11	Hans Rakers <hans at react.nl>
 
 		* PHP 5.3 ZEND_JMP_SET support. Fixes ticket #371

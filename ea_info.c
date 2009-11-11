@@ -180,6 +180,36 @@ PHP_FUNCTION(eaccelerator_clean)
 }
 /* }}} */
 
+/* {{{ PHP_FUNCTION(eaccelerator_optimizer): enable or disable optimizer */
+#ifdef WITH_EACCELERATOR_OPTIMIZER
+PHP_FUNCTION(eaccelerator_optimizer) 
+{
+    zend_bool enable;
+    
+	if (eaccelerator_mm_instance == NULL) {
+		RETURN_NULL();
+	}
+
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "b", &enable) == FAILURE)
+		return;
+
+    if (isAdminAllowed(TSRMLS_C)) {
+        EACCELERATOR_UNPROTECT();
+        if (enable) {
+            eaccelerator_mm_instance->optimizer_enabled = 1;
+        } else {
+            eaccelerator_mm_instance->optimizer_enabled = 0;
+        }
+        EACCELERATOR_PROTECT();
+    } else {
+        zend_error(E_WARNING, NOT_ADMIN_WARNING);
+    }
+    
+    RETURN_NULL();
+}
+#endif
+/* }}} */
+
 /* {{{ PHP_FUNCTION(eaccelerator_caching): enable or disable caching */
 PHP_FUNCTION(eaccelerator_caching) 
 {
@@ -309,6 +339,9 @@ PHP_FUNCTION (eaccelerator_info)
 	add_assoc_bool(return_value, "cache", (EAG (enabled)
 		&& (eaccelerator_mm_instance != NULL)
 		&& eaccelerator_mm_instance->enabled) ? 1 : 0);
+	add_assoc_bool(return_value, "optimizer", (EAG (optimizer_enabled)
+		&& (eaccelerator_mm_instance != NULL)
+		&& eaccelerator_mm_instance->optimizer_enabled) ? 1 : 0);
 	add_assoc_long(return_value, "memorySize", eaccelerator_mm_instance->total);
 	add_assoc_long(return_value, "memoryAvailable", available);
 	add_assoc_long(return_value, "memoryAllocated", eaccelerator_mm_instance->total - available);

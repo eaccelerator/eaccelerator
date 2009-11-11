@@ -427,6 +427,7 @@ ZEND_BEGIN_MODULE_GLOBALS (eaccelerator)
 void *used_entries;			/* list of files which are used     */
 					/* by process/thread                */
 zend_bool enabled;
+zend_bool optimizer_enabled;
 zend_bool compiler;
 zend_bool in_request;
 char *cache_dir;

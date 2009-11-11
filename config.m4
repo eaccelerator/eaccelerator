@@ -25,6 +25,13 @@ AC_ARG_WITH(eaccelerator-crash-detection,
   eaccelerator_crash_detection=yes
 ])
 
+AC_ARG_WITH(eaccelerator-optimizer,
+[  --without-eaccelerator-optimizer         Do not include eaccelerator optimizer],[
+  eaccelerator_optimizer=$withval
+],[
+  eaccelerator_optimizer=yes
+])
+
 AC_ARG_WITH(eaccelerator-info,
 [  --without-eaccelerator-info              Do not compile the eAccelerator information functions],[
   eaccelerator_info=$withval
@@ -81,6 +88,9 @@ if test "$PHP_EACCELERATOR" != "no"; then
   fi
   if test "$eaccelerator_crash_detection" = "yes"; then
     AC_DEFINE(WITH_EACCELERATOR_CRASH_DETECTION, 1, [Define if you like to release eAccelerator resources on PHP crash])
+  fi
+  if test "$eaccelerator_optimizer" = "yes"; then
+    AC_DEFINE(WITH_EACCELERATOR_OPTIMIZER, 1, [Define if you like to use peephole opcode optimization])
   fi
   if test "$eaccelerator_disassembler" = "yes"; then
     AC_DEFINE(WITH_EACCELERATOR_DISASSEMBLER, 1, [Define if you like to explore Zend bytecode])
