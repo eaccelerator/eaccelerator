@@ -37,10 +37,6 @@
 #include "zend_extensions.h"
 
 #include "debug.h"
-#include "shm.h"
-#include "session.h"
-#include "content.h"
-#include "cache.h"
 #include "ea_store.h"
 #include "ea_restore.h"
 #include "ea_info.h"
@@ -283,10 +279,8 @@ static int init_mm(TSRMLS_D) {
   eaccelerator_mm_instance->hash_cnt = 0;
   eaccelerator_mm_instance->rem_cnt  = 0;
   eaccelerator_mm_instance->enabled = 1;
-  eaccelerator_mm_instance->optimizer_enabled = 1;
   eaccelerator_mm_instance->removed = NULL;
   eaccelerator_mm_instance->locks = NULL;
-  eaccelerator_mm_instance->user_hash_cnt = 0;
   eaccelerator_mm_instance->last_prune = time(NULL);	/* this time() call is harmless since this is init phase */
   EACCELERATOR_PROTECT();
   return SUCCESS;
@@ -496,14 +490,6 @@ void eaccelerator_prune(time_t t) {
 void* eaccelerator_malloc2(size_t size TSRMLS_DC) {
   void *p = NULL;
 
-#if defined(WITH_EACCELERATOR_CONTENT_CACHING) || defined(WITH_EACCELERATOR_SESSIONS) || defined(WITH_EACCELERATOR_SHM)
-  if (eaccelerator_gc(TSRMLS_C) > 0) {
-    p = eaccelerator_malloc(size);
-    if (p != NULL) {
-      return p;
-    }
-  }
-#endif
   if (ea_shm_prune_period > 0) {
     if (EAG(req_start) - eaccelerator_mm_instance->last_prune > ea_shm_prune_period) {
       eaccelerator_prune(EAG(req_start));
@@ -1245,10 +1231,6 @@ ZEND_DLEXPORT zend_op_array* eaccelerator_compile_file(zend_file_handle *file_ha
 
     DBG(ea_debug_printf, (EA_TEST_PERFORMANCE, "\t[%d] compile_file: compiling (%ld)\n", getpid(), ea_debug_elapsed_time(&tv_start)));
     
-    if (EAG(optimizer_enabled) && eaccelerator_mm_instance->optimizer_enabled) {
-      EAG(compiler) = 1;
-    }
-
 	/* try to compile the script */
     ea_bailout = 0;
     zend_try {
@@ -1414,8 +1396,6 @@ PHP_MINFO_FUNCTION(eaccelerator) {
   php_info_print_table_row(2, "Version", EACCELERATOR_VERSION);
   php_info_print_table_row(2, "Caching Enabled", (EAG(enabled) && (eaccelerator_mm_instance != NULL) && 
               eaccelerator_mm_instance->enabled)?"true":"false");
-  php_info_print_table_row(2, "Optimizer Enabled", (EAG(optimizer_enabled) && 
-              (eaccelerator_mm_instance != NULL) && eaccelerator_mm_instance->optimizer_enabled)?"true":"false");
   if (eaccelerator_mm_instance != NULL) {
     size_t available;
     EACCELERATOR_UNPROTECT();
@@ -1432,8 +1412,6 @@ PHP_MINFO_FUNCTION(eaccelerator) {
     php_info_print_table_row(2, "Cached Scripts", s);
     snprintf(s, 32, "%u", eaccelerator_mm_instance->rem_cnt);
     php_info_print_table_row(2, "Removed Scripts", s);
-    snprintf(s, 32, "%u", eaccelerator_mm_instance->user_hash_cnt);
-    php_info_print_table_row(2, "Cached Keys", s);
     EACCELERATOR_UNPROTECT();
     EACCELERATOR_UNLOCK_RD();
     EACCELERATOR_PROTECT();
@@ -1498,9 +1476,6 @@ static PHP_INI_MH(eaccelerator_OnUpdateBool) {
 
 PHP_INI_BEGIN()
 STD_PHP_INI_ENTRY("eaccelerator.enable",         "1", PHP_INI_ALL, OnUpdateBool, enabled, zend_eaccelerator_globals, eaccelerator_globals)
-STD_PHP_INI_ENTRY("eaccelerator.optimizer",      "1", PHP_INI_ALL, OnUpdateBool, optimizer_enabled, zend_eaccelerator_globals, eaccelerator_globals)
-STD_PHP_INI_ENTRY("eaccelerator.compress",       "1", PHP_INI_ALL, OnUpdateBool, compression_enabled, zend_eaccelerator_globals, eaccelerator_globals)
-STD_PHP_INI_ENTRY("eaccelerator.compress_level", "9", PHP_INI_ALL, OnUpdateLong, compress_level, zend_eaccelerator_globals, eaccelerator_globals)                  
 ZEND_INI_ENTRY1("eaccelerator.shm_size",        "0", PHP_INI_SYSTEM, eaccelerator_OnUpdateLong, &ea_shm_size)
 ZEND_INI_ENTRY1("eaccelerator.shm_max",         "0", PHP_INI_SYSTEM, eaccelerator_OnUpdateLong, &ea_shm_max)
 ZEND_INI_ENTRY1("eaccelerator.shm_ttl",         "0", PHP_INI_SYSTEM, eaccelerator_OnUpdateLong, &ea_shm_ttl)
@@ -1509,21 +1484,11 @@ ZEND_INI_ENTRY1("eaccelerator.debug",           "1", PHP_INI_SYSTEM, eaccelerato
 STD_PHP_INI_ENTRY("eaccelerator.log_file",      "", PHP_INI_SYSTEM, OnUpdateString, eaccelerator_log_file, zend_eaccelerator_globals, eaccelerator_globals)
 ZEND_INI_ENTRY1("eaccelerator.check_mtime",     "1", PHP_INI_SYSTEM, eaccelerator_OnUpdateBool, &eaccelerator_check_mtime)
 ZEND_INI_ENTRY1("eaccelerator.shm_only",        "0", PHP_INI_SYSTEM, eaccelerator_OnUpdateBool, &eaccelerator_scripts_shm_only)
-#ifdef WITH_EACCELERATOR_SHM
-ZEND_INI_ENTRY("eaccelerator.keys",             "shm_and_disk", PHP_INI_SYSTEM, eaccelerator_OnUpdateKeysCachePlace)
-#endif
-#ifdef WITH_EACCELERATOR_SESSIONS
-ZEND_INI_ENTRY("eaccelerator.sessions",         "shm_and_disk", PHP_INI_SYSTEM, eaccelerator_OnUpdateSessionCachePlace)
-#endif
-#ifdef WITH_EACCELERATOR_CONTENT_CACHING
-ZEND_INI_ENTRY("eaccelerator.content",          "shm_and_disk", PHP_INI_SYSTEM, eaccelerator_OnUpdateContentCachePlace)
-#endif
 #ifdef WITH_EACCELERATOR_INFO
 STD_PHP_INI_ENTRY("eaccelerator.allowed_admin_path",       "", PHP_INI_SYSTEM, OnUpdateString, allowed_admin_path, zend_eaccelerator_globals, eaccelerator_globals)
 #endif
 STD_PHP_INI_ENTRY("eaccelerator.cache_dir",      "/tmp/eaccelerator", PHP_INI_SYSTEM, OnUpdateString, cache_dir, zend_eaccelerator_globals, eaccelerator_globals)
 PHP_INI_ENTRY("eaccelerator.filter",             "",  PHP_INI_ALL, eaccelerator_filter)
-STD_PHP_INI_ENTRY("eaccelerator.name_space",      "", PHP_INI_SYSTEM, OnUpdateString, name_space, zend_eaccelerator_globals, eaccelerator_globals)
 PHP_INI_END()
 
 static void eaccelerator_clean_request(TSRMLS_D) {
@@ -1689,17 +1654,8 @@ static void eaccelerator_init_globals(zend_eaccelerator_globals *eag)
 	eag->used_entries = NULL;
 	eag->enabled = 1;
 	eag->cache_dir = NULL;
-	eag->optimizer_enabled = 1;
 	eag->compiler = 0;
-	eag->content_headers = NULL;
-#ifdef WITH_EACCELERATOR_SESSIONS
-	eag->session = NULL;
-#endif
 	eag->eaccelerator_log_file = '\000';
-	eag->name_space = '\000';
-#if defined(WITH_EACCELERATOR_CONTENT_CACHING) || defined(WITH_EACCELERATOR_SESSIONS) || defined(WITH_EACCELERATOR_SHM)
-	eag->hostname[0] = '\000';
-#endif
 	eag->in_request = 0;
 	eag->allowed_admin_path= NULL;
 	eag->pattern_list = NULL;
@@ -1824,12 +1780,6 @@ PHP_MINIT_FUNCTION(eaccelerator) {
 #endif
   }
   
-#ifdef WITH_EACCELERATOR_SESSIONS
-  eaccelerator_register_session();
-#endif
-#ifdef WITH_EACCELERATOR_CONTENT_CACHING
-  eaccelerator_content_cache_startup();
-#endif
   if (!eaccelerator_is_zend_extension) {
     register_eaccelerator_as_zend_extension();
   }
@@ -1844,9 +1794,6 @@ PHP_MSHUTDOWN_FUNCTION(eaccelerator) {
     return SUCCESS;
   }
   zend_compile_file = ea_saved_zend_compile_file;
-#ifdef WITH_EACCELERATOR_CONTENT_CACHING
-  eaccelerator_content_cache_shutdown();
-#endif
   shutdown_mm(TSRMLS_C);
   DBG(ea_debug_put, (EA_DEBUG, "========================================\n"));
   DBG(ea_debug_printf, (EA_DEBUG, "[%d] EACCELERATOR STOPPED\n", getpid()));
@@ -1865,13 +1812,6 @@ PHP_MSHUTDOWN_FUNCTION(eaccelerator) {
 
 PHP_RINIT_FUNCTION(eaccelerator)
 {
-#if defined(WITH_EACCELERATOR_CONTENT_CACHING) || defined(WITH_EACCELERATOR_SESSIONS) || defined(WITH_EACCELERATOR_SHM)
-  union {
-		zval **v;
-    void *ptr;
-  } server_vars, hostname;
-#endif
-
 	if (eaccelerator_mm_instance == NULL) {
 		return SUCCESS;
 	}
@@ -1883,25 +1823,7 @@ PHP_RINIT_FUNCTION(eaccelerator)
 	EAG(used_entries) = NULL;
 	EAG(compiler) = 0;
 	EAG(refcount_helper) = 1;
-	EAG(compress_content) = 1;
-	EAG(content_headers) = NULL;
 	EAG(req_start) = time(NULL);	/* record request start time for later use */
-
-#if defined(WITH_EACCELERATOR_CONTENT_CACHING) || defined(WITH_EACCELERATOR_SESSIONS) || defined(WITH_EACCELERATOR_SHM)
-	/* Storing Host Name */
-	EAG(hostname)[0] = '\000';
-  if (zend_hash_find(&EG(symbol_table), "_SERVER", sizeof("_SERVER"), &server_vars.ptr) == SUCCESS &&
-			Z_TYPE_PP(server_vars.v) == IS_ARRAY &&
-			zend_hash_find(Z_ARRVAL_PP(server_vars.v), "SERVER_NAME", sizeof("SERVER_NAME"), &hostname.ptr)==SUCCESS &&
-			Z_TYPE_PP(hostname.v) == IS_STRING && Z_STRLEN_PP(hostname.v) > 0) {
-		if (sizeof(EAG(hostname)) > Z_STRLEN_PP(hostname.v)) {
-			memcpy(EAG(hostname),Z_STRVAL_PP(hostname.v),Z_STRLEN_PP(hostname.v)+1);
-		} else {
-			memcpy(EAG(hostname),Z_STRVAL_PP(hostname.v),sizeof(EAG(hostname))-1);
-			EAG(hostname)[sizeof(EAG(hostname))-1] = '\000';
-		}
-  }
-#endif
 
 	zend_hash_init(&EAG(restored), 0, NULL, NULL, 0);
 
@@ -1988,35 +1910,14 @@ ZEND_BEGIN_ARG_INFO(eaccelerator_second_arg_force_ref, 0)
 ZEND_END_ARG_INFO();
 
 function_entry eaccelerator_functions[] = {
-#ifdef WITH_EACCELERATOR_SHM
-  PHP_FE(eaccelerator_put, NULL)
-  PHP_FE(eaccelerator_get, NULL)
-  PHP_FE(eaccelerator_rm, NULL)
-  PHP_FE(eaccelerator_gc, NULL)
-  PHP_FE(eaccelerator_lock, NULL)
-  PHP_FE(eaccelerator_unlock, NULL)
-#endif
 #ifdef WITH_EACCELERATOR_INFO
   PHP_FE(eaccelerator_caching, NULL)
-  #ifdef WITH_EACCELERATOR_OPTIMIZER
-  PHP_FE(eaccelerator_optimizer, NULL)
-  #endif
   PHP_FE(eaccelerator_clear, NULL)
-  PHP_FE(eaccelerator_clean, NULL)
+	PHP_FE(eaccelerator_clean, NULL)
   PHP_FE(eaccelerator_info, NULL)
   PHP_FE(eaccelerator_purge, NULL)
   PHP_FE(eaccelerator_cached_scripts, NULL)
   PHP_FE(eaccelerator_removed_scripts, NULL)
-#  if defined(WITH_EACCELERATOR_CONTENT_CACHING) || defined(WITH_EACCELERATOR_SESSIONS) || defined(WITH_EACCELERATOR_SHM)
-  PHP_FE(eaccelerator_list_keys, NULL)
-#  endif
-#endif
-#ifdef WITH_EACCELERATOR_CONTENT_CACHING
-  PHP_FE(_eaccelerator_output_handler, NULL)
-  PHP_FE(eaccelerator_cache_page, NULL)
-  PHP_FE(eaccelerator_rm_page, NULL)
-  PHP_FE(eaccelerator_cache_output, NULL)
-  PHP_FE(eaccelerator_cache_result, NULL)
 #endif
 #ifdef WITH_EACCELERATOR_DISASSEMBLER
   PHP_FE(eaccelerator_dasm_file, NULL)
@@ -2295,11 +2196,7 @@ ZEND_DLEXPORT zend_extension zend_extension_entry = {
   NULL,   /* void (*activate)() */
   NULL,   /* void (*deactivate)() */
   NULL,   /* void (*message_handle)(int message, void *arg) */
-#ifdef WITH_EACCELERATOR_OPTIMIZER
-  eaccelerator_optimize,   /* void (*op_array_handler)(zend_op_array *o_a); */
-#else
   NULL,   /* void (*op_array_handler)(zend_op_array *o_a); */
-#endif
   NULL,   /* void (*statement_handler)(zend_op_array *o_a); */
   NULL,   /* void (*fcall_begin_handler)(zend_op_array *o_a); */
   NULL,   /* void (*fcall_end_handler)(zend_op_array *o_a); */
@@ -2324,11 +2221,7 @@ static zend_extension eaccelerator_extension_entry = {
   NULL,   /* void (*activate)() */
   NULL,   /* void (*deactivate)() */
   NULL,   /* void (*message_handle)(int message, void *arg) */
-#ifdef WITH_EACCELERATOR_OPTIMIZER
-  eaccelerator_optimize,   /* void (*op_array_handler)(zend_op_array *o_a); */
-#else
   NULL,   /* void (*op_array_handler)(zend_op_array *o_a); */
-#endif
   NULL,   /* void (*statement_handler)(zend_op_array *o_a); */
   NULL,   /* void (*fcall_begin_handler)(zend_op_array *o_a); */
   NULL,   /* void (*fcall_end_handler)(zend_op_array *o_a); */

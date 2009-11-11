@@ -94,12 +94,10 @@ static void fixup_hash(char *base, HashTable * source,
     Bucket *p;
 
     if (source->nNumOfElements > 0) {
-        if (!EAG(compress)) {
-            if (source->arBuckets != NULL) {
-                FIXUP(base, source->arBuckets);
-                for (i = 0; i < source->nTableSize; i++) {
-                    FIXUP(base, source->arBuckets[i]);
-                }
+        if (source->arBuckets != NULL) {
+            FIXUP(base, source->arBuckets);
+            for (i = 0; i < source->nTableSize; i++) {
+                FIXUP(base, source->arBuckets[i]);
             }
         }
         FIXUP(base, source->pListHead);
@@ -169,7 +167,6 @@ static void fixup_op_array(char *base, ea_op_array * from TSRMLS_DC)
 
         opline = from->opcodes;
         end = opline + from->last;
-        EAG(compress) = 0;
         for (; opline < end; opline++) {
             /*
                if (opline->result.op_type == IS_CONST) 
@@ -192,7 +189,6 @@ static void fixup_op_array(char *base, ea_op_array * from TSRMLS_DC)
             }
             ZEND_VM_SET_OPCODE_HANDLER(opline);
         }
-        EAG(compress) = 1;
     }
     FIXUP(base, from->brk_cont_array);
     FIXUP(base, from->try_catch_array);
@@ -238,7 +234,6 @@ void eaccelerator_fixup(ea_cache_entry *p TSRMLS_DC)
     char *base;
 
     base = (char *) ((long) p - (long) p->next);
-    EAG(compress) = 1;
     p->next = NULL;
     FIXUP(base, p->op_array);
     FIXUP(base, p->f_head);

@@ -1,14 +1,29 @@
-2008-05-20  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
+2009-07-14	Bart Vanbrabant <bart at vanbrabant.eu>
+	
+		* Fix two PHP 5.3 bugs
+		* Remove the optimizer
+		* Remove the user cache functions
+
+2009-05-06	Bart Vanbrabant <bart at vanbrabant.eu>
+
+		* Remove code that is only needed for php < 5
+		* Rebase to code to minimal PHP 5.1
+		* Update support for PHP 5.3
+		* Remove have_sched_yield check in config.m4. This is not used
+		  anywhere and and causes some compilation errors.
+		* Apply patch from ticket [324]
+
+2008-06-20  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
         * First stab at php 5.3 support. Only fixes the script cache.
           phpMyAdmin seems to work with these changes.
         * Fix user cache stuff
 
-2008-05-19  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
+2008-06-19  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
         * Remove support for all php versions older than php 5.1
 
-2008-05-18  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
+2008-06-18  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 	
         * Add patch from ticket 232: removes an unlock that isn't
 		  needed there.

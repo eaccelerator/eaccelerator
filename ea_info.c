@@ -29,7 +29,6 @@
 #include "eaccelerator_version.h"
 #include "ea_info.h"
 #include "mm.h"
-#include "cache.h"
 #include "zend.h"
 #include "fopen_wrappers.h"
 #include "debug.h"
@@ -160,62 +159,25 @@ static inline void clean_file(char *file, time_t t)
 }
 /* }}} */
 
-/* {{{ clean_filecache(): Helper function for eaccelerator_clean, it will remove all expired entries from the user cache */
-static void clean_filecache(const char* dir, time_t t)
-#ifndef ZEND_WIN32
+/* {{{ PHP_FUNCTION(eaccelerator_clean): remove all expired scripts and data from shared memory and disk cache */
+PHP_FUNCTION(eaccelerator_clean)
 {
-	DIR *dp;
-	struct dirent *entry;
-	char s[MAXPATHLEN];
-	struct stat dirstat;
-	
-	if ((dp = opendir(dir)) != NULL) {
-		while ((entry = readdir(dp)) != NULL) {
-			strncpy(s, dir, MAXPATHLEN - 1);
-			strlcat(s, "/", MAXPATHLEN);
-			strlcat(s, entry->d_name, MAXPATHLEN);
-			if (strstr(entry->d_name, "eaccelerator-user") == entry->d_name) {
-				clean_file(s, t);
-			}
-			if (stat(s, &dirstat) != -1) {
-				if (strcmp(entry->d_name, ".") == 0)
-					continue;
-				if (strcmp(entry->d_name, "..") == 0)
-					continue;
-				if (S_ISDIR(dirstat.st_mode)) {
-					clean_filecache(s, t);
-				}
-			}
-		}
-		closedir (dp);
-	} else {
-		ea_debug_error("[%s] Could not open cachedir %s\n", EACCELERATOR_EXTENSION_NAME, dir);
-	}
-}
-#else
-{
-	HANDLE  hFind;
-    WIN32_FIND_DATA wfd;
-    char path[MAXPATHLEN];
-    size_t dirlen = strlen(dir);
-  
-    memcpy(path, dir, dirlen);
-    strcpy(path + dirlen++, "\\eaccelerator-user*");
+	time_t t;
 
-    hFind = FindFirstFile(path, &wfd);
-	if (hFind == INVALID_HANDLE_VALUE) {
-		do {
-			strcpy(path + dirlen, wfd.cFileName);
-			if (FILE_ATTRIBUTE_DIRECTORY & wfd.dwFileAttributes) {
-				clear_filecache(path);
-			} else {
-				clean_file(path, t);
-			}
-		} while (FindNextFile(hFind, &wfd));
+	if (eaccelerator_mm_instance == NULL) {
+		RETURN_NULL();
 	}
-    FindClose (hFind);
+
+	if (!isAdminAllowed(TSRMLS_C)) {
+		zend_error(E_WARNING, NOT_ADMIN_WARNING);
+		RETURN_NULL();
+	}
+
+	t = time (NULL);
+
+	/* Remove expired scripts from shared memory */
+	eaccelerator_prune (t);
 }
-#endif
 /* }}} */
 
 /* {{{ PHP_FUNCTION(eaccelerator_caching): enable or disable caching */
@@ -243,67 +205,6 @@ PHP_FUNCTION(eaccelerator_caching)
     }
     
     RETURN_NULL();
-}
-/* }}} */
-
-/* {{{ PHP_FUNCTION(eaccelerator_optimizer): enable or disable optimizer */
-#ifdef WITH_EACCELERATOR_OPTIMIZER
-PHP_FUNCTION(eaccelerator_optimizer) 
-{
-    zend_bool enable;
-    
-	if (eaccelerator_mm_instance == NULL) {
-		RETURN_NULL();
-	}
-
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "b", &enable) == FAILURE)
-		return;
-
-    if (isAdminAllowed(TSRMLS_C)) {
-        EACCELERATOR_UNPROTECT();
-        if (enable) {
-            eaccelerator_mm_instance->optimizer_enabled = 1;
-        } else {
-            eaccelerator_mm_instance->optimizer_enabled = 0;
-        }
-        EACCELERATOR_PROTECT();
-    } else {
-        zend_error(E_WARNING, NOT_ADMIN_WARNING);
-    }
-    
-    RETURN_NULL();
-}
-#endif
-/* }}} */
-
-/* {{{ PHP_FUNCTION(eaccelerator_clean): remove all expired scripts and data from shared memory and disk cache */
-PHP_FUNCTION(eaccelerator_clean)
-{
-	time_t t;
-
-	if (eaccelerator_mm_instance == NULL) {
-		RETURN_NULL();
-	}
-
-	if (!isAdminAllowed(TSRMLS_C)) {
-		zend_error(E_WARNING, NOT_ADMIN_WARNING);
-		RETURN_NULL();
-	}
-
-	t = time (NULL);
-
-	/* Remove expired scripts from shared memory */
-	eaccelerator_prune (t);
-
-	/* Remove expired keys (session data, content) from disk cache */
-	if(!eaccelerator_scripts_shm_only) {
-		clean_filecache(EAG(cache_dir), t);
-        }
-
-#if defined(WITH_EACCELERATOR_CONTENT_CACHING) || defined(WITH_EACCELERATOR_SESSIONS) || defined(WITH_EACCELERATOR_SHM)
-	/* Remove expired keys (session data, content) from shared memory */
-	eaccelerator_gc (TSRMLS_C);
-#endif
 }
 /* }}} */
 
@@ -341,22 +242,12 @@ PHP_FUNCTION(eaccelerator_clear)
 		}
 		eaccelerator_mm_instance->hash[i] = NULL;
 	}
-	for (i = 0; i < EA_USER_HASH_SIZE; i++) {
-		ea_user_cache_entry *p = eaccelerator_mm_instance->user_hash[i];
-		while (p != NULL) {
-			ea_user_cache_entry *r = p;
-			p = p->next;
-			eaccelerator_mm_instance->user_hash_cnt--;
-			eaccelerator_free_nolock (r);
-		}
-		eaccelerator_mm_instance->user_hash[i] = NULL;
-	}
 	EACCELERATOR_UNLOCK_RW ();
 	EACCELERATOR_PROTECT ();
 
 	if(!eaccelerator_scripts_shm_only) {
 		clear_filecache(EAG(cache_dir));
-        }
+    }
 
     RETURN_NULL();
 }
@@ -418,15 +309,11 @@ PHP_FUNCTION (eaccelerator_info)
 	add_assoc_bool(return_value, "cache", (EAG (enabled)
 		&& (eaccelerator_mm_instance != NULL)
 		&& eaccelerator_mm_instance->enabled) ? 1 : 0);
-	add_assoc_bool(return_value, "optimizer", (EAG (optimizer_enabled)
-		&& (eaccelerator_mm_instance != NULL)
-		&& eaccelerator_mm_instance->optimizer_enabled) ? 1 : 0);
 	add_assoc_long(return_value, "memorySize", eaccelerator_mm_instance->total);
 	add_assoc_long(return_value, "memoryAvailable", available);
 	add_assoc_long(return_value, "memoryAllocated", eaccelerator_mm_instance->total - available);
 	add_assoc_long(return_value, "cachedScripts", eaccelerator_mm_instance->hash_cnt);
 	add_assoc_long(return_value, "removedScripts", eaccelerator_mm_instance->rem_cnt);
-    add_assoc_long(return_value, "cachedKeys", eaccelerator_mm_instance->user_hash_cnt);
 
 	return;
 }
@@ -504,19 +391,6 @@ PHP_FUNCTION(eaccelerator_removed_scripts)
     return;
 }
 /* }}} */
-
-#if defined (WITH_EACCELERATOR_CONTENT_CACHING) || defined(WITH_EACCELERATOR_SESSIONS) || defined(WITH_EACCELERATOR_SHM)
-/* {{{ PHP_FUNCTION(eaccelerator_list_keys): returns list of keys in shared memory that matches actual hostname or namespace */
-PHP_FUNCTION(eaccelerator_list_keys)
-{
-	if (eaccelerator_mm_instance != NULL && eaccelerator_list_keys(return_value TSRMLS_CC)) {
-		return;
-	} else {
-    	RETURN_NULL ();
-	}
-}
-/* }}} */
-#endif
 
 #endif	/* WITH_EACCELERATOR_INFO */
 

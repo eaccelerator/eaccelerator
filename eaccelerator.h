@@ -166,10 +166,8 @@
 
 #define EACCELERATOR_HASH_LEVEL 2
 #define EA_HASH_SIZE      512
-#define EA_USER_HASH_SIZE 512
 
 #define EA_HASH_MAX       (EA_HASH_SIZE-1)
-#define EA_USER_HASH_MAX  (EA_USER_HASH_SIZE-1)
 
 #define eaccelerator_malloc(size)        mm_malloc_lock(eaccelerator_mm_instance->mm, size)
 #define eaccelerator_free(x)             mm_free_lock(eaccelerator_mm_instance->mm, x)
@@ -306,19 +304,6 @@ typedef struct _ea_cache_entry {
 } ea_cache_entry;
 
 /*
- * bucket for user's cache
- */
-typedef struct _ea_user_cache_entry {
-	struct _ea_user_cache_entry *next;
-	unsigned int hv;			/* hash value                  */
-	long ttl;					/* expiration time             */
-	long create;
-	int size;
-	zval value;					/* value                       */
-	char key[1];				/* key value (must be last el) */
-} ea_user_cache_entry;
-
-/*
  * Linked list of ea_cache_entry which are used by process/thread
  */
 typedef struct _ea_used_entry {
@@ -357,7 +342,6 @@ typedef struct {
 	pid_t owner;
 	size_t total;
 	unsigned int hash_cnt;
-	unsigned int user_hash_cnt;
 	zend_bool enabled;
 	zend_bool optimizer_enabled;
 	unsigned int rem_cnt;
@@ -366,7 +350,6 @@ typedef struct {
 	ea_lock_entry *locks;
 
 	ea_cache_entry *hash[EA_HASH_SIZE];
-	ea_user_cache_entry *user_hash[EA_USER_HASH_SIZE];
 } eaccelerator_mm;
 
 /*
@@ -444,17 +427,10 @@ ZEND_BEGIN_MODULE_GLOBALS (eaccelerator)
 void *used_entries;			/* list of files which are used     */
 					/* by process/thread                */
 zend_bool enabled;
-zend_bool optimizer_enabled;
-zend_bool compression_enabled;
 zend_bool compiler;
-zend_bool compress;
-zend_bool compress_content;
 zend_bool in_request;
-zend_llist *content_headers;
-long compress_level;
 char *cache_dir;
 char *eaccelerator_log_file;
-char *name_space;
 char *mem;
 char *allowed_admin_path;
 time_t req_start;			/* time of request start (set in RINIT) */
@@ -462,9 +438,6 @@ HashTable strings;
 HashTable restored;
 zend_class_entry *class_entry;
 zend_uint refcount_helper;
-#if defined(WITH_EACCELERATOR_CONTENT_CACHING) || defined(WITH_EACCELERATOR_SESSIONS) || defined(WITH_EACCELERATOR_SHM)
-char hostname[32];
-#endif
 struct ea_pattern_t *pattern_list;
 #ifdef WITH_EACCELERATOR_CRASH_DETECTION
 #ifdef SIGSEGV
@@ -487,9 +460,6 @@ void (*original_sigabrt_handler) (int);
 int xpad;
 int profile_level;
 long self_time[256];
-#endif
-#ifdef WITH_EACCELERATOR_SESSIONS
-char *session;
 #endif
 ZEND_END_MODULE_GLOBALS (eaccelerator)
 

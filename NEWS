@@ -1,3 +1,20 @@
+Jul 14, 2009 - Bart Vanbrabant
+------------------------------
+
+ * Release 0.9.6 rc1
+    The theme of this release is: back to basics! All non essential functions
+    are removed from eAccelerator. This means that the optimizer and the 
+    keys, content and session functions.
+
+    Changes in this version:
+        - Support for PHP 5.3. 
+        - The encoder is removed
+        - The optimizer is removed
+        - The user cache function are removed
+        - The minimal PHP version supported is no 5.1
+        - Some internal refactoring to clean the code up
+        - Fixed some bugs (and probably added some)
+
 May 18, 2008 - Bart Vanbrabant
 ------------------------------
  * Released 0.9.5.3

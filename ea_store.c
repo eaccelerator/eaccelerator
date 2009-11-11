@@ -107,9 +107,7 @@ static size_t calc_hash_int(HashTable * source, Bucket * start,
     size_t size = 0;
 
     if (source->nNumOfElements > 0) {
-        if (!EAG(compress)) {
-            ADDSIZE(size, source->nTableSize * sizeof(Bucket *));
-        }
+        ADDSIZE(size, source->nTableSize * sizeof(Bucket *));
         p = start;
         while (p) {
             ADDSIZE(size, offsetof(Bucket, arKey) + p->nKeyLength);
@@ -199,7 +197,6 @@ static size_t calc_op_array(zend_op_array * from TSRMLS_DC)
 
         opline = from->opcodes;
         end = opline + from->last;
-        EAG(compress) = 0;
         for (; opline < end; opline++) {
             if (opline->op1.op_type == IS_CONST) {
                 size += calc_zval(&opline->op1.u.constant TSRMLS_CC);
@@ -208,7 +205,6 @@ static size_t calc_op_array(zend_op_array * from TSRMLS_DC)
                 size += calc_zval(&opline->op2.u.constant TSRMLS_CC);
             }
         }
-        EAG(compress) = 1;
     }
     if (from->brk_cont_array != NULL) {
         ADDSIZE(size, sizeof(zend_brk_cont_element) * from->last_brk_cont);
@@ -285,7 +281,6 @@ size_t calc_size(char *key, zend_op_array * op_array, Bucket * f, Bucket * c TSR
     Bucket *b;
     char *x;
     int len = strlen(key);
-    EAG(compress) = 1;
     size_t size = 0;
 
     zend_hash_init(&EAG(strings), 0, NULL, NULL, 0);
@@ -382,10 +377,8 @@ static void store_hash_int(char **at, HashTable *target, HashTable *source,
     memcpy(target, source, sizeof(HashTable));
 
     if (source->nNumOfElements > 0) {
-        if (!EAG(compress)) {
-            target->arBuckets = (Bucket **)ALLOCATE(at, target->nTableSize * sizeof(Bucket *));
-            memset(target->arBuckets, 0, target->nTableSize * sizeof(Bucket *));
-        }
+        target->arBuckets = (Bucket **)ALLOCATE(at, target->nTableSize * sizeof(Bucket *));
+        memset(target->arBuckets, 0, target->nTableSize * sizeof(Bucket *));
 
         target->pDestructor = NULL;
         target->persistent = 1;
@@ -409,18 +402,16 @@ static void store_hash_int(char **at, HashTable *target, HashTable *source,
 
             np = (Bucket *)ALLOCATE(at, offsetof(Bucket, arKey) + p->nKeyLength);
 
-            if (!EAG(compress)) {
-                int nIndex = p->h % source->nTableSize;
-                if (target->arBuckets[nIndex]) {
-                    np->pNext = target->arBuckets[nIndex];
-                    np->pLast = NULL;
-                    np->pNext->pLast = np;
-                } else {
-                    np->pNext = NULL;
-                    np->pLast = NULL;
-                }
-                target->arBuckets[nIndex] = np;
+            int nIndex = p->h % source->nTableSize;
+            if (target->arBuckets[nIndex]) {
+                np->pNext = target->arBuckets[nIndex];
+                np->pLast = NULL;
+                np->pNext->pLast = np;
+            } else {
+                np->pNext = NULL;
+                np->pLast = NULL;
             }
+            target->arBuckets[nIndex] = np;
             np->h = p->h;
             np->nKeyLength = p->nKeyLength;
 
@@ -583,7 +574,6 @@ static ea_op_array *store_op_array(char **at, zend_op_array * from TSRMLS_DC)
 
         opline = to->opcodes;
         end = opline + to->last;
-        EAG(compress) = 0;
         for (; opline < end; opline++) {
             if (opline->op1.op_type == IS_CONST) {
                 store_zval(at, &opline->op1.u.constant TSRMLS_CC);
@@ -603,7 +593,6 @@ static ea_op_array *store_op_array(char **at, zend_op_array * from TSRMLS_DC)
                 break;
             }
         }
-        EAG(compress) = 1;
     }
     if (from->brk_cont_array != NULL) {
         to->brk_cont_array = (zend_brk_cont_element *)ALLOCATE(at, sizeof(zend_brk_cont_element) * from->last_brk_cont);
@@ -845,7 +834,6 @@ void eaccelerator_store_int(ea_cache_entry *entry, char *key, int len, zend_op_a
     DBG(ea_debug_pad, (EA_DEBUG TSRMLS_CC));
     DBG(ea_debug_printf, (EA_DEBUG, "[%d] eaccelerator_store_int: key='%s'\n", getpid (), key));
 
-    EAG(compress) = 1;
     zend_hash_init(&EAG(strings), 0, NULL, NULL, 0);
 
     p = (char *)entry;

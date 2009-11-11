@@ -25,34 +25,6 @@ AC_ARG_WITH(eaccelerator-crash-detection,
   eaccelerator_crash_detection=yes
 ])
 
-AC_ARG_WITH(eaccelerator-optimizer,
-[  --without-eaccelerator-optimizer         Do not include eaccelerator optimizer],[
-  eaccelerator_optimizer=$withval
-],[
-  eaccelerator_optimizer=yes
-])
-
-AC_ARG_WITH(eaccelerator-shared-memory,
-[  --with-eaccelerator-shared-memory        Include eaccelerator shared memory functions],[
-  eaccelerator_shm=$withval
-],[
-  eaccelerator_shm=no
-])
-
-AC_ARG_WITH(eaccelerator-sessions,
-[  --with-eaccelerator-sessions             Include eaccelerator sessions],[
-  eaccelerator_sessions=$withval
-],[
-  eaccelerator_sessions=no
-])
-
-AC_ARG_WITH(eaccelerator-content-caching,
-[  --with-eaccelerator-content-caching      Include eaccelerator content caching],[
-  eaccelerator_content_caching=$withval
-],[
-  eaccelerator_content_caching=no
-])
-
 AC_ARG_WITH(eaccelerator-info,
 [  --without-eaccelerator-info              Do not compile the eAccelerator information functions],[
   eaccelerator_info=$withval
@@ -110,19 +82,6 @@ if test "$PHP_EACCELERATOR" != "no"; then
   if test "$eaccelerator_crash_detection" = "yes"; then
     AC_DEFINE(WITH_EACCELERATOR_CRASH_DETECTION, 1, [Define if you like to release eAccelerator resources on PHP crash])
   fi
-  if test "$eaccelerator_optimizer" = "yes"; then
-    AC_DEFINE(WITH_EACCELERATOR_OPTIMIZER, 1, [Define if you like to use peephole opcode optimization])
-  fi
-  if test "$eaccelerator_shm" = "yes"; then
-    AC_DEFINE(WITH_EACCELERATOR_SHM, 1, [Define if you like to use the eAccelerator functions to store keys in shared memory])
-  fi
-  if test "$eaccelerator_info" = "yes"; then
-    AC_DEFINE(WITH_EACCELERATOR_INFO, 1, [Define if you want the information functions])
-  fi
-  if test "$eaccelerator_content_caching" = "yes"; then
-    AC_DEFINE(WITH_EACCELERATOR_CONTENT_CACHING, 1, [Define if you like to use eAccelerator content cachin API])
-    AC_DEFINE(WITH_EACCELERATOR_SHM, 1, [Define if you like to use the eAccelerator functions to store keys in shared memory])
-  fi
   if test "$eaccelerator_disassembler" = "yes"; then
     AC_DEFINE(WITH_EACCELERATOR_DISASSEMBLER, 1, [Define if you like to explore Zend bytecode])
   fi
@@ -151,22 +110,6 @@ dnl
 #include <sys/stat.h>
 #include <sys/types.h>],msg=yes,msg=no)
   AC_MSG_RESULT([$msg])
-
-  old_cppflags="$CPPFLAGS"
-  CPPFLAGS="$CPPFLAGS $INCLUDES -I$abs_srcdir"
-  AC_MSG_CHECKING(for ext/session/php_session.h)
-  AC_TRY_CPP([#include "ext/session/php_session.h"],msg="yes",msg="no")
-  if test "$msg" = "yes"; then
-    AC_DEFINE(HAVE_EXT_SESSION_PHP_SESSION_H, 1, [Define if you have the <ext/session/php_session.h> header file.])
-  fi
-  AC_MSG_RESULT([$msg])
-  CPPFLAGS="$old_cppflags"
-  if test "$msg" = "yes" && test "$eaccelerator_sessions" = "yes"; then
-    AC_DEFINE(WITH_EACCELERATOR_SESSIONS, 1, [Define if you like to use eAccelerator session handlers to store session's information in shared memory])
-  elif test "$eaccelerator_sessions" = "yes"; then
-    AC_MSG_ERROR("Can't compile eAccelerator with session support if php isn't compiled with session support!")
-  fi
-
 
 dnl Test for union semun
   AC_MSG_CHECKING(whether union semun is defined in sys/sem.h)

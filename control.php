@@ -272,15 +272,7 @@ $info = eaccelerator_info();
 <div class="head1"><span class="head1_item">eAccelerator control panel</span></div>
 <div class="head2">
 <?php
-/*
-    Check if eA was compiled with WITH_EACCELERATOR_CONTENT_CACHING) || WITH_EACCELERATOR_SESSIONS || WITH_EACCELERATOR_SHM 
-    if yes, show 'User Cache' tab, else dont
-*/
-if (function_exists('eaccelerator_list_keys')) {
-    $items = array(0 => 'Status', 1 => 'Script Cache', 2 => 'User Cache');
-} else {
-    $items = array(0 => 'Status', 1 => 'Script Cache');
-}
+$items = array(0 => 'Status', 1 => 'Script Cache');
 
 foreach ($items as $i => $item) {
     echo '<span class="menuitem'.(($sec == $i)?'_sel':'').'" onmouseover="menusel(this)" onmouseout="menusel(this)" onclick="gosec('.$i.')">'.(($sec != $i)?'<a href="'.$_SERVER['PHP_SELF'].'?sec='.$i.'">'.$item.'</a>':$item).'</span>';
@@ -296,9 +288,6 @@ switch ($sec) {
 
         if (isset($_POST['cachingoff'])) eaccelerator_caching(false);
         if (isset($_POST['cachingon'])) eaccelerator_caching(true);
-
-        if (isset($_POST['optoff']) && function_exists('eaccelerator_optimizer')) eaccelerator_optimizer(false);
-        if (isset($_POST['opton']) && function_exists('eaccelerator_optimizer')) eaccelerator_optimizer(true);
 
         if (isset($_POST['clear'])) eaccelerator_clear();
         if (isset($_POST['clean'])) eaccelerator_clean();
@@ -318,10 +307,6 @@ switch ($sec) {
 <tr>
     <td class="er">Caching enabled</td> 
     <td class="fl"><?php echo $info['cache'] ? '<span style="color:green"><b>yes</b></span>&nbsp;&nbsp;&nbsp;<input type="submit" name="cachingoff" value=" Disable "/>':'<span style="color:red"><b>no</b></span>&nbsp;&nbsp;&nbsp;<input type="submit" name="cachingon" value=" Enable "/>' ?></td>
-</tr>
-<tr>
-    <td class="er">Optimizer enabled</td>
-    <td class="fl"><?php echo $info['optimizer'] ? '<span style="color:green"><b>yes</b></span>&nbsp;&nbsp;&nbsp;<input type="submit" name="optoff" value=" Disable "/>':'<span style="color:red"><b>no</b></span>&nbsp;&nbsp;&nbsp;<input type="submit" name="opton" value=" Enable "/>' ?></td>
 </tr>
 <tr>
     <td class="er">Total memory</td>
@@ -345,10 +330,6 @@ switch ($sec) {
 <tr>
     <td class="er">Removed scripts</td> 
     <td class="fl"><?php echo number_format($info['removedScripts']); ?></td>
-</tr>
-<tr>
-    <td class="er">Cached keys</td>
-    <td class="fl"><?php echo number_format($info['cachedKeys']); ?></td>
 </tr>
 </table>
 </form>
@@ -508,99 +489,6 @@ switch ($sec) {
     <td class="fr"><small><?php echo format_size($scripts[$i]['size'])?></small></td>
     <td class="fr"><small><?php echo $scripts[$i]['reloads']?> (<?php echo $scripts[$i]['usecount']?>)</small></td>
     <td class="fr"><small><?php echo number_format($scripts[$i]['hits'])?></small></td>
-</tr>
-<?php
-      }
-?>
-<tr>
-    <td colspan="1" style="text-align: left">&nbsp;</td>
-    <td colspan="4" style="text-align: right;"><small><?php echo pageselstr($pg, ceil($numtot/$npp))?></small></td>
-</tr>
-</table>
-<?php
-            }
-            break;
-        case 2:
-        /******************************     USER CACHE     ******************************/
-
-        $userkeys = eaccelerator_list_keys();
-
-        // ** work around colon bug **
-        function colonbug ($val) {
-            if (substr($val['name'], 0, 1) == ':') 
-                $val['name'] = substr($val['name'], 1);
-            return $val;
-        }
-        $userkeys = array_map('colonbug', $userkeys);
-
-        // search
-        function usersearch ($val) {
-            $str = isset($_GET['str']) ? $_GET['str'] : '';
-            return preg_match('/'.preg_quote($str, '/').'/i', $val['name']);
-        }
-        $userkeys = array_filter($userkeys, 'usersearch');
-    
-        // sort
-        $ordby = isset($_GET['ordby']) ? intval($_GET['ordby']) : 0;
-        switch ($ordby) {
-            default:
-            case 0: $ordby = 'name'; $ordbystr = true; break;
-            case 1: $ordby = 'created'; $ordbystr = false; break;
-            case 2: $ordby = 'size'; $ordbystr = false; break;
-            case 3: $ordby = 'ttl'; $ordbystr = false; break;
-        }
-        usort($userkeys, 'arrsort');
- 
-        // slice
-        $numtot = count($userkeys);
-
-        $pg = isset($_GET['pg']) ? (int)$_GET['pg'] : 0; // zero-starting
-        $pgs = ceil($numtot/$npp);
-
-        if ($pg+1 > $pgs) $pg = $pgs-1;
-        if ($pg < 0) $pg = 0;
-
-        $userkeys = array_slice($userkeys, $pg*$npp, $npp);
-        $numres = count($userkeys);
-?>
-<table class="center">
-<tr>
-    <td class="h" colspan="2">Search</td>
-</tr>
-<tr>
-    <form name="srch" action="<?php echo $_SERVER['PHP_SELF']?>" method="get"><input type="hidden" name="sec" value="2"/>
-    <td class="el">Match key name:</td> 
-    <td class="fl"><input type="text" name="str" size="40" value="<?php echo isset($_GET['str']) ? $_GET['str'] : '' ?>"/>&nbsp;<input type="submit" value=" Find "/></td>
-    </form>
-</tr>
-</table>
-
-<br/><br/>
-
-<?php
-        if (count($userkeys) == 0) 
-            echo '<div class="center"><i>No keys found</i></div>';
-        else {
-?>
-<table class="center">
-<tr>
-    <td colspan="1" style="text-align: left">Showing <?php echo $pg*$npp+1?> &ndash; <?php echo $pg*$npp+min($npp, $numres)?> of <?php echo $numtot?></td>
-    <td colspan="4" style="text-align: right;"><small><?php echo pageselstr($pg, $pgs)?></small></td>
-</tr>
-<tr>
-    <td class="h"><?php echo colheadstr('Key Name', 0)?></td>
-    <td class="h"><?php echo colheadstr('Created', 1)?></td>
-    <td class="h"><?php echo colheadstr('Size', 2)?></td>
-    <td class="h"><?php echo colheadstr('Expiry', 3)?></td>
-</tr>
-<?php
-            for ($i = 0; $i < $numres; $i++) {
-?>
-<tr>
-    <td class="el"><small><?php echo (($userkeys[$i]['ttl'] == -1)?'<span class="s">':'').$userkeys[$i]['name'].(($userkeys[$i]['ttl'] == -1)?'</span>':'')?></small></td>
-    <td class="fl"><small><?php echo date('Y-m-d H:i:s', $userkeys[$i]['created'])?></small></td>
-    <td class="fr"><small><?php echo format_size($userkeys[$i]['size'])?></small></td>
-    <td class="fl"><small><?php echo ($userkeys[$i]['ttl'])?(($userkeys[$i]['ttl'] > 0)?date('Y-m-d H:i:s', $userkeys[$i]['ttl']):'expired'):'never'?></small></td>
 </tr>
 <?php
       }
