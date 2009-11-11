@@ -1,3 +1,8 @@
+2009-11-11	Hans Rakers <hans at react.nl>
+
+		* PHP 5.3 ZEND_JMP_SET support. Fixes ticket #371
+		* open_basedir bypass fixed. Fixes ticket #104
+
 2009-07-14	Bart Vanbrabant <bart at vanbrabant.eu>
 	
 		* Fix two PHP 5.3 bugs

@@ -184,6 +184,9 @@ static void fixup_op_array(char *base, ea_op_array * from TSRMLS_DC)
             case ZEND_JMPNZ:
             case ZEND_JMPZ_EX:
             case ZEND_JMPNZ_EX:
+#ifdef ZEND_ENGINE_2_3
+            case ZEND_JMP_SET:
+#endif
                 FIXUP(base, opline->op2.u.jmp_addr);
                 break;
             }

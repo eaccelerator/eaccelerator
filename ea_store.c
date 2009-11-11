@@ -589,6 +589,9 @@ static ea_op_array *store_op_array(char **at, zend_op_array * from TSRMLS_DC)
             case ZEND_JMPNZ:
             case ZEND_JMPZ_EX:
             case ZEND_JMPNZ_EX:
+#ifdef ZEND_ENGINE_2_3
+            case ZEND_JMP_SET:
+#endif
                 opline->op2.u.jmp_addr = to->opcodes + (opline->op2.u.jmp_addr - from->opcodes);
                 break;
             }

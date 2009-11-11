@@ -893,7 +893,7 @@ static zend_op_array* eaccelerator_restore(char *realname, struct stat *buf,
 static int eaccelerator_stat(zend_file_handle *file_handle,
                         char* realname, struct stat* buf TSRMLS_DC) {
 #ifdef EACCELERATOR_USE_INODE
-#ifndef ZEND_WIN32
+#  ifndef ZEND_WIN32
   if (file_handle->type == ZEND_HANDLE_FP && file_handle->handle.fp != NULL) {
     if (fstat(fileno(file_handle->handle.fp), buf) == 0 && S_ISREG(buf->st_mode)) {
       if (file_handle->opened_path != NULL) {
@@ -902,7 +902,7 @@ static int eaccelerator_stat(zend_file_handle *file_handle,
       return 0;
     }
   } else
-#endif
+#  endif
   if (file_handle->opened_path != NULL) {
     if (stat(file_handle->opened_path, buf) == 0 && S_ISREG(buf->st_mode)) {
        strcpy(realname,file_handle->opened_path);
@@ -966,7 +966,7 @@ static int eaccelerator_stat(zend_file_handle *file_handle,
 #else
   if (file_handle->opened_path != NULL) {
     strcpy(realname,file_handle->opened_path);
-#ifndef ZEND_WIN32
+#  ifndef ZEND_WIN32
     if (file_handle->type == ZEND_HANDLE_FP && file_handle->handle.fp != NULL) {
       if (!eaccelerator_check_mtime) {
         return 0;
@@ -984,7 +984,7 @@ static int eaccelerator_stat(zend_file_handle *file_handle,
         return -1;
       }
     }
-#else
+#  else
     if (!eaccelerator_check_mtime) {
       return 0;
     } else if (stat(realname, buf) == 0 && S_ISREG(buf->st_mode)) {
@@ -992,7 +992,7 @@ static int eaccelerator_stat(zend_file_handle *file_handle,
     } else {
       return -1;
     }
-#endif
+#  endif
   } else if (file_handle->filename == NULL) {
     return -1;
   } else if (PG(include_path) == NULL || 
@@ -1030,11 +1030,11 @@ static int eaccelerator_stat(zend_file_handle *file_handle,
         memcpy(tryname + len + 1, file_handle->filename, filename_len);
         tryname[len + filename_len + 1] = '\0';
         if (VCWD_REALPATH(tryname, realname)) {
-#ifdef ZEND_WIN32
+#  ifdef ZEND_WIN32
           if (stat(realname, buf) == 0 && S_ISREG(buf->st_mode)) {
             return 0;
           }
-#else
+#  else
           if (!eaccelerator_check_mtime) {
             return 0;
           } else if (stat(realname, buf) == 0 && S_ISREG(buf->st_mode)) {
@@ -1042,7 +1042,7 @@ static int eaccelerator_stat(zend_file_handle *file_handle,
           } else {
             return -1;
           }
-#endif
+#  endif
         }
       }
       ptr = end;
@@ -1146,7 +1146,7 @@ ZEND_DLEXPORT zend_op_array* eaccelerator_compile_file(zend_file_handle *file_ha
   }
 
   /* only restore file when open_basedir allows it */
-  if (php_check_open_basedir(file_handle->filename TSRMLS_CC)) {
+  if (PG(open_basedir) && php_check_open_basedir(realname TSRMLS_CC)) {
     zend_error(E_ERROR, "Can't load %s, open_basedir restriction.", file_handle->filename);
   }
 
