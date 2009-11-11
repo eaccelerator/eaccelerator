@@ -113,12 +113,18 @@
 #if !defined(_INTPTR_T_DEFINED) && ZEND_WIN32
 	typedef intptr_t;
 	#define _INTPTR_T_DEFINED
+#else
+#  ifdef HAVE_STDINT_H
+#    include <stdint.h>
+#  elif HAVE_INTTYPES_H 
+#    include <inttypes.h> 
+#  endif 
 #endif
 
 #if !defined(ssize_t) && ZEND_WIN32
 	/* define ssize_t for Win32. */
 	#define ssize_t int
-#endif
+#endif 
 
 #ifdef HAVE_EACCELERATOR
 

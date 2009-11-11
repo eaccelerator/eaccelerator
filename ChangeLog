@@ -6,6 +6,8 @@
 
 		* PHP 5.3 ZEND_JMP_SET support. Fixes ticket #371
 		* open_basedir bypass fixed. Fixes ticket #104
+		* Fix for ticket #194
+		* Stripped old opcodes from opcode.c and added new ones
 
 2009-07-14	Bart Vanbrabant <bart at vanbrabant.eu>
 	
