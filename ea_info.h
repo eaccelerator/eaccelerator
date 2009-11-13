@@ -40,9 +40,6 @@ PHP_FUNCTION(eaccelerator_info);
 PHP_FUNCTION(eaccelerator_purge);
 PHP_FUNCTION(eaccelerator_cached_scripts);
 PHP_FUNCTION(eaccelerator_removed_scripts);
-#if defined (WITH_EACCELERATOR_CONTENT_CACHING) || defined(WITH_EACCELERATOR_SESSIONS) || defined(WITH_EACCELERATOR_SHM)
-PHP_FUNCTION(eaccelerator_list_keys);
-#endif
 
 #endif
 #endif /* INCLUDED_INFO_H */
