@@ -1,3 +1,8 @@
+2009-11-25	Hans Rakers <hans at react.nl>
+
+		* Optimizer and general PHP 5.3 fixes
+		* Some cleanups
+
 2009-11-11	Bart Vanbrabant <bart at vanbrabant.eu>
 
 		* Add the optimizer back

@@ -52,10 +52,10 @@ static const char *extopnames_cast[] = {
 	"IS_NULL",					/* 0 */
 	"IS_LONG",					/* 1 */
 	"IS_DOUBLE",				/* 2 */
-	"IS_STRING",				/* 3 */
+	"IS_BOOL",				/* 3 */
 	"IS_ARRAY",					/* 4 */
 	"IS_OBJECT",				/* 5 */
-	"IS_BOOL",					/* 6 */
+	"IS_STRING",					/* 6 */
 	"IS_RESOURCE",				/* 7 */
 	"IS_CONSTANT",				/* 8 */
 	"IS_CONSTANT_ARRAY"			/* 9 */
@@ -258,6 +258,7 @@ static zval *get_op_array(ea_op_array *op_array TSRMLS_DC)
 				const char *ptr = NULL;
 				GET_EXTOPNAMES_INIT_FCALL(opline->extended_value, ptr);
 	            strncpy(buf, ptr, sizeof(buf));
+	            //snprintf(buf, sizeof(buf), "%d", opline->extended_value);
             } else if ((op->ops & EXT_MASK) == EXT_FETCH) {
 				const char *ptr = NULL;
 				GET_EXTOPNAMES_FETCH(opline->extended_value, ptr);

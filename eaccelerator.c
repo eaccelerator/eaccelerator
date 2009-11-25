@@ -1565,32 +1565,6 @@ static void eaccelerator_clean_request(TSRMLS_D) {
   EAG(in_request) = 0;
 }
 
-#if (__GNUC__ >= 3) || ((__GNUC__ == 2) && (__GNUC_MINOR__ >= 91))
-static void __attribute__((destructor)) eaccelerator_clean_shutdown(void)
-#else
-void _fini(void)
-#endif
-{
-  if (eaccelerator_mm_instance != NULL) {
-    TSRMLS_FETCH();
-    if (EAG(in_request)) {
-      fflush(stdout);
-      fflush(stderr);
-      eaccelerator_clean_request(TSRMLS_C);
-      if (EG(active_op_array)) {
-        DBG(ea_debug_error, ("[%d] EACCELERATOR: PHP unclean shutdown on opline %ld of %s() at %s:%u\n\n",
-          getpid(),
-          (long)(active_opline-EG(active_op_array)->opcodes),
-          get_active_function_name(TSRMLS_C),
-          zend_get_executed_filename(TSRMLS_C),
-          zend_get_executed_lineno(TSRMLS_C)));
-      } else {
-        DBG(ea_debug_error, ("[%d] EACCELERATOR: PHP unclean shutdown\n\n",getpid()));
-      }
-    }
-  }
-}
-
 /* signal handlers */
 #ifdef WITH_EACCELERATOR_CRASH_DETECTION
 static void eaccelerator_crash_handler(int dummy) {
