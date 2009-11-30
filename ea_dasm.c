@@ -67,7 +67,8 @@ static const char *extopnames_cast[] = {
 /* {{{ static const char *extopnames_fetch[] */
 static const char *extopnames_fetch[] = {
 	"FETCH_STANDARD",			/* 0 */
-	"FETCH_ADD_LOCK"			/* 1 */
+	"FETCH_ADD_LOCK",			/* 1 */
+	"FETCH_MAKE_REF"			/* 2 */
 };
 #define EXTOPNAMES_FETCH_NUM 2
 #define GET_EXTOPNAMES_FETCH(index, ptr) LOOKUP(extopnames_fetch, index, EXTOPNAMES_FETCH_NUM, ptr)
@@ -75,12 +76,14 @@ static const char *extopnames_fetch[] = {
 
 /* {{{ static const char *extopnames_fetch_class[] */
 static const char *extopnames_fetch_class[] = {
-	"FETCH_CLASS_DEFAULT",		/* 0 */
+	"FETCH_CLASS_DEFAULT",			/* 0 */
 	"FETCH_CLASS_SELF",			/* 1 */
-	"FETCH_CLASS_PARENT",		/* 2 */
+	"FETCH_CLASS_PARENT",			/* 2 */
 	"FETCH_CLASS_MAIN",			/* 3 */
-	"FETCH_CLASS_GLOBAL",		/* 4 */
-	"FETCH_CLASS_AUTO"			/* 5 */
+	"FETCH_CLASS_GLOBAL",			/* 4 */
+	"FETCH_CLASS_AUTO",			/* 5 */
+	"FETCH_CLASS_INTERFACE",		/* 6 */
+	"FETCH_CLASS_STATIC",			/* 7 */
 };
 #define EXTOPNAMES_FETCH_CLASS_NUM 6
 #define GET_EXTOPNAMES_FETCH_CLASS(index, ptr) LOOKUP(extopnames_fetch_class, index, EXTOPNAMES_FETCH_CLASS_NUM, ptr)
@@ -113,8 +116,9 @@ static const char *fetchtypename[] = {
 	"FETCH_GLOBAL",				/* 0 */
 	"FETCH_LOCAL",				/* 1 */
 	"FETCH_STATIC",				/* 2 */
-	"FETCH_STATIC_MEMBER",		/* 3 */
-    "UNKNOWN 1"                 /* 4 */
+	"FETCH_STATIC_MEMBER",			/* 3 */
+	"FETCH_GLOBAL_LOCK",			/* 4 */
+	"FETCH_LEXICAL"				/* 5 */
 };
 #define FETCHTYPENAME_NUM 5
 #define GET_FETCHTYPENAME(index, ptr) LOOKUP(fetchtypename, index, FETCHTYPENAME_NUM, ptr)
@@ -322,12 +326,14 @@ static zval *get_op_array(ea_op_array *op_array TSRMLS_DC)
                 snprintf(buf, sizeof(buf), "opline(%u)", (unsigned int)(opline->op1.u.jmp_addr - op_array->opcodes));
             } else if ((op->ops & OP1_MASK) == OP1_CLASS) {
                 snprintf(buf, sizeof(buf), "$class%u", VAR_NUM(opline->op1.u.var));
+#ifdef ZEND_ENGINE_2_3
             } else if ((op->ops & OP1_MASK) == OP1_UCLASS) {
                 if (opline->op1.op_type == IS_UNUSED) {
 					buf[0] = '\0';
                 } else {
                     snprintf(buf, sizeof(buf), "$class%u", VAR_NUM(opline->op1.u.var));
                 }
+#endif
             } else if ((op->ops & OP1_MASK) == OP1_BRK) {
                 if (opline->op1.u.opline_num != -1 && opline->op2.op_type == IS_CONST && opline->op2.u.constant.type == IS_LONG) {
                     int level = opline->op2.u.constant.value.lval;

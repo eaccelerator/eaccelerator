@@ -193,7 +193,7 @@ static void compute_live_var(BB* bb, zend_op_array* op_array, char* global)
     char *def = do_alloca(op_array->T * sizeof(char));
 #endif
 #if 0
-    zend_printf("<hr>%s::%s<br>", op_array->filename, op_array->function_name);
+    DBG(ea_debug_printf, (EA_DEBUG, "compute_live_var %s::%s", op_array->filename, op_array->function_name));
 #endif
     while (p != NULL) {
       zend_op* op = p->start;
@@ -353,30 +353,9 @@ static void compute_live_var(BB* bb, zend_op_array* op_array, char* global)
 #else
     free_alloca(used);
 #endif
-/*
-  while (1) {
-    int change = 0;
-    p = bb;
-    while (p != NULL) {
-      int n = SET_SIZE(op_array->T);
-      while (n-- > 0) {
-        unsigned int old_in = p->in[n];
-        p->out[n] = 0;
-        if (p->jmp_1   != NULL) p->out[n] |= p->jmp_1->in[n];
-        if (p->jmp_2   != NULL) p->out[n] |= p->jmp_2->in[n];
-        if (p->jmp_ext != NULL) p->out[n] |= p->jmp_ext->in[n];
-        if (p->follow  != NULL) p->out[n] |= p->follow->in[n];
-        p->in[n] = p->use[n] | (p->out[n] & ~p->def[n]);
-        if (old_in != p->in[n]) change = 1;
-      }
-      p = p->next;
-    }
-    if (!change) break;
-  }
-*/
 }
 
-/* Adds FROM as predcessor of TO */
+/* Adds FROM as predecessor of TO */
 #define BB_ADD_PRED(TO,FROM) { \
                                BBlink *q = (TO)->pred; \
                                while (q != NULL) { \
@@ -391,7 +370,7 @@ static void compute_live_var(BB* bb, zend_op_array* op_array, char* global)
                                } \
                              }
 
-/* Removes FROM from predcessors of TO */
+/* Removes FROM from predecessors of TO */
 #define BB_DEL_PRED(TO,FROM) { \
                                BBlink *q = (TO)->pred; \
                                if (q != NULL) { \
@@ -1484,6 +1463,7 @@ static int opt_result_is_numeric(zend_op* x) {
     case ZEND_MOD:
     case ZEND_SL:
     case ZEND_SR:
+    case ZEND_BOOL:
     case ZEND_BOOL_NOT:
     case ZEND_BOOL_XOR:
     case ZEND_IS_IDENTICAL:
@@ -1494,6 +1474,8 @@ static int opt_result_is_numeric(zend_op* x) {
     case ZEND_IS_SMALLER_OR_EQUAL:
     case ZEND_PRE_DEC:
     case ZEND_PRE_INC:
+    case ZEND_POST_DEC:
+    case ZEND_POST_INC:
     case ZEND_ASSIGN_ADD:
     case ZEND_ASSIGN_SUB:
     case ZEND_ASSIGN_MUL:
@@ -1501,7 +1483,6 @@ static int opt_result_is_numeric(zend_op* x) {
     case ZEND_ASSIGN_MOD:
     case ZEND_ASSIGN_SL:
     case ZEND_ASSIGN_SR:
-    case ZEND_BOOL:
       return 1;
     case ZEND_CAST:
       if (x->extended_value == IS_BOOL ||
@@ -1511,16 +1492,99 @@ static int opt_result_is_numeric(zend_op* x) {
       }
       return 0;
     case ZEND_DO_FCALL:
+      /* list generated in ext/standard with:
+         grep "proto int" *| awk '{ print $5}'|sed -r 's/^(.+)\((.*)/\1/'|sort -u
+         + some function aliases and other frequently used funcs
+      */
       if (x->op1.op_type == IS_CONST &&
           x->op1.u.constant.type == IS_STRING &&
-          (strcmp(x->op1.u.constant.value.str.val,"count") == 0 ||
-           strcmp(x->op1.u.constant.value.str.val,"sizeof") == 0 ||
-           strcmp(x->op1.u.constant.value.str.val,"strcmp") == 0 ||
-           strcmp(x->op1.u.constant.value.str.val,"strlen") == 0 ||
-           strcmp(x->op1.u.constant.value.str.val,"strpos") == 0 ||
-           strcmp(x->op1.u.constant.value.str.val,"strncmp") == 0 ||
+          (strcmp(x->op1.u.constant.value.str.val,"abs") == 0 ||
+           strcmp(x->op1.u.constant.value.str.val,"array_push") == 0 ||
+           strcmp(x->op1.u.constant.value.str.val,"array_unshift") == 0 ||
+           strcmp(x->op1.u.constant.value.str.val,"assert") == 0 ||
+           strcmp(x->op1.u.constant.value.str.val,"bindec") == 0 ||
+           strcmp(x->op1.u.constant.value.str.val,"connection_aborted") == 0 ||
+           strcmp(x->op1.u.constant.value.str.val,"connection_status") == 0 ||
+           strcmp(x->op1.u.constant.value.str.val,"count") == 0 ||
+           strcmp(x->op1.u.constant.value.str.val,"dl") == 0 ||
+           strcmp(x->op1.u.constant.value.str.val,"extract") == 0 ||
+           strcmp(x->op1.u.constant.value.str.val,"ezmlm_hash") == 0 ||
+           strcmp(x->op1.u.constant.value.str.val,"file_put_contents") == 0 ||
+           strcmp(x->op1.u.constant.value.str.val,"fileatime") == 0 ||
+           strcmp(x->op1.u.constant.value.str.val,"filectime") == 0 ||
+           strcmp(x->op1.u.constant.value.str.val,"filegroup") == 0 ||
+           strcmp(x->op1.u.constant.value.str.val,"fileinode") == 0 ||
+           strcmp(x->op1.u.constant.value.str.val,"filemtime") == 0 ||
+           strcmp(x->op1.u.constant.value.str.val,"fileowner") == 0 ||
+           strcmp(x->op1.u.constant.value.str.val,"fileperms") == 0 ||
+           strcmp(x->op1.u.constant.value.str.val,"filesize") == 0 ||
+           strcmp(x->op1.u.constant.value.str.val,"fpassthru") == 0 ||
+           strcmp(x->op1.u.constant.value.str.val,"fprintf") == 0 ||
+           strcmp(x->op1.u.constant.value.str.val,"fputcsv") == 0 ||
+           strcmp(x->op1.u.constant.value.str.val,"fseek") == 0 ||
+           strcmp(x->op1.u.constant.value.str.val,"ftell") == 0 ||
+           strcmp(x->op1.u.constant.value.str.val,"ftok") == 0 ||
+           strcmp(x->op1.u.constant.value.str.val,"fwrite") == 0 ||
+           strcmp(x->op1.u.constant.value.str.val,"get_magic_quotes_gpc") == 0 ||
+           strcmp(x->op1.u.constant.value.str.val,"get_magic_quotes_runtime") == 0 ||
+           strcmp(x->op1.u.constant.value.str.val,"getlastmod") == 0 ||
+           strcmp(x->op1.u.constant.value.str.val,"getmygid") == 0 ||
+           strcmp(x->op1.u.constant.value.str.val,"getmyinode") == 0 ||
+           strcmp(x->op1.u.constant.value.str.val,"getmypid") == 0 ||
+           strcmp(x->op1.u.constant.value.str.val,"getmyuid") == 0 ||
+           strcmp(x->op1.u.constant.value.str.val,"getprotobyname") == 0 ||
+           strcmp(x->op1.u.constant.value.str.val,"getrandmax") == 0 ||
+           strcmp(x->op1.u.constant.value.str.val,"getservbyname") == 0 ||
+           strcmp(x->op1.u.constant.value.str.val,"hexdec") == 0 ||
+           strcmp(x->op1.u.constant.value.str.val,"ignore_user_abort") == 0 ||
+           strcmp(x->op1.u.constant.value.str.val,"intval") == 0 ||
+           strcmp(x->op1.u.constant.value.str.val,"ip2long") == 0 ||
+           strcmp(x->op1.u.constant.value.str.val,"levenshtein") == 0 ||
+           strcmp(x->op1.u.constant.value.str.val,"link") == 0 ||
+           strcmp(x->op1.u.constant.value.str.val,"linkinfo") == 0 ||
+           strcmp(x->op1.u.constant.value.str.val,"mail") == 0 ||
+           strcmp(x->op1.u.constant.value.str.val,"memory_get_peak_usage") == 0 ||
+           strcmp(x->op1.u.constant.value.str.val,"memory_get_usage") == 0 ||
+           strcmp(x->op1.u.constant.value.str.val,"mt_getrandmax") == 0 ||
+           strcmp(x->op1.u.constant.value.str.val,"mt_rand") == 0 ||
+           strcmp(x->op1.u.constant.value.str.val,"octdec") == 0 ||
+           strcmp(x->op1.u.constant.value.str.val,"ord") == 0 ||
+           strcmp(x->op1.u.constant.value.str.val,"pclose") == 0 ||
+           strcmp(x->op1.u.constant.value.str.val,"printf") == 0 ||
+           strcmp(x->op1.u.constant.value.str.val,"proc_close") == 0 ||
+           strcmp(x->op1.u.constant.value.str.val,"rand") == 0 ||
+           strcmp(x->op1.u.constant.value.str.val,"readfile") == 0 ||
+           strcmp(x->op1.u.constant.value.str.val,"similar_text") == 0 ||
+           strcmp(x->op1.u.constant.value.str.val,"strcasecmp") == 0 ||
            strcmp(x->op1.u.constant.value.str.val,"strcoll") == 0 ||
-           strcmp(x->op1.u.constant.value.str.val,"strcasecmp") == 0)) {
+           strcmp(x->op1.u.constant.value.str.val,"strcmp") == 0 ||
+           strcmp(x->op1.u.constant.value.str.val,"strcspn") == 0 ||
+           strcmp(x->op1.u.constant.value.str.val,"stream_select") == 0 ||
+           strcmp(x->op1.u.constant.value.str.val,"stream_set_write_buffer") == 0 ||
+           strcmp(x->op1.u.constant.value.str.val,"stream_socket_enable_crypto") == 0 ||
+           strcmp(x->op1.u.constant.value.str.val,"stream_socket_shutdown") == 0 ||
+           strcmp(x->op1.u.constant.value.str.val,"stripos") == 0 ||
+           strcmp(x->op1.u.constant.value.str.val,"strlen") == 0 ||
+           strcmp(x->op1.u.constant.value.str.val,"strnatcasecmp") == 0 ||
+           strcmp(x->op1.u.constant.value.str.val,"strnatcmp") == 0 ||
+           strcmp(x->op1.u.constant.value.str.val,"strncmp") == 0 ||
+           strcmp(x->op1.u.constant.value.str.val,"strpos") == 0 ||
+           strcmp(x->op1.u.constant.value.str.val,"strripos") == 0 ||
+           strcmp(x->op1.u.constant.value.str.val,"strrpos") == 0 ||
+           strcmp(x->op1.u.constant.value.str.val,"strspn") == 0 ||
+           strcmp(x->op1.u.constant.value.str.val,"substr_compare") == 0 ||
+           strcmp(x->op1.u.constant.value.str.val,"substr_count") == 0 ||
+           strcmp(x->op1.u.constant.value.str.val,"symlink") == 0 ||
+           strcmp(x->op1.u.constant.value.str.val,"system") == 0 ||
+           strcmp(x->op1.u.constant.value.str.val,"umask") == 0 ||
+           strcmp(x->op1.u.constant.value.str.val,"version_compare") == 0 ||
+           strcmp(x->op1.u.constant.value.str.val,"vfprintf") == 0 ||
+           strcmp(x->op1.u.constant.value.str.val,"vprintf") == 0 ||
+           strcmp(x->op1.u.constant.value.str.val,"fputs") == 0 ||		/* func alias of fwrite */
+           strcmp(x->op1.u.constant.value.str.val,"set_file_buffer") == 0 ||	/* func alias of stream_set_write_buffer */
+           strcmp(x->op1.u.constant.value.str.val,"sizeof") == 0 ||		/* func alias of count */
+           strcmp(x->op1.u.constant.value.str.val,"ereg") == 0 ||
+           strcmp(x->op1.u.constant.value.str.val,"eregi") == 0)) {
         return 1;
       }
       return 0;
@@ -2258,42 +2322,7 @@ static void optimize_bb(BB* bb, zend_op_array* op_array, char* global, int pass 
        op->opcode = ZEND_DO_FCALL;
        STR_FREE(prev->op2.u.constant.value.str.val);
        SET_TO_NOP(prev);
-    /* SEND_REF $x + FCALL "reset" => FE_RESET $x */
     }
-#if 0
-// this makes php 5 and php >= 4.3.11 go in an endless loop with reset(null)
-else if (prev != NULL &&
-               prev->opcode == ZEND_SEND_REF &&
-               prev->extended_value == ZEND_DO_FCALL &&
-               prev->op1.op_type == IS_VAR &&
-               prev->op2.u.opline_num == 1 &&
-               op->opcode == ZEND_DO_FCALL &&
-               op->extended_value == 1 &&
-               op->op1.op_type == IS_CONST &&
-               op->op1.u.constant.type == IS_STRING &&
-               op->op1.u.constant.value.str.len == (sizeof("reset")-1) &&
-               (memcmp(op->op1.u.constant.value.str.val, "reset", sizeof("reset")-1) == 0) &&
-               op->result.op_type == IS_VAR &&
-               ((op->result.u.EA.type & EXT_TYPE_UNUSED) != 0)) {
-      STR_FREE(op->op1.u.constant.value.str.val);
-      prev->opcode = ZEND_FE_RESET;
-      prev->extended_value = 1;
-      prev->op2.op_type = IS_UNUSED;
-      memcpy(&prev->result, &op->result, sizeof(op->result));
-      if (op->result.op_type == IS_VAR &&
-          (op->result.u.EA.type & EXT_TYPE_UNUSED) == 0) {
-        SET_DEFINED(prev);
-        SET_TO_NOP(op);
-      } else {
-        prev->result.u.EA.type &= ~EXT_TYPE_UNUSED;
-        op->opcode = ZEND_SWITCH_FREE;
-        op->extended_value = 1;
-        memcpy(&op->op1,&prev->result,sizeof(prev->result));
-        op->op2.op_type = IS_UNUSED;
-        op->result.op_type = IS_UNUSED;
-      }
-    }
-#endif
 
     /* $a = $a + ? => $a+= ? */
     if (op->opcode == ZEND_ASSIGN &&
@@ -2573,14 +2602,19 @@ static int build_cfg(zend_op_array *op_array, BB* bb)
 		const opcode_dsc* dsc = get_opcode_dsc(op->opcode);
 		if (dsc != NULL)
 		{
+#ifndef ZEND_ENGINE_2_3
+			/* Does not work with PHP 5.3 due to namespaces */
 			if ((dsc->ops & OP1_MASK) == OP1_UCLASS)
 			{
 				if (op->op1.op_type != IS_UNUSED)
 				{
 					op->op1.op_type = IS_VAR;
+
 				}
 			}
-			else if ((dsc->ops & OP1_MASK) == OP1_CLASS)
+			else 
+#endif
+			if ((dsc->ops & OP1_MASK) == OP1_CLASS)
 			{
 				op->op1.op_type = IS_VAR;
 			}
@@ -2997,11 +3031,9 @@ void reassign_registers(zend_op_array *op_array, BB* p, char *global) {
   char* used     = do_alloca(op_array->T * sizeof(char));
 #endif
 
-  for (i = 0; i < op_array->T; i++) {
-    assigned[i] = -1;
-    reg_pool[i] = 0;
-    used[i] = 0;
-  }
+  memset(assigned, -1, op_array->T * sizeof(int));
+  memset(reg_pool, 0, op_array->T * sizeof(char));
+  memset(used, 0, op_array->T * sizeof(char));
 
   while (p != NULL) {
     if (p->used && p->len > 0) {

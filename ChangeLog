@@ -1,3 +1,13 @@
+2009-11-30	Hans Rakers <hans at react.nl>
+
+		* Added a whole bunch of standard functions to
+		  opt_result_is_numeric()
+		* init allocated memblocks with memset instead of a for loop
+		  in reassign_registers()
+		* Fix in build_cfg for PHP 5.3 UCLASS znodes. These are
+		  handled differently in 5.3 due to namespaces.
+		* Some tweaks and additions to ea_dasm.c
+
 2009-11-25	Hans Rakers <hans at react.nl>
 
 		* Optimizer and general PHP 5.3 fixes
