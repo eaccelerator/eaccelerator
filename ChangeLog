@@ -7,6 +7,10 @@
 		* Fix in build_cfg for PHP 5.3 UCLASS znodes. These are
 		  handled differently in 5.3 due to namespaces.
 		* Some tweaks and additions to ea_dasm.c
+		* Some quick and dirty tweaks to dasm.php to sync looks with
+		  control.php
+		* Fixed ordering of table columns in control.php. This solves
+		  ticket #364
 
 2009-11-25	Hans Rakers <hans at react.nl>
 

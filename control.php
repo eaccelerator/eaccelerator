@@ -17,7 +17,7 @@
 */
 
 /*** CONFIG ***/
-$auth = false;		// Set to false to disable authentication
+$auth = true;		// Set to false to disable authentication
 $user = "admin";
 $pw = "eAccelerator";
 
@@ -26,9 +26,6 @@ $npp = 50;		// Number of records per page (script / key cache listings)
 /*** TODO for API / reporting / this script: 
      + want script ttl from API
      + would be cool to have init_time for scripts (time of caching) - could then get hit rates etc.
-     + count hits on user keys
-     + colon bug in eaccelerator_list_keys()
-     + might be better if usercache ttl was returned as absolute time even if expired
 */
 
 // Inline media
@@ -44,7 +41,6 @@ if (isset($_GET['img']) && $_GET['img']) {
 
     header("Expires: ".gmdate("D, d M Y H:i:s", time()+(86400*30))." GMT");
     header("Last-Modified: ".gmdate("D, d M Y H:i:s", time())." GMT");
-    header('Accept-Ranges: bytes');
     header('Content-Length: '.$imgs[$img][0]);
     header('Content-Type: image/gif');
     header('Content-Encoding: gzip');
@@ -414,9 +410,11 @@ switch ($sec) {
             default:
             case 0: $ordby = 'file'; $ordbystr = true; break;
             case 1: $ordby = 'mtime'; $ordbystr = false; break;
-            case 2: $ordby = 'size'; $ordbystr = false; break;
-            case 3: $ordby = 'reloads'; $ordbystr = false; break;
-            case 4: $ordby = 'hits'; $ordbystr = false; break;
+            case 2: $ordby = 'ts'; $ordbystr = false; break;
+            case 3: $ordby = 'ttl'; $ordbystr = false; break;
+            case 4: $ordby = 'size'; $ordbystr = false; break;
+            case 5: $ordby = 'reloads'; $ordbystr = false; break;
+            case 6: $ordby = 'hits'; $ordbystr = false; break;
         }
         usort($scripts, 'arrsort');
  
