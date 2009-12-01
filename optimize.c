@@ -180,6 +180,9 @@ static void dump_array(int nb,void *pos,char type)
 static void compute_live_var(BB* bb, zend_op_array* op_array, char* global)
 {
   BB* p = bb;
+  char* def;
+  char* used;
+
 #ifdef ZEND_ENGINE_2_3
   ALLOCA_FLAG(use_heap)
 #endif
@@ -188,9 +191,9 @@ static void compute_live_var(BB* bb, zend_op_array* op_array, char* global)
   if (p != NULL && p->next != NULL) {
     int bb_count = 0;
 #ifdef ZEND_ENGINE_2_3
-    char *def = do_alloca(op_array->T * sizeof(char), use_heap);
+    def = do_alloca(op_array->T * sizeof(char), use_heap);
 #else
-    char *def = do_alloca(op_array->T * sizeof(char));
+    def = do_alloca(op_array->T * sizeof(char));
 #endif
 #if 0
     DBG(ea_debug_printf, (EA_DEBUG, "compute_live_var %s::%s", op_array->filename, op_array->function_name));
@@ -241,9 +244,9 @@ static void compute_live_var(BB* bb, zend_op_array* op_array, char* global)
 #endif
   }
 #ifdef ZEND_ENGINE_2_3
-    char *used = do_alloca(op_array->T * sizeof(char), use_heap);
+    used = do_alloca(op_array->T * sizeof(char), use_heap);
 #else
-    char *used = do_alloca(op_array->T * sizeof(char));
+    used = do_alloca(op_array->T * sizeof(char));
 #endif
     p = bb;
     while (p != NULL) {

@@ -46,7 +46,7 @@ extern "C" {
 #define MM_LOCK_RW 1
 #define MM_LOCK_RD 0
 
-#if (_MSC_VER < 1400)
+#ifdef _MSC_VER
 MM*    _mm_create(size_t size, const char* key);
 void   _mm_set_attach(MM* mm, void* attach_addr);
 void*  _mm_attach(size_t size, const char* key);
@@ -75,7 +75,7 @@ void mm_check_mem(void *x);
 
 int mm_protect(MM* mm, int mode);
 
-#if (_MSC_VER < 1400)
+#ifdef _MSC_VER
 #define mm_create(A, B)        _mm_create(A, B)
 #define mm_set_attach(A, B)    _mm_set_attach(A, B)
 #define mm_attach(A, B)        _mm_attach(A, B)

@@ -1,3 +1,8 @@
+2009-12-01	Hans Rakers <hans at react.nl>
+
+		* Win32 compilation fixes (compiles in VC++ 2008)
+		* Updated VC++ project file to VC++ 2008 format
+
 2009-11-30	Hans Rakers <hans at react.nl>
 
 		* Added a whole bunch of standard functions to

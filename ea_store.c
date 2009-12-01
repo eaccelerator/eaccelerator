@@ -373,6 +373,7 @@ static void store_hash_int(char **at, HashTable *target, HashTable *source,
 {
     Bucket *p, *np, *prev_p;
     TSRMLS_FETCH();
+    int nIndex;
 
     memcpy(target, source, sizeof(HashTable));
 
@@ -402,7 +403,7 @@ static void store_hash_int(char **at, HashTable *target, HashTable *source,
 
             np = (Bucket *)ALLOCATE(at, offsetof(Bucket, arKey) + p->nKeyLength);
 
-            int nIndex = p->h % source->nTableSize;
+            nIndex = p->h % source->nTableSize;
             if (target->arBuckets[nIndex]) {
                 np->pNext = target->arBuckets[nIndex];
                 np->pLast = NULL;
