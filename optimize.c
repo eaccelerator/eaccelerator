@@ -2625,7 +2625,7 @@ static int build_cfg(zend_op_array *op_array, BB* bb)
 			{
 				op->op1.op_type = IS_UNUSED;
 			}
-			if ((dsc->ops & OP2_MASK) == OP2_CLASS &&  op->opcode != ZEND_ADD_INTERFACE)
+			if ((dsc->ops & OP2_MASK) == OP2_CLASS && op->opcode != ZEND_ADD_INTERFACE)
 			{
 				op->op2.op_type = IS_VAR;
 			}
@@ -2667,8 +2667,11 @@ static int build_cfg(zend_op_array *op_array, BB* bb)
 			case ZEND_JMPNZ:
 			case ZEND_JMPZ_EX:
 			case ZEND_JMPNZ_EX:
+#ifdef ZEND_JMP_SET
+			case ZEND_JMP_SET:
+#endif
 			/*
-			  TODO: implement 5.3 opcodes ZEND_GOTO & ZEND_JMP_SET here
+			  TODO: implement 5.3 opcode ZEND_GOTO here
                         */
 			case ZEND_NEW:
 			case ZEND_FE_RESET:
@@ -2842,11 +2845,14 @@ cont_failed:
 				case ZEND_NEW:
 				case ZEND_FE_RESET:
 				case ZEND_FE_FETCH:
+#ifdef ZEND_JMP_SET
+				case ZEND_JMP_SET:
+#endif
 					p->jmp_2 = &bb[op->op2.u.opline_num];
 					p->follow = &bb[line_num];
 					break;
                                 /*
-                                  TODO: implement 5.3 opcodes ZEND_GOTO & ZEND_JMP_SET here
+                                  TODO: implement 5.3 opcode ZEND_GOTO here
                                 */
 				case ZEND_RETURN:
 				case ZEND_EXIT:

@@ -214,7 +214,7 @@ static const opcode_dsc opcodes[] = {
 # ifdef ZEND_ENGINE_2_3
   ,
   OPDEF("UNDEF-151",                EXT_UNUSED | OP1_UNUSED | OP2_UNUSED | RES_UNUSED), /* 151 */
-  OPDEF("JMP_SET",                  EXT_UNUSED | OP1_STD    | OP2_JMPADDR| RES_UNUSED), /* 152 */
+  OPDEF("JMP_SET",                  EXT_UNUSED | OP1_STD    | OP2_JMPADDR| RES_TMP),    /* 152 */
   OPDEF("DECLARE_LAMBDA_FUNCTION",  EXT_UNUSED | OP1_STD    | OP2_STD    | RES_UNUSED)  /* 153 */
 # endif
 };

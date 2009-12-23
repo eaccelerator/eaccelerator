@@ -3,7 +3,8 @@
 		* Fixed ticket #383 (crash on ZEND_ADD_INTERFACE)
 		* check_mtime can now be enabled/disabled through the web
 		  interface as requested in ticket #32
-		* shortened some variable names
+		* Shortened some variable names
+		* ZEND_JMP_SET support
 
 2009-12-01	Hans Rakers <hans at react.nl>
 
