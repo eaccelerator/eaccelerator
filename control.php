@@ -288,6 +288,9 @@ switch ($sec) {
         if (isset($_POST['optoff']) && function_exists('eaccelerator_optimizer')) eaccelerator_optimizer(false);
         if (isset($_POST['opton']) && function_exists('eaccelerator_optimizer')) eaccelerator_optimizer(true);
 
+        if (isset($_POST['mtimeoff'])) eaccelerator_check_mtime(false);
+        if (isset($_POST['mtimeon'])) eaccelerator_check_mtime(true);
+
         if (isset($_POST['clear'])) eaccelerator_clear();
         if (isset($_POST['clean'])) eaccelerator_clean();
         if (isset($_POST['purge'])) eaccelerator_purge();
@@ -310,6 +313,10 @@ switch ($sec) {
 <tr>
     <td class="er">Optimizer enabled</td>
     <td class="fl"><?php echo $info['optimizer'] ? '<span style="color:green"><b>yes</b></span>&nbsp;&nbsp;&nbsp;<input type="submit" name="optoff" value=" Disable "/>':'<span style="color:red"><b>no</b></span>&nbsp;&nbsp;&nbsp;<input type="submit" name="opton" value=" Enable "/>' ?></td>
+</tr>
+<tr>
+    <td class="er">Check mtime enabled</td>
+    <td class="fl"><?php echo $info['check_mtime'] ? '<span style="color:green"><b>yes</b></span>&nbsp;&nbsp;&nbsp;<input type="submit" name="mtimeoff" value=" Disable "/>':'<span style="color:red"><b>no</b></span>&nbsp;&nbsp;&nbsp;<input type="submit" name="mtimeon" value=" Enable "/>' ?></td>
 </tr>
 <tr>
     <td class="er">Total memory</td>

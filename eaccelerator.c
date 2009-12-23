@@ -81,17 +81,16 @@ static long ea_shm_size = 0;
 long ea_shm_max = 0;
 static long ea_shm_ttl = 0;
 static long ea_shm_prune_period = 0;
-extern long eaccelerator_debug;
-static zend_bool eaccelerator_check_mtime = 1;
-zend_bool eaccelerator_scripts_shm_only = 0;
+extern long ea_debug;
+zend_bool ea_scripts_shm_only = 0;
 
-eaccelerator_mm* eaccelerator_mm_instance = NULL;
-static int eaccelerator_is_zend_extension = 0;
-static int eaccelerator_is_extension      = 0;
+eaccelerator_mm* ea_mm_instance = NULL;
+static int ea_is_zend_extension = 0;
+static int ea_is_extension      = 0;
 zend_extension* ZendOptimizer = NULL;
 
-static HashTable eaccelerator_global_function_table;
-static HashTable eaccelerator_global_class_table;
+static HashTable ea_global_function_table;
+static HashTable ea_global_class_table;
 
 int binary_eaccelerator_version[2];
 int binary_php_version[2];
@@ -133,12 +132,12 @@ static ea_cache_entry* hash_find_mm(const char  *key,
 
   EACCELERATOR_LOCK_RW();
   q = NULL;
-  p = eaccelerator_mm_instance->hash[slot];
+  p = ea_mm_instance->hash[slot];
   while (p != NULL) {
 #ifdef EACCELERATOR_USE_INODE
     if (p->st_dev == buf->st_dev && p->st_ino == buf->st_ino) {
       struct stat buf2;
-      if ((eaccelerator_check_mtime &&
+      if ((EAG(check_mtime_enabled) && ea_mm_instance->check_mtime_enabled &&
           (buf->st_mtime != p->mtime || buf->st_size != p->filesize)) ||
           (strcmp(p->realfilename, key) != 0 &&
            (stat(p->realfilename,&buf2) != 0 ||
@@ -146,23 +145,23 @@ static ea_cache_entry* hash_find_mm(const char  *key,
            buf2.st_ino != buf->st_ino))) {
 #else
     if ((p->hv == hv) && (strcmp(p->realfilename, key) == 0)) {
-      if (eaccelerator_check_mtime &&
+      if (EAG(check_mtime_enabled) && ea_mm_instance->check_mtime_enabled &&
           (buf->st_mtime != p->mtime || buf->st_size != p->filesize)) {
 #endif
         /* key is invalid. Remove it. */
         *nreloads = p->nreloads+1;
         if (q == NULL) {
-          eaccelerator_mm_instance->hash[slot] = p->next;
+          ea_mm_instance->hash[slot] = p->next;
         } else {
           q->next = p->next;
         }
-        eaccelerator_mm_instance->hash_cnt--;
+        ea_mm_instance->hash_cnt--;
         if (p->use_cnt > 0) {
-          /* key is used by other process/thread. Shedule it for removal */
+          /* key is used by other process/thread. Schedule it for removal */
           p->removed = 1;
-          p->next = eaccelerator_mm_instance->removed;
-          eaccelerator_mm_instance->removed = p;
-          eaccelerator_mm_instance->rem_cnt++;
+          p->next = ea_mm_instance->removed;
+          ea_mm_instance->removed = p;
+          ea_mm_instance->rem_cnt++;
           EACCELERATOR_UNLOCK_RW();
           return NULL;
         } else {
@@ -199,9 +198,9 @@ static void hash_add_mm(ea_cache_entry *x) {
 #endif
 
   EACCELERATOR_LOCK_RW();
-  x->next = eaccelerator_mm_instance->hash[slot];
-  eaccelerator_mm_instance->hash[slot] = x;
-  eaccelerator_mm_instance->hash_cnt++;
+  x->next = ea_mm_instance->hash[slot];
+  ea_mm_instance->hash[slot] = x;
+  ea_mm_instance->hash_cnt++;
   q = x;
   p = x->next;
   while (p != NULL) {
@@ -212,14 +211,14 @@ static void hash_add_mm(ea_cache_entry *x) {
         (strcmp(p->realfilename, x->realfilename) == 0)) {
 #endif
       q->next = p->next;
-      eaccelerator_mm_instance->hash_cnt--;
-      eaccelerator_mm_instance->hash[slot]->nreloads += p->nreloads;
+      ea_mm_instance->hash_cnt--;
+      ea_mm_instance->hash[slot]->nreloads += p->nreloads;
       if (p->use_cnt > 0) {
         /* key is used by other process/thread. Shedule it to remove */
         p->removed = 1;
-        p->next = eaccelerator_mm_instance->removed;
-        eaccelerator_mm_instance->removed = p;
-        eaccelerator_mm_instance->rem_cnt++;
+        p->next = ea_mm_instance->removed;
+        ea_mm_instance->removed = p;
+        ea_mm_instance->rem_cnt++;
         EACCELERATOR_UNLOCK_RW();
         return;
       } else {
@@ -248,7 +247,7 @@ static int init_mm(TSRMLS_D) {
     snprintf(mm_path, MAXPATHLEN, "%s.%s%d", EACCELERATOR_MM_FILE, sapi_module.name, owner);
 #endif
 /*  snprintf(mm_path, MAXPATHLEN, "%s.%s%d", EACCELERATOR_MM_FILE, sapi_module.name, geteuid());*/
-  if ((eaccelerator_mm_instance = (eaccelerator_mm*)mm_attach(ea_shm_size*1024*1024, mm_path)) != NULL) {
+  if ((ea_mm_instance = (eaccelerator_mm*)mm_attach(ea_shm_size*1024*1024, mm_path)) != NULL) {
 #ifdef ZTS
     ea_mutex = tsrm_mutex_alloc();
 #endif
@@ -267,35 +266,36 @@ static int init_mm(TSRMLS_D) {
   ea_mutex = tsrm_mutex_alloc();
 #endif
   total = mm_available(mm);
-  eaccelerator_mm_instance = mm_malloc_lock(mm, sizeof(*eaccelerator_mm_instance));
-  if (!eaccelerator_mm_instance) {
+  ea_mm_instance = mm_malloc_lock(mm, sizeof(*ea_mm_instance));
+  if (!ea_mm_instance) {
     return FAILURE;
   }
-  mm_set_attach(mm, eaccelerator_mm_instance);
-  memset(eaccelerator_mm_instance, 0, sizeof(*eaccelerator_mm_instance));
-  eaccelerator_mm_instance->owner = owner;
-  eaccelerator_mm_instance->mm    = mm;
-  eaccelerator_mm_instance->total = total;
-  eaccelerator_mm_instance->hash_cnt = 0;
-  eaccelerator_mm_instance->rem_cnt  = 0;
-  eaccelerator_mm_instance->enabled = 1;
-  eaccelerator_mm_instance->optimizer_enabled = 1;
-  eaccelerator_mm_instance->removed = NULL;
-  eaccelerator_mm_instance->locks = NULL;
-  eaccelerator_mm_instance->last_prune = time(NULL);	/* this time() call is harmless since this is init phase */
+  mm_set_attach(mm, ea_mm_instance);
+  memset(ea_mm_instance, 0, sizeof(*ea_mm_instance));
+  ea_mm_instance->owner = owner;
+  ea_mm_instance->mm    = mm;
+  ea_mm_instance->total = total;
+  ea_mm_instance->hash_cnt = 0;
+  ea_mm_instance->rem_cnt  = 0;
+  ea_mm_instance->enabled = 1;
+  ea_mm_instance->optimizer_enabled = 1;
+  ea_mm_instance->check_mtime_enabled = 1;
+  ea_mm_instance->removed = NULL;
+  ea_mm_instance->locks = NULL;
+  ea_mm_instance->last_prune = time(NULL);	/* this time() call is harmless since this is init phase */
   EACCELERATOR_PROTECT();
   return SUCCESS;
 }
 
 /* Clean up the shared memory */
 static void shutdown_mm(TSRMLS_D) {
-  if (eaccelerator_mm_instance) {
+  if (ea_mm_instance) {
 #ifdef ZEND_WIN32
-    if (eaccelerator_mm_instance->owner == getpid()) {
+    if (ea_mm_instance->owner == getpid()) {
 #else
     if (getpgrp() == getpid()) {
 #endif
-      MM *mm = eaccelerator_mm_instance->mm;
+      MM *mm = ea_mm_instance->mm;
 #ifdef ZEND_WIN32
       DBG(ea_debug_printf, (EA_DEBUG, "shutdown_mm [%d]\n", getpid()));
 #else
@@ -307,7 +307,7 @@ static void shutdown_mm(TSRMLS_D) {
       if (mm) {
         mm_destroy(mm);
       }
-      eaccelerator_mm_instance = NULL;
+      ea_mm_instance = NULL;
     }
   }
 }
@@ -462,9 +462,9 @@ void eaccelerator_prune(time_t t) {
   unsigned int i;
 
   EACCELERATOR_LOCK_RW();
-  eaccelerator_mm_instance->last_prune = t;
+  ea_mm_instance->last_prune = t;
   for (i = 0; i < EA_HASH_SIZE; i++) {
-    ea_cache_entry **p = &eaccelerator_mm_instance->hash[i];
+    ea_cache_entry **p = &ea_mm_instance->hash[i];
     while (*p != NULL) {
       struct stat buf;
       if (((*p)->ttl != 0 && (*p)->ttl < t && (*p)->use_cnt <= 0) ||
@@ -477,7 +477,7 @@ void eaccelerator_prune(time_t t) {
           (*p)->filesize != buf.st_size) {
         ea_cache_entry *r = *p;
         *p = (*p)->next;
-        eaccelerator_mm_instance->hash_cnt--;
+        ea_mm_instance->hash_cnt--;
         eaccelerator_free_nolock(r);
       } else {
         p = &(*p)->next;
@@ -492,7 +492,7 @@ void* eaccelerator_malloc2(size_t size TSRMLS_DC) {
   void *p = NULL;
 
   if (ea_shm_prune_period > 0) {
-    if (EAG(req_start) - eaccelerator_mm_instance->last_prune > ea_shm_prune_period) {
+    if (EAG(req_start) - ea_mm_instance->last_prune > ea_shm_prune_period) {
       eaccelerator_prune(EAG(req_start));
       p = eaccelerator_malloc(size);
     }
@@ -704,7 +704,7 @@ static ea_cache_entry* hash_find_file(const char  *key, struct stat *buf TSRMLS_
       if (use_shm) eaccelerator_free(p); else efree(p);
       return NULL;
     }
-    if ((eaccelerator_check_mtime &&
+    if ((EAG(check_mtime_enabled) && ea_mm_instance->check_mtime_enabled &&
         (buf->st_mtime != p->mtime || buf->st_size != p->filesize))
 #ifdef EACCELERATOR_USE_INODE
         ||
@@ -801,20 +801,20 @@ static int eaccelerator_store(char* key, struct stat *buf, int nreloads,
   }
 
   DBG(ea_debug_pad, (EA_DEBUG TSRMLS_CC));
-  DBG(ea_debug_printf, (EA_DEBUG, "[%d] eaccelerator_store:  returned %d, mm=%x\n", getpid(), size, eaccelerator_mm_instance->mm));
+  DBG(ea_debug_printf, (EA_DEBUG, "[%d] eaccelerator_store:  returned %d, mm=%x\n", getpid(), size, ea_mm_instance->mm));
   
   EACCELERATOR_UNPROTECT();
   EAG(mem) = eaccelerator_malloc(size);
-  data = EAG(mem);
   if (EAG(mem) == NULL) {
     EAG(mem) = eaccelerator_malloc2(size TSRMLS_CC);
   }
-  if (!EAG(mem) && !eaccelerator_scripts_shm_only) {
+  if (!EAG(mem) && !ea_scripts_shm_only) {
     EACCELERATOR_PROTECT();
     EAG(mem) = emalloc(size);
     use_shm = 0;
   }
   if (EAG(mem)) {
+    data = EAG(mem);
     memset(EAG(mem), 0, size);
 		p = (ea_cache_entry *)EAG(mem);
     eaccelerator_store_int(p, key, len, op_array, f, c TSRMLS_CC);
@@ -833,7 +833,7 @@ static int eaccelerator_store(char* key, struct stat *buf, int nreloads,
       } else {
         p->ttl = 0;
       }
-      if (!eaccelerator_scripts_shm_only) {
+      if (!ea_scripts_shm_only) {
         hash_add_file(p TSRMLS_CC);
       }
       hash_add_mm(p);
@@ -858,7 +858,7 @@ static zend_op_array* eaccelerator_restore(char *realname, struct stat *buf,
   *nreloads = 1;
   EACCELERATOR_UNPROTECT();
   p = hash_find_mm(realname, buf, nreloads, ((ea_shm_ttl > 0)?(compile_time + ea_shm_ttl):0));
-  if (p == NULL && !eaccelerator_scripts_shm_only) {
+  if (p == NULL && !ea_scripts_shm_only) {
     p = hash_find_file(realname, buf TSRMLS_CC);
   }
   EACCELERATOR_PROTECT();
@@ -969,7 +969,7 @@ static int eaccelerator_stat(zend_file_handle *file_handle,
     strcpy(realname,file_handle->opened_path);
 #  ifndef ZEND_WIN32
     if (file_handle->type == ZEND_HANDLE_FP && file_handle->handle.fp != NULL) {
-      if (!eaccelerator_check_mtime) {
+      if (!EAG(check_mtime_enabled) && !ea_mm_instance->check_mtime_enabled) {
         return 0;
       } else if (fstat(fileno(file_handle->handle.fp), buf) == 0 && S_ISREG(buf->st_mode)) {
         return 0;
@@ -977,7 +977,7 @@ static int eaccelerator_stat(zend_file_handle *file_handle,
         return -1;
       }
     } else {
-      if (!eaccelerator_check_mtime) {
+      if (!EAG(check_mtime_enabled) && !ea_mm_instance->check_mtime_enabled) {
         return 0;
       } else if (stat(realname, buf) == 0 && S_ISREG(buf->st_mode)) {
         return 0;
@@ -986,7 +986,7 @@ static int eaccelerator_stat(zend_file_handle *file_handle,
       }
     }
 #  else
-    if (!eaccelerator_check_mtime) {
+    if (!EAG(check_mtime_enabled) && !ea_mm_instance->check_mtime_enabled) {
       return 0;
     } else if (stat(realname, buf) == 0 && S_ISREG(buf->st_mode)) {
       return 0;
@@ -1001,7 +1001,7 @@ static int eaccelerator_stat(zend_file_handle *file_handle,
              IS_SLASH(file_handle->filename[0]) ||
              IS_ABSOLUTE_PATH(file_handle->filename,strlen(file_handle->filename))) {
     if (VCWD_REALPATH(file_handle->filename, realname)) {
-      if (!eaccelerator_check_mtime) {
+      if (!EAG(check_mtime_enabled) && !ea_mm_instance->check_mtime_enabled) {
         return 0;
       } else if (stat(realname, buf) == 0 && S_ISREG(buf->st_mode)) {
         return 0;
@@ -1036,7 +1036,7 @@ static int eaccelerator_stat(zend_file_handle *file_handle,
             return 0;
           }
 #  else
-          if (!eaccelerator_check_mtime) {
+          if (!EAG(check_mtime_enabled) && !ea_mm_instance->check_mtime_enabled) {
             return 0;
           } else if (stat(realname, buf) == 0 && S_ISREG(buf->st_mode)) {
             return 0;
@@ -1132,8 +1132,8 @@ ZEND_DLEXPORT zend_op_array* eaccelerator_compile_file(zend_file_handle *file_ha
   ok_to_cache = ea_match(EAG(pattern_list), file_handle->filename);
 
   // eAccelerator isn't working, so just compile the file
-  if (!EAG(enabled) || (eaccelerator_mm_instance == NULL) || 
-      !eaccelerator_mm_instance->enabled || file_handle == NULL ||
+  if (!EAG(enabled) || (ea_mm_instance == NULL) || 
+      !ea_mm_instance->enabled || file_handle == NULL ||
       file_handle->filename == NULL || stat_result != 0 || !ok_to_cache) {
     DBG(ea_debug_printf, (EA_DEBUG, "\t[%d] compile_file: compiling\n", getpid()));
     t = ea_saved_zend_compile_file(file_handle, type TSRMLS_CC);
@@ -1151,7 +1151,7 @@ ZEND_DLEXPORT zend_op_array* eaccelerator_compile_file(zend_file_handle *file_ha
     zend_error(E_ERROR, "Can't load %s, open_basedir restriction.", file_handle->filename);
   }
 
-  if (buf.st_mtime >= EAG(req_start) && eaccelerator_debug > 0) {
+  if (buf.st_mtime >= EAG(req_start) && ea_debug > 0) {
 	ea_debug_log("EACCELERATOR: Warning: \"%s\" is cached but it's mtime is in the future.\n", file_handle->filename);
   }
 
@@ -1214,12 +1214,12 @@ ZEND_DLEXPORT zend_op_array* eaccelerator_compile_file(zend_file_handle *file_ha
 #endif
 
     zend_hash_init_ex(&tmp_function_table, 100, NULL, ZEND_FUNCTION_DTOR, 1, 0);
-    zend_hash_copy(&tmp_function_table, &eaccelerator_global_function_table, NULL, &tmp_func, sizeof(zend_function));
+    zend_hash_copy(&tmp_function_table, &ea_global_function_table, NULL, &tmp_func, sizeof(zend_function));
     orig_function_table = CG(function_table);
     CG(function_table) = &tmp_function_table;
 
     zend_hash_init_ex(&tmp_class_table, 10, NULL, ZEND_CLASS_DTOR, 1, 0);
-		zend_hash_copy(&tmp_class_table, &eaccelerator_global_class_table, (copy_ctor_func_t)ea_class_add_ref, &tmp_class, sizeof(zend_class_entry *));
+		zend_hash_copy(&tmp_class_table, &ea_global_class_table, (copy_ctor_func_t)ea_class_add_ref, &tmp_class, sizeof(zend_class_entry *));
 
     orig_class_table = CG(class_table);;
     CG(class_table) = &tmp_class_table;
@@ -1232,7 +1232,7 @@ ZEND_DLEXPORT zend_op_array* eaccelerator_compile_file(zend_file_handle *file_ha
 
     DBG(ea_debug_printf, (EA_TEST_PERFORMANCE, "\t[%d] compile_file: compiling (%ld)\n", getpid(), ea_debug_elapsed_time(&tv_start)));
     
-		if (EAG(optimizer_enabled) && eaccelerator_mm_instance->optimizer_enabled) {
+		if (EAG(optimizer_enabled) && ea_mm_instance->optimizer_enabled) {
 		  EAG(compiler) = 1;
 		}
 
@@ -1252,7 +1252,7 @@ ZEND_DLEXPORT zend_op_array* eaccelerator_compile_file(zend_file_handle *file_ha
     DBG(ea_debug_log_hashkeys, ("class_table\n", CG(class_table)));
 
     EAG(compiler) = 0;
-    if (t != NULL && file_handle->opened_path != NULL && (eaccelerator_check_mtime ||
+    if (t != NULL && file_handle->opened_path != NULL && ((EAG(check_mtime_enabled) && ea_mm_instance->check_mtime_enabled) ||
          ((stat(file_handle->opened_path, &buf) == 0) && S_ISREG(buf.st_mode)))) {
 
       DBG(ea_debug_printf, (EA_TEST_PERFORMANCE, "\t[%d] compile_file: storing in cache (%ld)\n", getpid(), ea_debug_elapsed_time(&tv_start)));
@@ -1399,25 +1399,27 @@ PHP_MINFO_FUNCTION(eaccelerator) {
   php_info_print_table_start();
   php_info_print_table_header(2, "eAccelerator support", "enabled");
   php_info_print_table_row(2, "Version", EACCELERATOR_VERSION);
-  php_info_print_table_row(2, "Caching Enabled", (EAG(enabled) && (eaccelerator_mm_instance != NULL) && 
-              eaccelerator_mm_instance->enabled)?"true":"false");
+  php_info_print_table_row(2, "Caching Enabled", (EAG(enabled) && (ea_mm_instance != NULL) && 
+              ea_mm_instance->enabled)?"true":"false");
   php_info_print_table_row(2, "Optimizer Enabled", (EAG(optimizer_enabled) && 
-						  (eaccelerator_mm_instance != NULL) && eaccelerator_mm_instance->optimizer_enabled)?"true":"false");
-  if (eaccelerator_mm_instance != NULL) {
+						  (ea_mm_instance != NULL) && ea_mm_instance->optimizer_enabled)?"true":"false");
+  php_info_print_table_row(2, "Check mtime Enabled", (EAG(check_mtime_enabled) && 
+						  (ea_mm_instance != NULL) && ea_mm_instance->check_mtime_enabled)?"true":"false");
+  if (ea_mm_instance != NULL) {
     size_t available;
     EACCELERATOR_UNPROTECT();
-    available = mm_available(eaccelerator_mm_instance->mm);
+    available = mm_available(ea_mm_instance->mm);
     EACCELERATOR_LOCK_RD();
     EACCELERATOR_PROTECT();
-    format_size(s, eaccelerator_mm_instance->total, 1);
+    format_size(s, ea_mm_instance->total, 1);
     php_info_print_table_row(2, "Memory Size", s);
     format_size(s, available, 1);
     php_info_print_table_row(2, "Memory Available", s);
-    format_size(s, eaccelerator_mm_instance->total - available, 1);
+    format_size(s, ea_mm_instance->total - available, 1);
     php_info_print_table_row(2, "Memory Allocated", s);
-    snprintf(s, 32, "%u", eaccelerator_mm_instance->hash_cnt);
+    snprintf(s, 32, "%u", ea_mm_instance->hash_cnt);
     php_info_print_table_row(2, "Cached Scripts", s);
-    snprintf(s, 32, "%u", eaccelerator_mm_instance->rem_cnt);
+    snprintf(s, 32, "%u", ea_mm_instance->rem_cnt);
     php_info_print_table_row(2, "Removed Scripts", s);
     EACCELERATOR_UNPROTECT();
     EACCELERATOR_UNLOCK_RD();
@@ -1488,10 +1490,10 @@ ZEND_INI_ENTRY1("eaccelerator.shm_size",        "0", PHP_INI_SYSTEM, eaccelerato
 ZEND_INI_ENTRY1("eaccelerator.shm_max",         "0", PHP_INI_SYSTEM, eaccelerator_OnUpdateLong, &ea_shm_max)
 ZEND_INI_ENTRY1("eaccelerator.shm_ttl",         "0", PHP_INI_SYSTEM, eaccelerator_OnUpdateLong, &ea_shm_ttl)
 ZEND_INI_ENTRY1("eaccelerator.shm_prune_period", "0", PHP_INI_SYSTEM, eaccelerator_OnUpdateLong, &ea_shm_prune_period)
-ZEND_INI_ENTRY1("eaccelerator.debug",           "1", PHP_INI_SYSTEM, eaccelerator_OnUpdateLong, &eaccelerator_debug)
-STD_PHP_INI_ENTRY("eaccelerator.log_file",      "", PHP_INI_SYSTEM, OnUpdateString, eaccelerator_log_file, zend_eaccelerator_globals, eaccelerator_globals)
-ZEND_INI_ENTRY1("eaccelerator.check_mtime",     "1", PHP_INI_SYSTEM, eaccelerator_OnUpdateBool, &eaccelerator_check_mtime)
-ZEND_INI_ENTRY1("eaccelerator.shm_only",        "0", PHP_INI_SYSTEM, eaccelerator_OnUpdateBool, &eaccelerator_scripts_shm_only)
+ZEND_INI_ENTRY1("eaccelerator.debug",           "1", PHP_INI_SYSTEM, eaccelerator_OnUpdateLong, &ea_debug)
+STD_PHP_INI_ENTRY("eaccelerator.log_file",      "", PHP_INI_SYSTEM, OnUpdateString, ea_log_file, zend_eaccelerator_globals, eaccelerator_globals)
+STD_PHP_INI_ENTRY("eaccelerator.check_mtime",     "1", PHP_INI_SYSTEM, OnUpdateBool, check_mtime_enabled, zend_eaccelerator_globals, eaccelerator_globals)
+ZEND_INI_ENTRY1("eaccelerator.shm_only",        "0", PHP_INI_SYSTEM, eaccelerator_OnUpdateBool, &ea_scripts_shm_only)
 #ifdef WITH_EACCELERATOR_INFO
 STD_PHP_INI_ENTRY("eaccelerator.allowed_admin_path",       "", PHP_INI_SYSTEM, OnUpdateString, allowed_admin_path, zend_eaccelerator_globals, eaccelerator_globals)
 #endif
@@ -1501,26 +1503,26 @@ PHP_INI_END()
 
 static void eaccelerator_clean_request(TSRMLS_D) {
   ea_used_entry  *p = (ea_used_entry*)EAG(used_entries);
-  if (eaccelerator_mm_instance != NULL) {
+  if (ea_mm_instance != NULL) {
     EACCELERATOR_UNPROTECT();
-    if (p != NULL || eaccelerator_mm_instance->locks != NULL) {
+    if (p != NULL || ea_mm_instance->locks != NULL) {
       EACCELERATOR_LOCK_RW();
       while (p != NULL) {
         p->entry->use_cnt--;
         if (p->entry->removed && p->entry->use_cnt <= 0) {
-          if (eaccelerator_mm_instance->removed == p->entry) {
-            eaccelerator_mm_instance->removed = p->entry->next;
-            eaccelerator_mm_instance->rem_cnt--;
+          if (ea_mm_instance->removed == p->entry) {
+            ea_mm_instance->removed = p->entry->next;
+            ea_mm_instance->rem_cnt--;
             eaccelerator_free_nolock(p->entry);
             p->entry = NULL;
           } else {
-            ea_cache_entry *q = eaccelerator_mm_instance->removed;
+            ea_cache_entry *q = ea_mm_instance->removed;
             while (q != NULL && q->next != p->entry) {
               q = q->next;
             }
             if (q != NULL) {
               q->next = p->entry->next;
-              eaccelerator_mm_instance->rem_cnt--;
+              ea_mm_instance->rem_cnt--;
               eaccelerator_free_nolock(p->entry);
               p->entry = NULL;
             }
@@ -1528,12 +1530,12 @@ static void eaccelerator_clean_request(TSRMLS_D) {
         }
         p = p->next;
       }
-      if (eaccelerator_mm_instance->locks != NULL) {
+      if (ea_mm_instance->locks != NULL) {
         pid_t    pid    = getpid();
 #ifdef ZTS
         THREAD_T thread = tsrm_thread_id();
 #endif
-        ea_lock_entry** p = &eaccelerator_mm_instance->locks;
+        ea_lock_entry** p = &ea_mm_instance->locks;
         while ((*p) != NULL) {
 #ifdef ZTS
           if ((*p)->pid == pid && (*p)->thread == thread) {
@@ -1636,9 +1638,10 @@ static void eaccelerator_init_globals(zend_eaccelerator_globals *eag)
 	eag->used_entries = NULL;
 	eag->enabled = 1;
 	eag->cache_dir = NULL;
-  eag->optimizer_enabled = 1;
+	eag->optimizer_enabled = 1;
+	eag->check_mtime_enabled = 1;
 	eag->compiler = 0;
-	eag->eaccelerator_log_file = '\000';
+	eag->ea_log_file = '\000';
 	eag->in_request = 0;
 	eag->allowed_admin_path= NULL;
 	eag->pattern_list = NULL;
@@ -1732,11 +1735,11 @@ PHP_MINIT_FUNCTION(eaccelerator) {
   encode_version(EACCELERATOR_VERSION, &binary_eaccelerator_version[0], &binary_eaccelerator_version[1]);
   encode_version(PHP_VERSION, &binary_php_version[0], &binary_php_version[1]);
   encode_version(ZEND_VERSION, &binary_zend_version[0], &binary_zend_version[1]);
-  eaccelerator_is_extension = 1;
+  ea_is_extension = 1;
 
   ea_debug_init(TSRMLS_C);
 
-  if(!eaccelerator_scripts_shm_only) {
+  if(!ea_scripts_shm_only) {
     snprintf(fullpath, MAXPATHLEN-1, "%s/", EAG(cache_dir));
     make_hash_dirs(fullpath, EACCELERATOR_HASH_LEVEL);
   }
@@ -1763,7 +1766,7 @@ PHP_MINIT_FUNCTION(eaccelerator) {
 #endif
   }
   
-  if (!eaccelerator_is_zend_extension) {
+  if (!ea_is_zend_extension) {
     register_eaccelerator_as_zend_extension();
   }
   
@@ -1773,7 +1776,7 @@ PHP_MINIT_FUNCTION(eaccelerator) {
 }
 
 PHP_MSHUTDOWN_FUNCTION(eaccelerator) {
-  if (eaccelerator_mm_instance == NULL || !eaccelerator_is_extension) {
+  if (ea_mm_instance == NULL || !ea_is_extension) {
     return SUCCESS;
   }
   zend_compile_file = ea_saved_zend_compile_file;
@@ -1788,14 +1791,14 @@ PHP_MSHUTDOWN_FUNCTION(eaccelerator) {
 #else
   eaccelerator_globals_dtor(&eaccelerator_globals TSRMLS_CC);
 #endif
-  eaccelerator_is_zend_extension = 0;
-  eaccelerator_is_extension = 0;
+  ea_is_zend_extension = 0;
+  ea_is_extension = 0;
   return SUCCESS;
 }
 
 PHP_RINIT_FUNCTION(eaccelerator)
 {
-	if (eaccelerator_mm_instance == NULL) {
+	if (ea_mm_instance == NULL) {
 		return SUCCESS;
 	}
 
@@ -1806,7 +1809,7 @@ PHP_RINIT_FUNCTION(eaccelerator)
 	EAG(used_entries) = NULL;
 	EAG(compiler) = 0;
 	EAG(refcount_helper) = 1;
-	EAG(req_start) = time(NULL);	/* record request start time for later use */
+	EAG(req_start) = sapi_get_request_time(TSRMLS_C);	/* record request start time for later use */
 
 	zend_hash_init(&EAG(restored), 0, NULL, NULL, 0);
 
@@ -1840,7 +1843,7 @@ PHP_RINIT_FUNCTION(eaccelerator)
 
 PHP_RSHUTDOWN_FUNCTION(eaccelerator)
 {
-	if (eaccelerator_mm_instance == NULL) {
+	if (ea_mm_instance == NULL) {
 		return SUCCESS;
 	}
 	zend_hash_destroy(&EAG(restored));
@@ -1901,9 +1904,10 @@ function_entry eaccelerator_functions[] = {
   PHP_FE(eaccelerator_purge, NULL)
   PHP_FE(eaccelerator_cached_scripts, NULL)
   PHP_FE(eaccelerator_removed_scripts, NULL)
-#endif
-#ifdef WITH_EACCELERATOR_OPTIMIZER
-  PHP_FE(eaccelerator_optimizer, NULL)
+  PHP_FE(eaccelerator_check_mtime, NULL)
+  #ifdef WITH_EACCELERATOR_OPTIMIZER
+    PHP_FE(eaccelerator_optimizer, NULL)
+  #endif
 #endif
 #ifdef WITH_EACCELERATOR_DISASSEMBLER
   PHP_FE(eaccelerator_dasm_file, NULL)
@@ -2109,11 +2113,11 @@ static int eaccelerator_ioncube_startup(zend_extension *extension) {
 
 
 ZEND_DLEXPORT int eaccelerator_zend_startup(zend_extension *extension) {
- eaccelerator_is_zend_extension = 1;
+ ea_is_zend_extension = 1;
   eaccelerator_el   = NULL;
   last_startup = NULL;
 
-  if (!eaccelerator_is_extension) {
+  if (!ea_is_extension) {
     if (zend_startup_module(&eaccelerator_module_entry) != SUCCESS) {
       return FAILURE;
     }

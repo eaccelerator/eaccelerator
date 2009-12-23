@@ -154,16 +154,16 @@
 #endif
 
 #if defined(EACCELERATOR_PROTECT_SHM)
-#  define EACCELERATOR_PROTECT()    do {mm_protect(eaccelerator_mm_instance->mm, MM_PROT_READ);} while(0)
-#  define EACCELERATOR_UNPROTECT()  do {mm_protect(eaccelerator_mm_instance->mm, MM_PROT_READ|MM_PROT_WRITE);} while(0)
+#  define EACCELERATOR_PROTECT()    do {mm_protect(ea_mm_instance->mm, MM_PROT_READ);} while(0)
+#  define EACCELERATOR_UNPROTECT()  do {mm_protect(ea_mm_instance->mm, MM_PROT_READ|MM_PROT_WRITE);} while(0)
 #else
 #  define EACCELERATOR_PROTECT()
 #  define EACCELERATOR_UNPROTECT()
 #endif
 
-#define EACCELERATOR_LOCK_RW()    do {ZTS_LOCK(); mm_lock(eaccelerator_mm_instance->mm, MM_LOCK_RW);} while(0)
-#define EACCELERATOR_LOCK_RD()    do {ZTS_LOCK(); mm_lock(eaccelerator_mm_instance->mm, MM_LOCK_RD);} while(0)
-#define EACCELERATOR_UNLOCK()     do {mm_unlock(eaccelerator_mm_instance->mm); ZTS_UNLOCK();} while(0)
+#define EACCELERATOR_LOCK_RW()    do {ZTS_LOCK(); mm_lock(ea_mm_instance->mm, MM_LOCK_RW);} while(0)
+#define EACCELERATOR_LOCK_RD()    do {ZTS_LOCK(); mm_lock(ea_mm_instance->mm, MM_LOCK_RD);} while(0)
+#define EACCELERATOR_UNLOCK()     do {mm_unlock(ea_mm_instance->mm); ZTS_UNLOCK();} while(0)
 #define EACCELERATOR_UNLOCK_RW()  EACCELERATOR_UNLOCK()
 #define EACCELERATOR_UNLOCK_RD()  EACCELERATOR_UNLOCK()
 
@@ -175,10 +175,10 @@
 
 #define EA_HASH_MAX       (EA_HASH_SIZE-1)
 
-#define eaccelerator_malloc(size)        mm_malloc_lock(eaccelerator_mm_instance->mm, size)
-#define eaccelerator_free(x)             mm_free_lock(eaccelerator_mm_instance->mm, x)
-#define eaccelerator_malloc_nolock(size) mm_malloc_nolock(eaccelerator_mm_instance->mm, size)
-#define eaccelerator_free_nolock(x)      mm_free_nolock(eaccelerator_mm_instance->mm, x)
+#define eaccelerator_malloc(size)        mm_malloc_lock(ea_mm_instance->mm, size)
+#define eaccelerator_free(x)             mm_free_lock(ea_mm_instance->mm, x)
+#define eaccelerator_malloc_nolock(size) mm_malloc_nolock(ea_mm_instance->mm, size)
+#define eaccelerator_free_nolock(x)      mm_free_nolock(ea_mm_instance->mm, x)
 
 #if (defined (__GNUC__) && __GNUC__ >= 2)
 #define EACCELERATOR_PLATFORM_ALIGNMENT (__alignof__ (align_test))
@@ -350,6 +350,7 @@ typedef struct {
 	unsigned int hash_cnt;
 	zend_bool enabled;
 	zend_bool optimizer_enabled;
+	zend_bool check_mtime_enabled;
 	unsigned int rem_cnt;
 	time_t last_prune;
 	ea_cache_entry *removed;
@@ -434,10 +435,11 @@ void *used_entries;			/* list of files which are used     */
 					/* by process/thread                */
 zend_bool enabled;
 zend_bool optimizer_enabled;
+zend_bool check_mtime_enabled;
 zend_bool compiler;
 zend_bool in_request;
 char *cache_dir;
-char *eaccelerator_log_file;
+char *ea_log_file;
 char *mem;
 char *allowed_admin_path;
 time_t req_start;			/* time of request start (set in RINIT) */

@@ -2625,7 +2625,7 @@ static int build_cfg(zend_op_array *op_array, BB* bb)
 			{
 				op->op1.op_type = IS_UNUSED;
 			}
-			if ((dsc->ops & OP2_MASK) == OP2_CLASS)
+			if ((dsc->ops & OP2_MASK) == OP2_CLASS &&  op->opcode != ZEND_ADD_INTERFACE)
 			{
 				op->op2.op_type = IS_VAR;
 			}

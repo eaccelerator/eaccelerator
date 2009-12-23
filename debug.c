@@ -35,7 +35,7 @@
 
 static FILE *F_fp = NULL;
 static int file_no = 0;
-long eaccelerator_debug = 0;
+long ea_debug = 0;
 
 /**
  * Init the debug system. This must be called before any debug
@@ -43,7 +43,7 @@ long eaccelerator_debug = 0;
  */
 void ea_debug_init (TSRMLS_D)
 {
-    F_fp = fopen (EAG (eaccelerator_log_file), "a");
+    F_fp = fopen (EAG(ea_log_file), "a");
     if (!F_fp)
         F_fp = stderr;
     file_no = fileno(F_fp);
@@ -67,7 +67,7 @@ void ea_debug_shutdown ()
  */
 void ea_debug_log (char *format, ...)
 {
-    if (eaccelerator_debug & EA_LOG) {
+    if (ea_debug & EA_LOG) {
         char output_buf[512];
         va_list args;
 
@@ -114,7 +114,7 @@ void ea_debug_error (char *format, ...)
  */
 void ea_debug_printf (long debug_level, char *format, ...)
 {
-    if (eaccelerator_debug & debug_level) {
+    if (ea_debug & debug_level) {
         char output_buf[512];
         va_list args;
 
@@ -138,7 +138,7 @@ void ea_debug_printf (long debug_level, char *format, ...)
  */
 void ea_debug_put (long debug_level, char *message)
 {
-    if (debug_level & eaccelerator_debug) {
+    if (debug_level & ea_debug) {
         if (F_fp != stderr) {
         	EACCELERATOR_FLOCK(file_no, LOCK_EX);
         }
@@ -155,7 +155,7 @@ void ea_debug_put (long debug_level, char *message)
  */
 void ea_debug_binary_print (long debug_level, char *p, int len)
 {
-    if (eaccelerator_debug & debug_level) {
+    if (ea_debug & debug_level) {
         if (F_fp != stderr) {
         	EACCELERATOR_FLOCK(file_no, LOCK_EX);
         }
@@ -175,7 +175,7 @@ void ea_debug_binary_print (long debug_level, char *p, int len)
  */
 void ea_debug_log_hashkeys (char *p, HashTable * ht)
 {
-    if (eaccelerator_debug & EA_LOG_HASHKEYS) {
+    if (ea_debug & EA_LOG_HASHKEYS) {
         Bucket *b;
         int i = 0;
 
@@ -205,7 +205,7 @@ void ea_debug_log_hashkeys (char *p, HashTable * ht)
 void ea_debug_pad (long debug_level TSRMLS_DC)
 {
 #ifdef DEBUG /* This ifdef is still req'd because xpad is N/A in a non-debug compile */
-    if (eaccelerator_debug & debug_level) {
+    if (ea_debug & debug_level) {
 		int i;
         if (F_fp != stderr) {
         	EACCELERATOR_FLOCK(file_no, LOCK_EX);

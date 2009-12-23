@@ -32,7 +32,7 @@
 
 #ifdef WITH_EACCELERATOR_DISASSEMBLER
 
-extern eaccelerator_mm *eaccelerator_mm_instance;
+extern eaccelerator_mm *ea_mm_instance;
 
 #define LOOKUP(arr, index, max, ptr) if (index < max) { ptr = arr[index]; } else { ptr = "UNDEFINED (todo)"; };
 
@@ -520,7 +520,7 @@ static ea_cache_entry *get_cache_entry(const char *file) {
 		EACCELERATOR_LOCK_RD();
 		EACCELERATOR_PROTECT();
 		for (slot = 0; slot < EA_HASH_SIZE; slot++) {
-			p = eaccelerator_mm_instance->hash[slot];
+			p = ea_mm_instance->hash[slot];
 			while (p != NULL) {
 				if (strcmp(p->realfilename, file) == 0) {
 					result = p;
@@ -561,7 +561,7 @@ PHP_FUNCTION(eaccelerator_dasm_file)
     if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &file, &file_len) == FAILURE)
 		return;
 
-	if (eaccelerator_mm_instance == NULL || php_check_open_basedir(file TSRMLS_CC)) {
+	if (ea_mm_instance == NULL || php_check_open_basedir(file TSRMLS_CC)) {
 		RETURN_NULL();
 	}
 
