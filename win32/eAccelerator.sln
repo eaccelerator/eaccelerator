@@ -1,24 +1,21 @@
 ﻿
-Microsoft Visual Studio Solution File, Format Version 9.00
-# Visual Studio 2005
+Microsoft Visual Studio Solution File, Format Version 10.00
+# Visual C++ Express 2008
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "eAccelerator", "eAccelerator.vcproj", "{F236792D-8DF1-49FA-9F36-2338F47C9DEB}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
-		Debug PHP5|Win32 = Debug PHP5|Win32
 		Debug|Win32 = Debug|Win32
-		Release PHP5|Win32 = Release PHP5|Win32
 		Release|Win32 = Release|Win32
+		Release-NTS|Win32 = Release-NTS|Win32
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{F236792D-8DF1-49FA-9F36-2338F47C9DEB}.Debug PHP5|Win32.ActiveCfg = Debug PHP5|Win32
-		{F236792D-8DF1-49FA-9F36-2338F47C9DEB}.Debug PHP5|Win32.Build.0 = Debug PHP5|Win32
 		{F236792D-8DF1-49FA-9F36-2338F47C9DEB}.Debug|Win32.ActiveCfg = Debug|Win32
 		{F236792D-8DF1-49FA-9F36-2338F47C9DEB}.Debug|Win32.Build.0 = Debug|Win32
-		{F236792D-8DF1-49FA-9F36-2338F47C9DEB}.Release PHP5|Win32.ActiveCfg = Release PHP5|Win32
-		{F236792D-8DF1-49FA-9F36-2338F47C9DEB}.Release PHP5|Win32.Build.0 = Release PHP5|Win32
 		{F236792D-8DF1-49FA-9F36-2338F47C9DEB}.Release|Win32.ActiveCfg = Release|Win32
 		{F236792D-8DF1-49FA-9F36-2338F47C9DEB}.Release|Win32.Build.0 = Release|Win32
+		{F236792D-8DF1-49FA-9F36-2338F47C9DEB}.Release-NTS|Win32.ActiveCfg = Release-NTS|Win32
+		{F236792D-8DF1-49FA-9F36-2338F47C9DEB}.Release-NTS|Win32.Build.0 = Release-NTS|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

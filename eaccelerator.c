@@ -119,7 +119,7 @@ ZEND_DLEXPORT zend_op_array* eaccelerator_compile_file(zend_file_handle *file_ha
 static ea_cache_entry* hash_find_mm(const char  *key,
                                     struct stat *buf,
                                     int         *nreloads,
-                                    time_t      ttl) {
+                                    time_t      ttl TSRMLS_DC) {
   unsigned int hv, slot;
   ea_cache_entry *p, *q;
 
@@ -857,7 +857,7 @@ static zend_op_array* eaccelerator_restore(char *realname, struct stat *buf,
 
   *nreloads = 1;
   EACCELERATOR_UNPROTECT();
-  p = hash_find_mm(realname, buf, nreloads, ((ea_shm_ttl > 0)?(compile_time + ea_shm_ttl):0));
+  p = hash_find_mm(realname, buf, nreloads, ((ea_shm_ttl > 0)?(compile_time + ea_shm_ttl):0) TSRMLS_CC);
   if (p == NULL && !ea_scripts_shm_only) {
     p = hash_find_file(realname, buf TSRMLS_CC);
   }

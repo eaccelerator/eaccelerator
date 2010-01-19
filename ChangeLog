@@ -9,6 +9,8 @@
 		* Fixed ticket #386 (Crash using const & php-5.3)
 		* Fixed a bunch of other php-5.3 related issues found by
 		  using the test suite and all php-5.3 Zend engine tests
+		* Win32 project files updated
+		* Win32 ZTS fixes
 
 2009-12-23	Hans Rakers <hans at react.nl>
 

@@ -372,8 +372,9 @@ static void store_hash_int(char **at, HashTable *target, HashTable *source,
                                    zend_class_entry *from_ce)
 {
     Bucket *p, *np, *prev_p;
-    TSRMLS_FETCH();
     int nIndex;
+
+    TSRMLS_FETCH();
 
     memcpy(target, source, sizeof(HashTable));
 
