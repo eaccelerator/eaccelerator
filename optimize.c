@@ -1625,6 +1625,8 @@ static void optimize_bb(BB* bb, zend_op_array* op_array, char* global, int pass 
 
   HashTable assigns;
   HashTable fetch_dim;
+  
+  zend_uint nopcount;
 
 #ifdef ZEND_ENGINE_2_3
   ALLOCA_FLAG(use_heap)
@@ -2568,7 +2570,7 @@ static void optimize_bb(BB* bb, zend_op_array* op_array, char* global, int pass 
          NOPs before op_array->early_binding, alter op_array->early binding accordingly */
       if (op_array->early_binding != -1) {
         DBG(ea_debug_printf, (EA_DEBUG, "NOP removal nr=%d %d", next - op, op - op_array->opcodes));
-        zend_uint nopcount = next - op;
+        nopcount = next - op;
         if ((op - op_array->opcodes) < op_array->early_binding)
           op_array->early_binding -= nopcount;
       }

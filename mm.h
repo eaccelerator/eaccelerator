@@ -46,7 +46,6 @@ extern "C" {
 #define MM_LOCK_RW 1
 #define MM_LOCK_RD 0
 
-#ifdef _MSC_VER
 MM*    _mm_create(size_t size, const char* key);
 void   _mm_set_attach(MM* mm, void* attach_addr);
 void*  _mm_attach(size_t size, const char* key);
@@ -61,7 +60,6 @@ void   _mm_free_lock(MM* mm, void* p);
 void*  _mm_malloc_nolock(MM* mm, size_t size);
 void   _mm_free_nolock(MM* mm, void* p);
 size_t _mm_sizeof(MM* mm, void* x);
-#endif
 
 
 const char* mm_shm_type();
@@ -75,7 +73,6 @@ void mm_check_mem(void *x);
 
 int mm_protect(MM* mm, int mode);
 
-#ifdef _MSC_VER
 #define mm_create(A, B)        _mm_create(A, B)
 #define mm_set_attach(A, B)    _mm_set_attach(A, B)
 #define mm_attach(A, B)        _mm_attach(A, B)
@@ -90,7 +87,6 @@ int mm_protect(MM* mm, int mode);
 #define mm_malloc_nolock(A, B) _mm_malloc_nolock(A, B)
 #define mm_free_nolock(A, B)   _mm_free_nolock(A, B)
 #define mm_sizeof(A, B)        _mm_sizeof(A, B)
-#endif
 
 #ifdef __cplusplus
 }
