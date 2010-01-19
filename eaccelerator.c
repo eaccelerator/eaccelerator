@@ -886,6 +886,9 @@ static zend_op_array* eaccelerator_restore(char *realname, struct stat *buf,
 			}
 			EAG(mem) = p->realfilename;
     }
+#ifdef ZEND_COMPILE_DELAYED_BINDING
+    zend_do_delayed_early_binding(op_array TSRMLS_CC);
+#endif
   }
   return op_array;
 }
@@ -1115,6 +1118,9 @@ ZEND_DLEXPORT zend_op_array* eaccelerator_compile_file(zend_file_handle *file_ha
   struct timeval tv_start;
 #endif
   int ok_to_cache = 0;
+#ifdef ZEND_ENGINE_2_3
+  zend_uint orig_compiler_options;
+#endif
 
 #ifdef EACCELERATOR_USE_INODE
   realname[0] = '\000';
@@ -1239,7 +1245,14 @@ ZEND_DLEXPORT zend_op_array* eaccelerator_compile_file(zend_file_handle *file_ha
 	/* try to compile the script */
     ea_bailout = 0;
     zend_try {
+#ifdef ZEND_ENGINE_2_3
+      orig_compiler_options = CG(compiler_options);
+      CG(compiler_options) |= ZEND_COMPILE_IGNORE_INTERNAL_CLASSES | ZEND_COMPILE_DELAYED_BINDING;  
+#endif
       t = ea_saved_zend_compile_file(file_handle, type TSRMLS_CC);
+#ifdef ZEND_ENGINE_2_3
+      CG(compiler_options) = orig_compiler_options;
+#endif
     } zend_catch {
       CG(function_table) = orig_function_table;
       CG(class_table) = orig_class_table;
@@ -1319,6 +1332,9 @@ ZEND_DLEXPORT zend_op_array* eaccelerator_compile_file(zend_file_handle *file_ha
   EAG(xpad)-=2;
 #endif
   DBG(ea_debug_printf, (EA_DEBUG, "[%d] Leave COMPILE\n", getpid()));
+  #ifdef ZEND_COMPILE_DELAYED_BINDING
+      zend_do_delayed_early_binding(t TSRMLS_CC);
+  #endif
   return t;
 }
 

@@ -145,7 +145,7 @@ static const opcode_dsc opcodes[] = {
   OPDEF("FETCH_DIM_TMP_VAR",         EXT_UNUSED | OP1_STD    | OP2_STD    | RES_VAR), /* 98 */
   OPDEF("FETCH_CONSTANT",            EXT_UNUSED | OP1_UCLASS | OP2_STD    | RES_TMP), /* 99 */
 #ifdef ZEND_ENGINE_2_3
-  OPDEF("GOTO",                      EXT_OPLINE | OP1_UNUSED | OP2_STD    | RES_UNUSED), /* 100 */
+  OPDEF("GOTO",                      EXT_STD    | OP1_JMPADDR | OP2_STD    | RES_UNUSED), /* 100 */
 #else
   OPDEF("UNDEF-100",                 EXT_UNUSED | OP1_UNUSED | OP2_UNUSED | RES_UNUSED), /* 100 */
 #endif
@@ -200,9 +200,13 @@ static const opcode_dsc opcodes[] = {
 #else
   OPDEF("UNDEF-143",                 EXT_UNUSED | OP1_UNUSED | OP2_UNUSED | RES_UNUSED), /* 143 */
 #endif
-  OPDEF("ADD_INTERFACE",             EXT_IFACE  | OP1_CLASS  | OP2_CLASS  | RES_UNUSED), /* 144 */
 #ifdef ZEND_ENGINE_2_3
-  OPDEF("DECLARE_INHERITED_CLASS_DELAYED",         EXT_CLASS | OP1_STD  | OP2_STD    | RES_CLASS), /* 145 */
+  OPDEF("ADD_INTERFACE",             EXT_IFACE  | OP1_CLASS  | OP2_STD  | RES_UNUSED), /* 144 */
+#else
+  OPDEF("ADD_INTERFACE",             EXT_IFACE  | OP1_CLASS  | OP2_CLASS  | RES_UNUSED), /* 144 */
+#endif
+#ifdef ZEND_ENGINE_2_3
+  OPDEF("DECLARE_INHERITED_CLASS_DELAYED",         EXT_CLASS | OP1_STD  | OP2_STD    | RES_UNUSED), /* 145 */
 #else
   OPDEF("UNDEF-145",                 EXT_UNUSED | OP1_UNUSED | OP2_UNUSED | RES_UNUSED), /* 145 */
 #endif

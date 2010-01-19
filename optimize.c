@@ -64,71 +64,70 @@ typedef struct _BBlink {
   struct _BBlink* next;
 } BBlink;
 
-#if 0
+#ifdef DEBUG
 static void dump_bb(BB* bb, zend_op_array *op_array) {
   BB* p = bb;
   BBlink *q;
-  zend_printf("<pre>%s:%s\n", op_array->filename, op_array->function_name);
+  DBG(ea_debug_printf, (EA_DEBUG, "=== CFG FOR %s:%s ===\n", op_array->filename, op_array->function_name));
   while (p != NULL) {
-    zend_printf("  bb%u start=%u len=%d used=%d\n",
+    DBG(ea_debug_printf, (EA_DEBUG, "  bb%u start=%u len=%d used=%d\n",
                  (unsigned int)(p-bb),
                  (unsigned int)(p->start-op_array->opcodes),
                  p->len,
-                 p->used);
+                 p->used));
     if (p->jmp_1) {
-      zend_printf("    jmp_1 bb%u start=%u  len=%d used=%d\n",
+      DBG(ea_debug_printf, (EA_DEBUG, "    jmp_1 bb%u start=%u  len=%d used=%d\n",
                   (unsigned int)(p->jmp_1-bb),
                   (unsigned int)(p->jmp_1->start-op_array->opcodes),
                   p->jmp_1->len,
-                  p->jmp_1->used);
+                  p->jmp_1->used));
     }
     if (p->jmp_2) {
-      zend_printf("    jmp_2 bb%u start=%u  len=%d used=%d\n",
+      DBG(ea_debug_printf, (EA_DEBUG, "    jmp_2 bb%u start=%u  len=%d used=%d\n",
                   (unsigned int)(p->jmp_2-bb),
                   (unsigned int)(p->jmp_2->start-op_array->opcodes),
                   p->jmp_2->len,
-                  p->jmp_2->used);
+                  p->jmp_2->used));
     }
     if (p->jmp_ext) {
-      zend_printf("    jmp_ext bb%u start=%u  len=%d used=%d\n",
+      DBG(ea_debug_printf, (EA_DEBUG, "    jmp_ext bb%u start=%u  len=%d used=%d\n",
                   (unsigned int)(p->jmp_ext-bb),
                   (unsigned int)(p->jmp_ext->start-op_array->opcodes),
                   p->jmp_ext->len,
-                  p->jmp_ext->used);
+                  p->jmp_ext->used));
     }
     if (p->follow) {
-      zend_printf("    follow bb%u start=%u  len=%d used=%d\n",
+      DBG(ea_debug_printf, (EA_DEBUG, "    follow bb%u start=%u  len=%d used=%d\n",
                   (unsigned int)(p->follow-bb),
                   (unsigned int)(p->follow->start-op_array->opcodes),
                   p->follow->len,
-                  p->follow->used);
+                  p->follow->used));
     }
     q = p->pred;
     while (q != NULL) {
-      zend_printf("    pred bb%u start=%u  len=%d used=%d (",
+      DBG(ea_debug_printf, (EA_DEBUG, "    pred bb%u start=%u  len=%d used=%d (",
                   (unsigned int)(q->bb-bb),
                   (unsigned int)(q->bb->start-op_array->opcodes),
                   q->bb->len,
-                  q->bb->used);
+                  q->bb->used));
       if (q->bb->jmp_1 == p) {
-        zend_printf("jmp_1 ");
+        DBG(ea_debug_printf, (EA_DEBUG, "jmp_1 "));
       }
       if (q->bb->jmp_2 == p) {
-        zend_printf("jmp_2 ");
+        DBG(ea_debug_printf, (EA_DEBUG, "jmp_2 "));
       }
       if (q->bb->jmp_ext == p) {
-        zend_printf("jmp_ext ");
+        DBG(ea_debug_printf, (EA_DEBUG, "jmp_ext "));
       }
       if (q->bb->follow == p) {
-        zend_printf("follow ");
+        DBG(ea_debug_printf, (EA_DEBUG, "follow "));
       }
-      zend_printf(")\n");
+      DBG(ea_debug_printf, (EA_DEBUG, ")\n"));
       q = q->next;
     }
     p = p->next;
   }
-  zend_printf("</pre><hr>\n");
-  fflush(stdout);
+  DBG(ea_debug_printf, (EA_DEBUG, "=== END OF CFG ===========================\n"));
 }
 
 static void dump_array(int nb,void *pos,char type)
@@ -213,7 +212,11 @@ static void compute_live_var(BB* bb, zend_op_array* op_array, char* global)
             global[VAR_NUM(op->op2.u.var)] = 1;
           }
         }
+#ifdef ZEND_ENGINE_2_3
+        if ((op->opcode == ZEND_DECLARE_INHERITED_CLASS || op->opcode == ZEND_DECLARE_INHERITED_CLASS_DELAYED) &&
+#else
         if (op->opcode == ZEND_DECLARE_INHERITED_CLASS &&
+#endif
             !def[VAR_NUM(op->extended_value)] &&
             !global[VAR_NUM(op->extended_value)]) {
           global[VAR_NUM(op->extended_value)] = 1;
@@ -309,6 +312,9 @@ static void compute_live_var(BB* bb, zend_op_array* op_array, char* global)
              case ZEND_ASSIGN_OBJ:
              case ZEND_DECLARE_CLASS:
              case ZEND_DECLARE_INHERITED_CLASS:
+#ifdef ZEND_DECLARE_INHERITED_CLASS_DELAYED
+             case ZEND_DECLARE_INHERITED_CLASS_DELAYED:
+#endif
               break;
             default:
               if (end->op1.op_type == IS_CONST) {
@@ -345,7 +351,11 @@ static void compute_live_var(BB* bb, zend_op_array* op_array, char* global)
         if (end->op2.op_type == IS_VAR || end->op2.op_type == IS_TMP_VAR) {
           used[VAR_NUM(end->op2.u.var)] = 1;
         }
+#ifdef ZEND_ENGINE_2_3
+        if (end->opcode == ZEND_DECLARE_INHERITED_CLASS || end->opcode == ZEND_DECLARE_INHERITED_CLASS_DELAYED) {
+#else
         if (end->opcode == ZEND_DECLARE_INHERITED_CLASS) {
+#endif
           used[VAR_NUM(end->extended_value)] = 1;
         }
       }
@@ -1349,15 +1359,19 @@ jmp_2:
               (p->jmp_1->start->opcode == ZEND_RETURN ||
                p->jmp_1->start->opcode == ZEND_EXIT))
 		  {
-            BB_DEL_PRED(p->jmp_1, p);
-            RM_BB(p->jmp_1);
-            memcpy(op, p->jmp_1->start, sizeof(zend_op));
-            if (op->op1.op_type == IS_CONST)
-			{
-              zval_copy_ctor(&op->op1.u.constant);
+		    if (op->extended_value == ZEND_BRK || op->extended_value == ZEND_CONT) {
+              op->extended_value = 0;
+		    } else {
+              BB_DEL_PRED(p->jmp_1, p);
+              RM_BB(p->jmp_1);
+              memcpy(op, p->jmp_1->start, sizeof(zend_op));
+              if (op->op1.op_type == IS_CONST)
+			  {
+                zval_copy_ctor(&op->op1.u.constant);
+              }
+              p->jmp_1 = NULL;
+              ok = 0;
             }
-            p->jmp_1 = NULL;
-            ok = 0;
           }
         }
         p = p->next;
@@ -1831,7 +1845,7 @@ static void optimize_bb(BB* bb, zend_op_array* op_array, char* global, int pass 
       zval_dtor(&op->op1.u.constant);
       SET_TO_NOP(op);
 
-    /* INIT_STRING ADD_CAHR ADD_STRIN ADD_VAR folding */
+    /* INIT_STRING ADD_CHAR ADD_STRING ADD_VAR folding */
 
     /* INIT_STRING($y) => QM_ASSIGN('',$y)
     */
@@ -2022,6 +2036,9 @@ static void optimize_bb(BB* bb, zend_op_array* op_array, char* global, int pass 
       }
       SET_DEFINED(DEFINED_OP(op->op1));
       SET_TO_NOP(op);
+#ifndef ZEND_ENGINE_2_3
+    /* TODO: Doesn't work with PHP-5.3. Needs more research */
+
     /* FETCH_X      local("GLOBALS"),$x => FETCH_X global($y),$z
        FETCH_DIM_X  $x,$y,$z               NOP
     */
@@ -2067,6 +2084,7 @@ static void optimize_bb(BB* bb, zend_op_array* op_array, char* global, int pass 
         SET_DEFINED(x);
         SET_TO_NOP(op);
       }
+#endif
     /* FETCH_IS               local("GLOBALS"),$x    ISSET_ISEMPTY_VAR $y(global),res
        ISSET_ISEMPTY_DIM_OBJ  $x,$y,$res          => NOP
     */
@@ -2545,6 +2563,16 @@ static void optimize_bb(BB* bb, zend_op_array* op_array, char* global, int pass 
     if (op->opcode == ZEND_NOP) {
       zend_op *next = op+1;
       while (next < end && next->opcode == ZEND_NOP) next++;
+#ifdef ZEND_ENGINE_2_3
+      /* Check if this oparray uses early binding. If it does and we have removed
+         NOPs before op_array->early_binding, alter op_array->early binding accordingly */
+      if (op_array->early_binding != -1) {
+        DBG(ea_debug_printf, (EA_DEBUG, "NOP removal nr=%d %d", next - op, op - op_array->opcodes));
+        zend_uint nopcount = next - op;
+        if ((op - op_array->opcodes) < op_array->early_binding)
+          op_array->early_binding -= nopcount;
+      }
+#endif
       if (next < end) {
         memmove(op,next,(end-next) * sizeof(zend_op));
         while (next > op) {
@@ -2615,17 +2643,17 @@ static int build_cfg(zend_op_array *op_array, BB* bb)
 
 				}
 			}
-			else 
-#endif
-			if ((dsc->ops & OP1_MASK) == OP1_CLASS)
+			else if ((dsc->ops & OP1_MASK) == OP1_CLASS)
 			{
 				op->op1.op_type = IS_VAR;
 			}
-			else if ((dsc->ops & OP1_MASK) == OP1_UNUSED)
+			else
+#endif
+			if ((dsc->ops & OP1_MASK) == OP1_UNUSED)
 			{
 				op->op1.op_type = IS_UNUSED;
 			}
-			if ((dsc->ops & OP2_MASK) == OP2_CLASS && op->opcode != ZEND_ADD_INTERFACE)
+			if ((dsc->ops & OP2_MASK) == OP2_CLASS)
 			{
 				op->op2.op_type = IS_VAR;
 			}
@@ -2654,6 +2682,9 @@ static int build_cfg(zend_op_array *op_array, BB* bb)
 			case ZEND_EXIT:
 				bb[line_num+1].start = op+1;
 				break;
+#ifdef ZEND_GOTO
+            case ZEND_GOTO:
+#endif
 			case ZEND_JMP:
 				bb[op->op1.u.opline_num].start = &op_array->opcodes[op->op1.u.opline_num];
 				bb[line_num+1].start = op+1;
@@ -2670,9 +2701,6 @@ static int build_cfg(zend_op_array *op_array, BB* bb)
 #ifdef ZEND_JMP_SET
 			case ZEND_JMP_SET:
 #endif
-			/*
-			  TODO: implement 5.3 opcode ZEND_GOTO here
-                        */
 			case ZEND_NEW:
 			case ZEND_FE_RESET:
 			case ZEND_FE_FETCH:
@@ -2817,14 +2845,12 @@ cont_failed:
 			switch (op->opcode)
 			{
 				case ZEND_JMP:
-					p->jmp_1 = &bb[op->op1.u.opline_num];
+				    p->jmp_1 = &bb[op->op1.u.opline_num];
 					if (op->extended_value == ZEND_BRK || op->extended_value == ZEND_CONT)
 					{
 						/* This was a ZEND_BRK or ZEND_CONT opcode changed into a ZEND_JMP in an earlier stage.
 						   see comment above ZEND_BRK/ZEND_CONT below */
 						p->follow = (innermost_ketchup > 0) ? &bb[innermost_ketchup] : &bb[len-1];
-						/* clear extended_value again just for tidyness :) */
-						op->extended_value = 0;
 					}
 #  if (PHP_MAJOR_VERSION == 5 && PHP_MINOR_VERSION >= 2 && PHP_RELEASE_VERSION >= 1) || PHP_MAJOR_VERSION >= 6
 					/* php >= 5.2.1 introduces a ZEND_JMP before a ZEND_FETCH_CLASS and ZEND_CATCH
@@ -2851,9 +2877,12 @@ cont_failed:
 					p->jmp_2 = &bb[op->op2.u.opline_num];
 					p->follow = &bb[line_num];
 					break;
-                                /*
-                                  TODO: implement 5.3 opcode ZEND_GOTO here
-                                */
+#ifdef ZEND_GOTO
+                case ZEND_GOTO:
+                    p->jmp_1 = &bb[op->op1.u.opline_num];
+                    p->follow = &bb[line_num];
+                    break;
+#endif
 				case ZEND_RETURN:
 				case ZEND_EXIT:
 				case ZEND_BRK:
@@ -2890,7 +2919,8 @@ cont_failed:
 	}
 	p->len = (op_array->opcodes + op_array->last) - p->start;
 
-	/* Remove Unused brk_cont_array (BRK and COND instructions replaced by JMP)*/
+	/* Remove Unused brk_cont_array (BRK and CONT instructions replaced by JMP)
+	TODO: cannot be removed when ZEND_GOTO is used in oparray with php 5.3+
 	if (remove_brk_cont_array)
 	{
 		if (op_array->brk_cont_array != NULL)
@@ -2899,7 +2929,7 @@ cont_failed:
 			op_array->brk_cont_array = NULL;
 		}
 		op_array->last_brk_cont = 0;
-	}
+	}*/
 	return remove_brk_cont_array;
 }
 
@@ -3059,7 +3089,6 @@ void reassign_registers(zend_op_array *op_array, BB* p, char *global) {
 
       while (start < op) {
         --op;
-        /* zend_printf("op=%d\n", op-op_array->opcodes); */
         op_data = NULL;
         if (op->opcode == ZEND_DO_FCALL_BY_NAME &&
             op->op1.op_type == IS_CONST) {
@@ -3073,8 +3102,11 @@ void reassign_registers(zend_op_array *op_array, BB* p, char *global) {
             op->op1.op_type = IS_UNUSED;
           } else if (op->opcode == ZEND_FETCH_CONSTANT && op->op1.op_type == IS_VAR) {
             op->op1.u.var = VAR_VAL(assigned[r]);
-            /* restore op1 type from VAR to CONST (the opcode handler expects this or bombs out with invalid opcode) */
+#ifndef ZEND_ENGINE_2_3
+            /* restore op1 type from VAR to CONST (the opcode handler expects this or bombs out with invalid opcode)
+               FETCH_CONSTANT when fetching class constant screws up because of this with >=php-5.3 */
             op->op1.op_type = IS_CONST;
+#endif
           } else {
             op->op1.u.var = VAR_VAL(assigned[r]);
           }
@@ -3084,7 +3116,11 @@ void reassign_registers(zend_op_array *op_array, BB* p, char *global) {
           GET_REG(r);
           op->op2.u.var = VAR_VAL(assigned[r]);
         }
+#ifdef ZEND_ENGINE_2_3
+        if (op->opcode == ZEND_DECLARE_INHERITED_CLASS || op->opcode == ZEND_DECLARE_INHERITED_CLASS_DELAYED) {
+#else
         if (op->opcode == ZEND_DECLARE_INHERITED_CLASS) {
+#endif
           int r = VAR_NUM(op->extended_value);
           GET_REG(r);
           op->extended_value = VAR_VAL(assigned[r]);
@@ -3134,6 +3170,35 @@ void restore_operand_types(zend_op_array *op_array) {
 	}
 }
 
+#ifdef ZEND_ENGINE_2_3
+/*
+ * Convert jmp_addrs back to opline_nums
+ */
+void restore_opline_num(zend_op_array *op_array)
+{
+    zend_op *opline, *end;
+    opline = op_array->opcodes;
+    end = opline + op_array->last;
+    
+    while (opline < end) {
+        switch (opline->opcode){
+            case ZEND_GOTO:
+            case ZEND_JMP:
+                opline->op1.u.opline_num = opline->op1.u.jmp_addr - op_array->opcodes;
+                break;
+            case ZEND_JMPZ:
+            case ZEND_JMPNZ:
+            case ZEND_JMPZ_EX:
+            case ZEND_JMPNZ_EX:
+            case ZEND_JMP_SET:
+                opline->op2.u.opline_num = opline->op2.u.jmp_addr - op_array->opcodes;
+                break;
+        }
+        opline++;
+    }
+}
+#endif
+
 /*
  * Main Optimization Routine
  */
@@ -3142,6 +3207,7 @@ void eaccelerator_optimize(zend_op_array *op_array)
   BB* p;
   int i;
   BB* bb;
+  zend_uint orig_compiler_options;
 
 #ifdef ZEND_ENGINE_2_3
   ALLOCA_FLAG(use_heap)
@@ -3152,6 +3218,23 @@ void eaccelerator_optimize(zend_op_array *op_array)
     return;
   }
 
+#ifdef ZEND_ENGINE_2_3
+  /* We run pass_two() here to let the Zend engine resolve ZEND_GOTO labels
+     this converts goto labels(string) to opline numbers(long)
+     we need opline numbers for CFG generation, otherwise the optimizer will
+     drop code blocks because it thinks they are unused.
+     
+     We set compiler options to 0 to prevent pass_two from running the
+     op array handler (the optimizer in our case) in an endless loop */
+  orig_compiler_options = CG(compiler_options);
+  CG(compiler_options) = 0;
+  pass_two(op_array TSRMLS_CC);
+  CG(compiler_options) = orig_compiler_options;
+  
+  /* Convert jmp_addrs generated by pass_two() back to opline_nums */
+  restore_opline_num(op_array);
+#endif
+  
   /* Allocate memory for CFG */
 #ifdef ZEND_ENGINE_2_3
   bb = do_alloca(sizeof(BB)*(op_array->last+1), use_heap);
@@ -3229,7 +3312,11 @@ void eaccelerator_optimize(zend_op_array *op_array)
        on opcode handlers that expect a strict set of operand
        types since php-5.1 (like ZEND_FETCH_CONSTANT)
     */
+#ifndef ZEND_ENGINE_2_3
+    /* FETCH_CONSTANT when fetching class constant screws up
+       because of this with >=php-5.3 */
     restore_operand_types(op_array);
+#endif
   }
 #ifdef ZEND_ENGINE_2_3
     free_alloca(bb, use_heap);

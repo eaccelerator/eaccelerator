@@ -177,6 +177,9 @@ static void fixup_op_array(char *base, ea_op_array * from TSRMLS_DC)
             if (opline->op2.op_type == IS_CONST)
                 fixup_zval(base, &opline->op2.u.constant TSRMLS_CC);
             switch (opline->opcode) {
+#ifdef ZEND_GOTO
+            case ZEND_GOTO:
+#endif
             case ZEND_JMP:
                 FIXUP(base, opline->op1.u.jmp_addr);
                 break;
@@ -568,6 +571,9 @@ zend_op_array *restore_op_array(zend_op_array * to, ea_op_array * from TSRMLS_DC
     /* disable deletion in destroy_op_array */
     ++EAG(refcount_helper);
     to->refcount = &EAG(refcount_helper);
+
+    DBG(ea_debug_pad, (EA_DEBUG TSRMLS_CC));
+    DBG(ea_debug_printf, (EA_DEBUG, "[%d] early_binding=%d\n", getpid(), from->early_binding));
 
     return to;
 }

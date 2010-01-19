@@ -1,3 +1,15 @@
+2010-01-19	Hans Rakers <hans at react.nl>
+
+		* Implemented ZEND_GOTO
+		* Implemented delayed early binding for php-5.3. This
+		  solves ticket #146 (Problems with require_once with
+		  circular dependencies) for everyone using php-5.3.
+		  See http://marc.info/?l=php-internals&m=120539866910125&w=2
+		  for more info on this.
+		* Fixed ticket #386 (Crash using const & php-5.3)
+		* Fixed a bunch of other php-5.3 related issues found by
+		  using the test suite and all php-5.3 Zend engine tests
+
 2009-12-23	Hans Rakers <hans at react.nl>
 
 		* Fixed ticket #383 (crash on ZEND_ADD_INTERFACE)
