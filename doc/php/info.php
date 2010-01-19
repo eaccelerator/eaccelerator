@@ -87,13 +87,4 @@ function eaccelerator_cached_scripts() {};
  */
 function eaccelerator_removed_scripts() {};
 
-/**
- * List cached keys
- * Returns list of keys in shared memory that matches actual hostname or namespace.
- *
- * @return array An indexed array with value an associative array with information
- *          about that key.
- */
-function eaccelerator_list_keys() {};
-
 ?>
