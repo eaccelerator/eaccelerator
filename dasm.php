@@ -3,7 +3,7 @@
    +----------------------------------------------------------------------+
    | eAccelerator control panel                                           |
    +----------------------------------------------------------------------+
-   | Copyright (c) 2004-2007 eAccelerator								  |
+   | Copyright (c) 2004-2010 eAccelerator								  |
    | http://eaccelerator.net											  |
    +----------------------------------------------------------------------+
    | This source file is subject to version 2.00 of the Zend license,     |

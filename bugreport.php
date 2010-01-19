@@ -2,7 +2,7 @@
     /*
      * Let's dump some information about this php install
      * 
-     * eAccelerator, (c) 2006 - http://www.eaccelerator.net
+     * eAccelerator, (c) 2010 - http://www.eaccelerator.net
      */
 
     $sapi = php_sapi_name();

@@ -1,3 +1,8 @@
+2010-01-19	Bart Vanbrabant <bart at vanbrabant.eu>
+
+		* Remove obsolete documentation
+		* Update year in copyright
+
 2010-01-19	Hans Rakers <hans at react.nl>
 
 		* Implemented ZEND_GOTO
