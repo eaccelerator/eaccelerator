@@ -3,6 +3,7 @@
 		* Some more work on delayed early binding. This fixes
 		  ticket #388
 		* Some reformatting in ea_dasm.c
+		* Win32 VC6 project file updated
 
 2010-01-19	Bart Vanbrabant <bart at vanbrabant.eu>
 
