@@ -206,7 +206,7 @@ static const opcode_dsc opcodes[] = {
   OPDEF("ADD_INTERFACE",             EXT_IFACE  | OP1_CLASS  | OP2_CLASS  | RES_UNUSED), /* 144 */
 #endif
 #ifdef ZEND_ENGINE_2_3
-  OPDEF("DECLARE_INHERITED_CLASS_DELAYED",         EXT_CLASS | OP1_STD  | OP2_STD    | RES_UNUSED), /* 145 */
+  OPDEF("DECLARE_INHERITED_CLASS_DELAYED",         EXT_CLASS | OP1_STD  | OP2_STD    | RES_OPLINE), /* 145 */
 #else
   OPDEF("UNDEF-145",                 EXT_UNUSED | OP1_UNUSED | OP2_UNUSED | RES_UNUSED), /* 145 */
 #endif

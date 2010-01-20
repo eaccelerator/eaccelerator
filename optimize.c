@@ -2569,7 +2569,7 @@ static void optimize_bb(BB* bb, zend_op_array* op_array, char* global, int pass 
       /* Check if this oparray uses early binding. If it does and we have removed
          NOPs before op_array->early_binding, alter op_array->early binding accordingly */
       if (op_array->early_binding != -1) {
-        DBG(ea_debug_printf, (EA_DEBUG, "NOP removal nr=%d %d", next - op, op - op_array->opcodes));
+        DBG(ea_debug_printf, (EA_DEBUG, "NOP removal nr=%d opline=%d early_binding=%d\n", next - op, op - op_array->opcodes, op_array->early_binding));
         nopcount = next - op;
         if ((op - op_array->opcodes) < op_array->early_binding)
           op_array->early_binding -= nopcount;
@@ -3060,8 +3060,10 @@ static void emit_cfg(zend_op_array *op_array, BB* bb)
 void reassign_registers(zend_op_array *op_array, BB* p, char *global) {
   zend_uint i;
   zend_uint n = 0;
-    
+
 #ifdef ZEND_ENGINE_2_3
+  zend_uint prev_class_delayed = -1;
+
   ALLOCA_FLAG(use_heap)
   int* assigned  = do_alloca(op_array->T * sizeof(int), use_heap);
   char* reg_pool = do_alloca(op_array->T * sizeof(char), use_heap);
@@ -3119,10 +3121,25 @@ void reassign_registers(zend_op_array *op_array, BB* p, char *global) {
           op->op2.u.var = VAR_VAL(assigned[r]);
         }
 #ifdef ZEND_ENGINE_2_3
-        if (op->opcode == ZEND_DECLARE_INHERITED_CLASS || op->opcode == ZEND_DECLARE_INHERITED_CLASS_DELAYED) {
-#else
-        if (op->opcode == ZEND_DECLARE_INHERITED_CLASS) {
+        if (op->opcode == ZEND_DECLARE_INHERITED_CLASS_DELAYED) {
+          DBG(ea_debug_printf, (EA_DEBUG, "ZEND_DECLARE_INHERITED_CLASS_DELAYED found on opline %d\n", op - op_array->opcodes));
+          int r = VAR_NUM(op->extended_value);
+          GET_REG(r);
+          op->extended_value = VAR_VAL(assigned[r]);
+
+          if (prev_class_delayed != -1) {
+            /* link current ZEND_DECLARE_INHERITED_CLASS_DELAYED to previous one */
+            DBG(ea_debug_printf, (EA_DEBUG, "prev_class_delayed = %d currop=%u\n", prev_class_delayed, op - op_array->opcodes));
+            op->result.u.opline_num = prev_class_delayed;
+          }
+          /* There might be another ZEND_DECLARE_INHERITED_CLASS_DELAYED down the road
+             (or actually up the road since were traversing the oparray backwards).
+             store current opline */
+          prev_class_delayed = op - op_array->opcodes;
+        }
 #endif
+        if (op->opcode == ZEND_DECLARE_INHERITED_CLASS) {
+
           int r = VAR_NUM(op->extended_value);
           GET_REG(r);
           op->extended_value = VAR_VAL(assigned[r]);

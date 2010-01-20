@@ -81,6 +81,7 @@
 #define RES_CLASS      0x10000
 #define RES_TMP        0x20000
 #define RES_VAR        0x30000
+#define RES_OPLINE     0x40000
 
 #define OPS_STD       EXT_STD | OP1_STD | OP2_STD | RES_STD
 

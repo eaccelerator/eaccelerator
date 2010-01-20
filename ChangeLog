@@ -1,3 +1,9 @@
+2010-01-20	Hans Rakers <hans at react.nl>
+
+		* Some more work on delayed early binding. This fixes
+		  ticket #388
+		* Some reformatting in ea_dasm.c
+
 2010-01-19	Bart Vanbrabant <bart at vanbrabant.eu>
 
 		* Remove obsolete documentation
