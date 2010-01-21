@@ -1625,8 +1625,6 @@ static void optimize_bb(BB* bb, zend_op_array* op_array, char* global, int pass 
 
   HashTable assigns;
   HashTable fetch_dim;
-  
-  zend_uint nopcount;
 
 #ifdef ZEND_ENGINE_2_3
   ALLOCA_FLAG(use_heap)
@@ -2565,16 +2563,6 @@ static void optimize_bb(BB* bb, zend_op_array* op_array, char* global, int pass 
     if (op->opcode == ZEND_NOP) {
       zend_op *next = op+1;
       while (next < end && next->opcode == ZEND_NOP) next++;
-#ifdef ZEND_ENGINE_2_3
-      /* Check if this oparray uses early binding. If it does and we have removed
-         NOPs before op_array->early_binding, alter op_array->early binding accordingly */
-      if (op_array->early_binding != -1) {
-        DBG(ea_debug_printf, (EA_DEBUG, "NOP removal nr=%d opline=%d early_binding=%d\n", next - op, op - op_array->opcodes, op_array->early_binding));
-        nopcount = next - op;
-        if ((op - op_array->opcodes) < op_array->early_binding)
-          op_array->early_binding -= nopcount;
-      }
-#endif
       if (next < end) {
         memmove(op,next,(end-next) * sizeof(zend_op));
         while (next > op) {
@@ -3122,14 +3110,12 @@ void reassign_registers(zend_op_array *op_array, BB* p, char *global) {
         }
 #ifdef ZEND_ENGINE_2_3
         if (op->opcode == ZEND_DECLARE_INHERITED_CLASS_DELAYED) {
-          DBG(ea_debug_printf, (EA_DEBUG, "ZEND_DECLARE_INHERITED_CLASS_DELAYED found on opline %d\n", op - op_array->opcodes));
           int r = VAR_NUM(op->extended_value);
           GET_REG(r);
           op->extended_value = VAR_VAL(assigned[r]);
 
           if (prev_class_delayed != -1) {
             /* link current ZEND_DECLARE_INHERITED_CLASS_DELAYED to previous one */
-            DBG(ea_debug_printf, (EA_DEBUG, "prev_class_delayed = %d currop=%u\n", prev_class_delayed, op - op_array->opcodes));
             op->result.u.opline_num = prev_class_delayed;
           }
           /* There might be another ZEND_DECLARE_INHERITED_CLASS_DELAYED down the road
@@ -3165,6 +3151,10 @@ void reassign_registers(zend_op_array *op_array, BB* p, char *global) {
   }
   op_array->T = n;
 #ifdef ZEND_ENGINE_2_3
+  /* link back op_array->early_binding to the first occurance of ZEND_DECLARE_INHERITED_CLASS_DELAYED */
+  if (prev_class_delayed != -1)
+    op_array->early_binding = prev_class_delayed;
+
   free_alloca(used, use_heap);
   free_alloca(reg_pool, use_heap);
   free_alloca(assigned, use_heap);

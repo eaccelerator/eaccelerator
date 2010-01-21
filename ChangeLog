@@ -1,3 +1,8 @@
+2010-01-21	Hans Rakers <hans at react.nl>
+
+		* Set op_array->early_binding in a later stage.
+		  This fixes ticket #394
+
 2010-01-20	Hans Rakers <hans at react.nl>
 
 		* Some more work on delayed early binding. This fixes
