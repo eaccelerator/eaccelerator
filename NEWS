@@ -1,7 +1,7 @@
-Jul 14, 2009 - Bart Vanbrabant
+Jan 26, 2010 - Bart Vanbrabant
 ------------------------------
 
- * Release 0.9.6 rc1
+ * Release 0.9.6 rc2
     The theme of this release is: back to basics! All non essential functions
     are removed from eAccelerator. This means that the keys, content and
     session functions.

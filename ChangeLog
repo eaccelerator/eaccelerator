@@ -1,3 +1,7 @@
+2010-01-22	Bart Vanbrabant <bart at vanbrabant.eu>
+
+		* Release 0.9.6-rc2
+
 2010-01-21	Hans Rakers <hans at react.nl>
 
 		* Set op_array->early_binding in a later stage.
