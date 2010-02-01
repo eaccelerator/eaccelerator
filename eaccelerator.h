@@ -58,11 +58,6 @@
 #	define empty_string STR_EMPTY_ALLOC()
 #endif
 
-#if !defined(ZEND_WIN32) && defined(WITH_EACCELERATOR_USE_INODE)
-/* UnDefine if your filesystem doesn't support inodes */
-#  define EACCELERATOR_USE_INODE
-#endif
-
 #ifdef WITH_EACCELERATOR_CRASH_DETECTION
 #  include <signal.h>
 #endif
@@ -288,12 +283,7 @@ typedef struct _ea_fc_entry {
  */
 typedef struct _ea_cache_entry {
 	struct _ea_cache_entry *next;
-#ifdef EACCELERATOR_USE_INODE
-	dev_t st_dev;				/* file's device                         */
-	ino_t st_ino;				/* file's inode                          */
-#else
 	unsigned int hv;			/* hash value                            */
-#endif
 	off_t filesize;				/* file size */
 	time_t mtime;				/* file last modification time           */
 	time_t ttl;				/* expiration time (updated on each hit) */

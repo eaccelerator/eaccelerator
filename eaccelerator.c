@@ -123,31 +123,16 @@ static ea_cache_entry* hash_find_mm(const char  *key,
   unsigned int hv, slot;
   ea_cache_entry *p, *q;
 
-#ifdef EACCELERATOR_USE_INODE
-  hv = buf->st_dev + buf->st_ino;
-#else
   hv = zend_get_hash_value((char *)key, strlen(key));
-#endif
   slot = hv & EA_HASH_MAX;
 
   EACCELERATOR_LOCK_RW();
   q = NULL;
   p = ea_mm_instance->hash[slot];
   while (p != NULL) {
-#ifdef EACCELERATOR_USE_INODE
-    if (p->st_dev == buf->st_dev && p->st_ino == buf->st_ino) {
-      struct stat buf2;
-      if ((EAG(check_mtime_enabled) && ea_mm_instance->check_mtime_enabled &&
-          (buf->st_mtime != p->mtime || buf->st_size != p->filesize)) ||
-          (strcmp(p->realfilename, key) != 0 &&
-           (stat(p->realfilename,&buf2) != 0 ||
-           buf2.st_dev != buf->st_dev ||
-           buf2.st_ino != buf->st_ino))) {
-#else
     if ((p->hv == hv) && (strcmp(p->realfilename, key) == 0)) {
       if (EAG(check_mtime_enabled) && ea_mm_instance->check_mtime_enabled &&
           (buf->st_mtime != p->mtime || buf->st_size != p->filesize)) {
-#endif
         /* key is invalid. Remove it. */
         *nreloads = p->nreloads+1;
         if (q == NULL) {
@@ -190,12 +175,8 @@ static ea_cache_entry* hash_find_mm(const char  *key,
 static void hash_add_mm(ea_cache_entry *x) {
   ea_cache_entry *p,*q;
   unsigned int slot;
-#ifdef EACCELERATOR_USE_INODE
-  slot = (x->st_dev + x->st_ino) & EA_HASH_MAX;
-#else
   x->hv = zend_get_hash_value(x->realfilename, strlen(x->realfilename));
   slot = x->hv & EA_HASH_MAX;
-#endif
 
   EACCELERATOR_LOCK_RW();
   x->next = ea_mm_instance->hash[slot];
@@ -204,12 +185,8 @@ static void hash_add_mm(ea_cache_entry *x) {
   q = x;
   p = x->next;
   while (p != NULL) {
-#ifdef EACCELERATOR_USE_INODE
-    if ((p->st_dev == x->st_dev) && (p->st_ino == x->st_ino)) {
-#else
     if ((p->hv == x->hv) &&
         (strcmp(p->realfilename, x->realfilename) == 0)) {
-#endif
       q->next = p->next;
       ea_mm_instance->hash_cnt--;
       ea_mm_instance->hash[slot]->nreloads += p->nreloads;
@@ -403,36 +380,6 @@ static void decode_version(int version, int extra, char *str, size_t len)
 
 static char num2hex[] = {'0','1','2','3','4','5','6','7','8','9','a','b','c','d','e','f'};
 
-#ifdef EACCELERATOR_USE_INODE
-static int eaccelerator_inode_key(char* s, dev_t dev, ino_t ino TSRMLS_DC) {
-  int n, i;
-  snprintf(s, MAXPATHLEN-1, "%s/", EAG(cache_dir));
-  n = strlen(s);
-  for (i = 1; i <= EACCELERATOR_HASH_LEVEL && n < MAXPATHLEN - 1; i++) {
-    s[n++] = num2hex[(ino >> (i << 2)) & 0xf]; // (ino / (i * 4))
-    s[n++] = '/';
-  }
-  s[n] = 0;
-  strlcat(s, "eaccelerator-", MAXPATHLEN-1);
-  n += sizeof("eaccelerator-") - 1;
-  while (dev > 0) {
-    if (n >= MAXPATHLEN) return 0;
-    s[n++] = (dev % 10) +'0';
-    dev /= 10;
-  }
-  if (n >= MAXPATHLEN) return 0;
-  s[n++] = '.';
-  while (ino > 0) {
-    if (n >= MAXPATHLEN) return 0;
-    s[n++] = (ino % 10) +'0';
-    ino /= 10;
-  }
-  if (n >= MAXPATHLEN) return 0;
-  s[n++] = '\000';
-  return 1;
-}
-#endif
-
 /* Function to create a hash key when filenames are used */
 int eaccelerator_md5(char* s, const char* prefix, const char* key TSRMLS_DC) {
   char md5str[33];
@@ -469,10 +416,6 @@ void eaccelerator_prune(time_t t) {
       struct stat buf;
       if (((*p)->ttl != 0 && (*p)->ttl < t && (*p)->use_cnt <= 0) ||
           stat((*p)->realfilename,&buf) != 0 ||
-#ifdef EACCELERATOR_USE_INODE
-          (*p)->st_dev != buf.st_dev ||
-          (*p)->st_ino != buf.st_ino ||
-#endif
           (*p)->mtime != buf.st_mtime ||
           (*p)->filesize != buf.st_size) {
         ea_cache_entry *r = *p;
@@ -643,20 +586,12 @@ static ea_cache_entry* hash_find_file(const char  *key, struct stat *buf TSRMLS_
   int f;
   char s[MAXPATHLEN];
   ea_file_header hdr;
-  ea_cache_entry *p;
+  ea_cache_entry *p = NULL;
   int use_shm = 1;
 
-#ifdef EACCELERATOR_USE_INODE
-  struct stat buf2;
-
-  if (!eaccelerator_inode_key(s, buf->st_dev, buf->st_ino TSRMLS_CC)) {
-    return NULL;
-  }
-#else
   if (!eaccelerator_md5(s, "/eaccelerator-", key TSRMLS_CC)) {
     return NULL;
   }
-#endif
 
   if ((f = open(s, O_RDONLY | O_BINARY)) > 0) {
     EACCELERATOR_FLOCK(f, LOCK_SH);
@@ -696,23 +631,12 @@ static ea_cache_entry* hash_find_file(const char  *key, struct stat *buf TSRMLS_
     }
     EACCELERATOR_FLOCK(f, LOCK_UN);
     close(f);
-#ifdef EACCELERATOR_USE_INODE
-    if (p->st_dev != buf->st_dev || p->st_ino != buf->st_ino) {
-#else
     if (strcmp(key,p->realfilename) != 0) {
-#endif
       if (use_shm) eaccelerator_free(p); else efree(p);
       return NULL;
     }
     if ((EAG(check_mtime_enabled) && ea_mm_instance->check_mtime_enabled &&
         (buf->st_mtime != p->mtime || buf->st_size != p->filesize))
-#ifdef EACCELERATOR_USE_INODE
-        ||
-        (strcmp(p->realfilename, key) != 0 &&
-         (stat(p->realfilename,&buf2) != 0 ||
-         buf2.st_dev != buf->st_dev ||
-         buf2.st_ino != buf->st_ino))
-#endif
        ) {
       /* key is invalid. Remove it. */
       if (use_shm) eaccelerator_free(p); else efree(p);
@@ -749,15 +673,9 @@ static int hash_add_file(ea_cache_entry *p TSRMLS_DC) {
   char s[MAXPATHLEN];
   ea_file_header hdr;
 
-#ifdef EACCELERATOR_USE_INODE
-  if (!eaccelerator_inode_key(s, p->st_dev, p->st_ino TSRMLS_CC)) {
-    return 0;
-  }
-#else
   if (!eaccelerator_md5(s, "/eaccelerator-", p->realfilename TSRMLS_CC)) {
     return 0;
   }
-#endif
 
   unlink(s);
   f = open(s, O_CREAT | O_WRONLY | O_EXCL | O_BINARY, S_IRUSR | S_IWUSR);
@@ -823,10 +741,6 @@ static int eaccelerator_store(char* key, struct stat *buf, int nreloads,
     p->filesize = buf->st_size;
     p->size     = size;
     p->nreloads = nreloads;
-#ifdef EACCELERATOR_USE_INODE
-    p->st_dev   = buf->st_dev;
-    p->st_ino   = buf->st_ino;
-#endif
     if (use_shm) {
       if (ea_shm_ttl > 0) {
         p->ttl = EAG(req_start) + ea_shm_ttl;
@@ -893,167 +807,59 @@ static zend_op_array* eaccelerator_restore(char *realname, struct stat *buf,
   return op_array;
 }
 
+/**
+ * Get the real filename of the file represented by the given file_handle.
+ * If unable to determine the realfilename this function returns 0, otherwise
+ * it returns 1.
+ *
+ * realfilename should be MAXPATHLEN long.
+ */
+static int ea_get_realname(zend_file_handle *file_handle, char* realname TSRMLS_DC) {
+  if (file_handle->opened_path == NULL && file_handle->filename == NULL) {
+		return 0;
+	}
 
+	if (file_handle->opened_path != NULL) {
+		strcpy(realname, file_handle->opened_path);
+		return 1;
+	}
+
+	if (PG(include_path) == NULL || 
+			file_handle->filename[0] == '.' ||
+      IS_SLASH(file_handle->filename[0]) ||
+      IS_ABSOLUTE_PATH(file_handle->filename, strlen(file_handle->filename))) {
+    
+		return VCWD_REALPATH(file_handle->filename, realname);
+	} else {
+    int filename_len = strlen(file_handle->filename);
+		char* temp_name = php_resolve_path_for_zend(file_handle->filename, filename_len TSRMLS_CC);
+
+		if (temp_name == NULL) {
+			return 0;
+		}
+
+		strcpy(realname, temp_name);
+		efree(temp_name);
+		return 1;
+	}
+
+	return 0;
+}
+
+/* 
+ * Stat the file that belongs to file_handle. It puts result of the stat call
+ * in buf and the real filename in realname.
+ *
+ * Returns 0 when the stat failed or if unable to perform a stat call. If successful
+ * it returns 1
+ */
 static int eaccelerator_stat(zend_file_handle *file_handle,
                         char* realname, struct stat* buf TSRMLS_DC) {
-#ifdef EACCELERATOR_USE_INODE
-#  ifndef ZEND_WIN32
-  if (file_handle->type == ZEND_HANDLE_FP && file_handle->handle.fp != NULL) {
-    if (fstat(fileno(file_handle->handle.fp), buf) == 0 && S_ISREG(buf->st_mode)) {
-      if (file_handle->opened_path != NULL) {
-        strcpy(realname, file_handle->opened_path);
-      }
-      return 0;
-    }
-  } else
-#  endif
-  if (file_handle->opened_path != NULL) {
-    if (stat(file_handle->opened_path, buf) == 0 && S_ISREG(buf->st_mode)) {
-       strcpy(realname,file_handle->opened_path);
-       return 0;
-    }
-  } else if (PG(include_path) == NULL || 
-				 file_handle->filename[0] == '.' ||
-             IS_SLASH(file_handle->filename[0]) ||
-             IS_ABSOLUTE_PATH(file_handle->filename,strlen(file_handle->filename))) {
-    if (stat(file_handle->filename, buf) == 0 && S_ISREG(buf->st_mode)) {
-       return 0;
-    }
-  } else {
-    char* ptr = PG(include_path);
-    char* end;
-    int   len;
-    char  tryname[MAXPATHLEN];
-    int   filename_len = strlen(file_handle->filename);
-
-    while (ptr && *ptr) {
-      end = strchr(ptr, DEFAULT_DIR_SEPARATOR);
-      if (end != NULL) {
-        len = end - ptr;
-        end++;
-      } else {
-        len = strlen(ptr);
-        end = ptr + len;
-      }
-      if (len + filename_len + 2 < MAXPATHLEN) {
-        memcpy(tryname, ptr, len);
-        tryname[len] = '/';
-        memcpy(tryname + len + 1, file_handle->filename, filename_len);
-        tryname[len + filename_len + 1] = '\0';
-        if (stat(tryname, buf) == 0 && S_ISREG(buf->st_mode)) {
-          return 0;
-        }
-      }
-      ptr = end;
-    }
-
-	if (zend_is_executing(TSRMLS_C)) {
-        int tryname_length;
-		strncpy(tryname, zend_get_executed_filename(TSRMLS_C), MAXPATHLEN);
-		tryname[MAXPATHLEN - 1] = 0;
-		tryname_length = strlen(tryname);
-
-		while (tryname_length >= 0 && !IS_SLASH(tryname[tryname_length])) {
-			tryname_length--;
-		}
-		if (tryname_length > 0 && tryname[0] != '[' // [no active file]
-			&& tryname_length + filename_len + 1 < MAXPATHLEN)
-		{
-			strncpy(tryname + tryname_length + 1, file_handle->filename, filename_len + 1);
-			if (stat(tryname, buf) == 0 && S_ISREG(buf->st_mode)) {
-				return 0;
-			}
-		}
+	if (!ea_get_realname(file_handle, realname)) {
+		return 0;
 	}
-  }
-  return -1;
-#else
-  if (file_handle->opened_path != NULL) {
-    strcpy(realname,file_handle->opened_path);
-#  ifndef ZEND_WIN32
-    if (file_handle->type == ZEND_HANDLE_FP && file_handle->handle.fp != NULL) {
-      if (!EAG(check_mtime_enabled) && !ea_mm_instance->check_mtime_enabled) {
-        return 0;
-      } else if (fstat(fileno(file_handle->handle.fp), buf) == 0 && S_ISREG(buf->st_mode)) {
-        return 0;
-      } else {
-        return -1;
-      }
-    } else {
-      if (!EAG(check_mtime_enabled) && !ea_mm_instance->check_mtime_enabled) {
-        return 0;
-      } else if (stat(realname, buf) == 0 && S_ISREG(buf->st_mode)) {
-        return 0;
-      } else {
-        return -1;
-      }
-    }
-#  else
-    if (!EAG(check_mtime_enabled) && !ea_mm_instance->check_mtime_enabled) {
-      return 0;
-    } else if (stat(realname, buf) == 0 && S_ISREG(buf->st_mode)) {
-      return 0;
-    } else {
-      return -1;
-    }
-#  endif
-  } else if (file_handle->filename == NULL) {
-    return -1;
-  } else if (PG(include_path) == NULL || 
-             file_handle->filename[0] == '.' ||
-             IS_SLASH(file_handle->filename[0]) ||
-             IS_ABSOLUTE_PATH(file_handle->filename,strlen(file_handle->filename))) {
-    if (VCWD_REALPATH(file_handle->filename, realname)) {
-      if (!EAG(check_mtime_enabled) && !ea_mm_instance->check_mtime_enabled) {
-        return 0;
-      } else if (stat(realname, buf) == 0 && S_ISREG(buf->st_mode)) {
-        return 0;
-      } else {
-        return -1;
-      }
-    }
-  } else {
-    char* ptr = PG(include_path);
-    char* end;
-    int   len;
-    char  tryname[MAXPATHLEN];
-    int   filename_len = strlen(file_handle->filename);
 
-    while (ptr && *ptr) {
-      end = strchr(ptr, DEFAULT_DIR_SEPARATOR);
-      if (end != NULL) {
-        len = end - ptr;
-        end++;
-      } else {
-        len = strlen(ptr);
-        end = ptr + len;
-      }
-      if (len+filename_len+2 < MAXPATHLEN) {
-        memcpy(tryname, ptr, len);
-        tryname[len] = '/';
-        memcpy(tryname + len + 1, file_handle->filename, filename_len);
-        tryname[len + filename_len + 1] = '\0';
-        if (VCWD_REALPATH(tryname, realname)) {
-#  ifdef ZEND_WIN32
-          if (stat(realname, buf) == 0 && S_ISREG(buf->st_mode)) {
-            return 0;
-          }
-#  else
-          if (!EAG(check_mtime_enabled) && !ea_mm_instance->check_mtime_enabled) {
-            return 0;
-          } else if (stat(realname, buf) == 0 && S_ISREG(buf->st_mode)) {
-            return 0;
-          } else {
-            return -1;
-          }
-#  endif
-        }
-      }
-      ptr = end;
-    }
-  }
-  return -1;
-#endif
+	return (stat(realname, buf) == 0 && S_ISREG(buf->st_mode));
 }
 
 static int ea_match(struct ea_pattern_t *list, const char *path)
@@ -1078,7 +884,7 @@ static int ea_match(struct ea_pattern_t *list, const char *path)
 	p = list;
 	while (p != NULL) {
 		if (p->pattern[0] == '!') {
-		  if ((fnmatch((const char *)(p->pattern + 1), path, 0) == 0)) {
+			if ((fnmatch((const char *)(p->pattern + 1), path, 0) == 0)) {
 				// a negative pattern matches, accept
 				return 0;
 			}
@@ -1098,7 +904,7 @@ static int ea_match(struct ea_pattern_t *list, const char *path)
  */
 void ea_class_add_ref(zend_class_entry **ce)
 {
-	    (*ce)->refcount++;
+	(*ce)->refcount++;
 }
 
 /*
@@ -1122,10 +928,6 @@ ZEND_DLEXPORT zend_op_array* eaccelerator_compile_file(zend_file_handle *file_ha
   zend_uint orig_compiler_options;
 #endif
 
-#ifdef EACCELERATOR_USE_INODE
-  realname[0] = '\000';
-#endif
-
   DBG(ea_debug_start_time, (&tv_start));
   DBG(ea_debug_printf, (EA_DEBUG, "[%d] Enter COMPILE\n",getpid()));
   DBG(ea_debug_printf, (EA_DEBUG, "[%d] compile_file: \"%s\"\n",getpid(), file_handle->filename));
@@ -1140,7 +942,7 @@ ZEND_DLEXPORT zend_op_array* eaccelerator_compile_file(zend_file_handle *file_ha
   // eAccelerator isn't working, so just compile the file
   if (!EAG(enabled) || (ea_mm_instance == NULL) || 
       !ea_mm_instance->enabled || file_handle == NULL ||
-      file_handle->filename == NULL || stat_result != 0 || !ok_to_cache) {
+      file_handle->filename == NULL || stat_result == 0 || !ok_to_cache) {
     DBG(ea_debug_printf, (EA_DEBUG, "\t[%d] compile_file: compiling\n", getpid()));
     t = ea_saved_zend_compile_file(file_handle, type TSRMLS_CC);
     DBG(ea_debug_printf, (EA_TEST_PERFORMANCE, "\t[%d] compile_file: end (%ld)\n", getpid(), ea_debug_elapsed_time(&tv_start)));
@@ -1158,7 +960,7 @@ ZEND_DLEXPORT zend_op_array* eaccelerator_compile_file(zend_file_handle *file_ha
   }
 
   if (buf.st_mtime >= EAG(req_start) && ea_debug > 0) {
-	ea_debug_log("EACCELERATOR: Warning: \"%s\" is cached but it's mtime is in the future.\n", file_handle->filename);
+		ea_debug_log("EACCELERATOR: Warning: \"%s\" is cached but it's mtime is in the future.\n", file_handle->filename);
   }
 
   t = eaccelerator_restore(realname, &buf, &nreloads, EAG(req_start) TSRMLS_CC);
@@ -1239,7 +1041,7 @@ ZEND_DLEXPORT zend_op_array* eaccelerator_compile_file(zend_file_handle *file_ha
     DBG(ea_debug_printf, (EA_TEST_PERFORMANCE, "\t[%d] compile_file: compiling (%ld)\n", getpid(), ea_debug_elapsed_time(&tv_start)));
     
 		if (EAG(optimizer_enabled) && ea_mm_instance->optimizer_enabled) {
-		  EAG(compiler) = 1;
+			EAG(compiler) = 1;
 		}
 
 	/* try to compile the script */
@@ -1418,9 +1220,9 @@ PHP_MINFO_FUNCTION(eaccelerator) {
   php_info_print_table_row(2, "Caching Enabled", (EAG(enabled) && (ea_mm_instance != NULL) && 
               ea_mm_instance->enabled)?"true":"false");
   php_info_print_table_row(2, "Optimizer Enabled", (EAG(optimizer_enabled) && 
-						  (ea_mm_instance != NULL) && ea_mm_instance->optimizer_enabled)?"true":"false");
+							(ea_mm_instance != NULL) && ea_mm_instance->optimizer_enabled)?"true":"false");
   php_info_print_table_row(2, "Check mtime Enabled", (EAG(check_mtime_enabled) && 
-						  (ea_mm_instance != NULL) && ea_mm_instance->check_mtime_enabled)?"true":"false");
+							(ea_mm_instance != NULL) && ea_mm_instance->check_mtime_enabled)?"true":"false");
   if (ea_mm_instance != NULL) {
     size_t available;
     EACCELERATOR_UNPROTECT();
@@ -2264,6 +2066,5 @@ static void register_eaccelerator_as_zend_extension() {
  * tab-width: 2
  * c-basic-offset: 2
  * End:
- * vim600: noet sw=2 ts=2 fdm=marker
- * vim<600: noet sw=2 ts=2
+ * vim: noet sw=2 ts=2 fdm=marker
  */

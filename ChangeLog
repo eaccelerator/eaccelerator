@@ -1,3 +1,12 @@
+2010-02-01  Bart Vanbrabant <bart at vanbrabant.eu>
+
+		* A retab on eaccelerator.c
+		* Remove caching based on inodes
+		* Reimplement eaccelerator_stat to speed it up: the new ea_stat is
+		almost twice as fast as the old version with inodes. The tests were
+		done on a file that includes 10k empty files.
+		* Increment version to 1.0-dev
+
 2010-01-22	Bart Vanbrabant <bart at vanbrabant.eu>
 
 		* Release 0.9.6-rc2
