@@ -832,7 +832,7 @@ static int ea_get_realname(zend_file_handle *file_handle, char* realname TSRMLS_
 		return VCWD_REALPATH(file_handle->filename, realname);
 	} else {
     int filename_len = strlen(file_handle->filename);
-		char* temp_name = php_resolve_path_for_zend(file_handle->filename, filename_len TSRMLS_CC);
+		char* temp_name = php_resolve_path(file_handle->filename, filename_len, PG(include_path) TSRMLS_CC);
 
 		if (temp_name == NULL) {
 			return 0;
