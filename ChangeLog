@@ -1,3 +1,8 @@
+2010-02-03	Bart Vanbrabant <bart at vanbrabant.eu>
+
+		* Include the resolve path function from php so it is available for
+		older PHP versions as well. Includes that start file:// work now.
+
 2010-02-02  Bart Vanbrabant <bart at vanbrabant.eu>
 
 		* Fix two compiler warnings
