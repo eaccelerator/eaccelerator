@@ -6,6 +6,10 @@
 		now. The phar archive is used to excute the stat on.
 		* Enable check_mtime usage again
 		* Use snprintf the right way. See #290
+		* Add a call to sched_yield after a failed spinlock to prevent
+		deadlock conditions. This should fix #381 and is a real fix for #340.
+		Instead of using a fake select as yield, a check is added to disable
+		spinlocks on systems that do not have sched_yield.
 
 2010-02-02  Bart Vanbrabant <bart at vanbrabant.eu>
 
