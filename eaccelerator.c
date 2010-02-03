@@ -1032,7 +1032,11 @@ static int eaccelerator_stat(zend_file_handle *file_handle,
 		return 0;
 	}
 
-	return (stat(realname, buf) == 0 && S_ISREG(buf->st_mode));
+
+  if (EAG(check_mtime_enabled) && ea_mm_instance->check_mtime_enabled) {
+		return (stat(realname, buf) == 0 && S_ISREG(buf->st_mode));
+	}
+	return 1;
 }
 
 static int ea_match(struct ea_pattern_t *list, const char *path)

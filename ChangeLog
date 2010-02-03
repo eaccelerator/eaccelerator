@@ -4,6 +4,7 @@
 		older PHP versions as well. Includes that start file:// work now.
 		* Enable phar caching: Files in included from a phar file are cached
 		now. The phar archive is used to excute the stat on.
+		* Enable check_mtime usage again
 
 2010-02-02  Bart Vanbrabant <bart at vanbrabant.eu>
 
