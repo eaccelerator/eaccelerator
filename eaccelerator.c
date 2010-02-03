@@ -983,6 +983,24 @@ static int ea_get_realname(zend_file_handle *file_handle, char* realname TSRMLS_
 	return 0;
 }
 
+static int ea_get_phar_name(const char* filename, size_t filename_len, char* phar_name) {
+	size_t i = 0;
+
+	for (i = sizeof("phar://"); i < filename_len - sizeof(".phar"); ++i) {
+		if (filename[i] == '.' && filename[i + 1] == 'p' && filename[i + 2] == 'h' &&
+				filename[i + 3] == 'a' && filename[i + 4] == 'r') {
+			int copy_len = (i - sizeof("phar://") + sizeof(".phar"));
+			if (copy_len >= MAXPATHLEN - 1) {
+				return 0;
+			}
+			memcpy(phar_name, &filename[sizeof("phar://") - 1], copy_len);
+			phar_name[copy_len] = '\0';
+			return 1;
+		}
+	}
+	return 0;
+}
+
 /* 
  * Stat the file that belongs to file_handle. It puts result of the stat call
  * in buf and the real filename in realname.
@@ -993,6 +1011,24 @@ static int ea_get_realname(zend_file_handle *file_handle, char* realname TSRMLS_
 static int eaccelerator_stat(zend_file_handle *file_handle,
                         char* realname, struct stat* buf TSRMLS_DC) {
 	if (!ea_get_realname(file_handle, realname TSRMLS_CC)) {
+#ifdef ZEND_ENGINE_2_3
+		if (strncmp(file_handle->filename, "phar://", sizeof("phar://"))) {
+			// Determine the name of the phar archive and use this filename to do the
+			// stat call. Return filename as realname.
+			char phar_name[MAXPATHLEN];
+			size_t filename_len = strlen(file_handle->filename);
+
+			if (!ea_get_phar_name(file_handle->filename, filename_len, phar_name)) {
+				return 0;
+			}
+			// TODO: resolve this problem
+			if (filename_len >= MAXPATHLEN) {
+				return 0;
+			}
+			strcpy(realname, file_handle->filename);
+		  return (stat(phar_name, buf) == 0 && S_ISREG(buf->st_mode));
+		}
+#endif
 		return 0;
 	}
 
