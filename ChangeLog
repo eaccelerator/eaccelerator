@@ -1,3 +1,7 @@
+2010-02-02  Bart Vanbrabant <bart at vanbrabant.eu>
+
+		* Fix two compiler warnings
+
 2010-02-01  Bart Vanbrabant <bart at vanbrabant.eu>
 
 		* A retab on eaccelerator.c

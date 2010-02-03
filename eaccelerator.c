@@ -829,7 +829,7 @@ static int ea_get_realname(zend_file_handle *file_handle, char* realname TSRMLS_
       IS_SLASH(file_handle->filename[0]) ||
       IS_ABSOLUTE_PATH(file_handle->filename, strlen(file_handle->filename))) {
     
-		return VCWD_REALPATH(file_handle->filename, realname);
+		return VCWD_REALPATH(file_handle->filename, realname) != NULL;
 	} else {
     int filename_len = strlen(file_handle->filename);
 		char* temp_name = php_resolve_path(file_handle->filename, filename_len, PG(include_path) TSRMLS_CC);
@@ -855,10 +855,9 @@ static int ea_get_realname(zend_file_handle *file_handle, char* realname TSRMLS_
  */
 static int eaccelerator_stat(zend_file_handle *file_handle,
                         char* realname, struct stat* buf TSRMLS_DC) {
-	if (!ea_get_realname(file_handle, realname)) {
+	if (!ea_get_realname(file_handle, realname TSRMLS_CC)) {
 		return 0;
 	}
-
 	return (stat(realname, buf) == 0 && S_ISREG(buf->st_mode));
 }
 
