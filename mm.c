@@ -177,7 +177,8 @@ static int strxcat(char* dst, const char* src, int size) {
 
 #if defined(MM_SEM_SPINLOCK)
 
-#if !defined(__GNUC__) || !(defined(__i386__) || defined(__x86_64__))
+#if !((defined(__GNUC__) || !defined(__SUNPRO_C)) && \
+    (defined(__i386__) || defined(__i386) || defined(__x86_64__)))
 #  error "spinlocks are not implemented for your system"
 #endif
 
