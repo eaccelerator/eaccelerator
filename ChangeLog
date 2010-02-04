@@ -1,7 +1,7 @@
 2010-02-04	Bart Vanbrabant <bart at vanbrabant.eu>
 
-		* Now really add the sched_yield command and not only in commented
-		out
+		* Now really add the sched_yield command and not only in commented out
+		* Bump version to 0.9.6
 
 2010-02-04	Hans Rakers <hans at react.nl>
 
