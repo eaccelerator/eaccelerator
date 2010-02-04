@@ -222,7 +222,7 @@ static int mm_do_lock(mm_mutex* lock, int kind)
             return 1;
         }
         _spinlock_unlock(lock);
-        //sched_yield();
+        sched_yield();
     }
     return 1;
 }
