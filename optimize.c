@@ -3050,7 +3050,11 @@ void reassign_registers(zend_op_array *op_array, BB* p, char *global) {
   zend_uint n = 0;
 
 #ifdef ZEND_ENGINE_2_3
-  zend_uint prev_class_delayed = -1;
+  int opline_num;
+  int first_class_delayed = -1;
+  int prev_class_delayed = -1;
+  int last_class_delayed_in_prev_bb = -1;
+  int last_class_delayed_in_this_bb = -1;
 
   ALLOCA_FLAG(use_heap)
   int* assigned  = do_alloca(op_array->T * sizeof(int), use_heap);
@@ -3114,6 +3118,15 @@ void reassign_registers(zend_op_array *op_array, BB* p, char *global) {
           GET_REG(r);
           op->extended_value = VAR_VAL(assigned[r]);
 
+          opline_num = op - op_array->opcodes;
+          /* store the very first occurence of ZEND_DECLARE_INHERITED_CLASS_DELAYED
+             we need this to restore op_array->early_binding later on */
+          if (first_class_delayed == -1)
+            first_class_delayed = opline_num;
+          if (last_class_delayed_in_this_bb == -1) {
+            last_class_delayed_in_this_bb = opline_num;
+          }
+
           if (prev_class_delayed != -1) {
             /* link current ZEND_DECLARE_INHERITED_CLASS_DELAYED to previous one */
             op->result.u.opline_num = prev_class_delayed;
@@ -3121,7 +3134,7 @@ void reassign_registers(zend_op_array *op_array, BB* p, char *global) {
           /* There might be another ZEND_DECLARE_INHERITED_CLASS_DELAYED down the road
              (or actually up the road since were traversing the oparray backwards).
              store current opline */
-          prev_class_delayed = op - op_array->opcodes;
+          prev_class_delayed = opline_num;
         }
 #endif
         if (op->opcode == ZEND_DECLARE_INHERITED_CLASS) {
@@ -3147,13 +3160,25 @@ void reassign_registers(zend_op_array *op_array, BB* p, char *global) {
         }
       }
     }
+#ifdef ZEND_ENGINE_2_3
+    if (last_class_delayed_in_prev_bb != -1 && last_class_delayed_in_this_bb != -1) {
+      op_array->opcodes[last_class_delayed_in_prev_bb].result.u.opline_num = prev_class_delayed;
+      last_class_delayed_in_prev_bb = -1;
+    }
+    if (last_class_delayed_in_this_bb != -1) {
+      last_class_delayed_in_prev_bb = last_class_delayed_in_this_bb;
+      last_class_delayed_in_this_bb = -1;
+    }
+    prev_class_delayed = -1;
+#endif
+    
     p = p->next;
   }
   op_array->T = n;
 #ifdef ZEND_ENGINE_2_3
   /* link back op_array->early_binding to the first occurance of ZEND_DECLARE_INHERITED_CLASS_DELAYED */
-  if (prev_class_delayed != -1)
-    op_array->early_binding = prev_class_delayed;
+  if (first_class_delayed != -1)
+    op_array->early_binding = first_class_delayed;
 
   free_alloca(used, use_heap);
   free_alloca(reg_pool, use_heap);
