@@ -1,3 +1,8 @@
+2010-02-04	Hans Rakers <hans at react.nl>
+
+		* Fixed linking of ZEND_DECLARE_INHERITED_CLASS_DELAYED across
+		  bb's in the optimizer. This fixes bug #399
+
 2010-02-04	Bart Vanbrabant <bart at vanbrabant.eu>
 
 		* Remove some leftovers from the lock api
