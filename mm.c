@@ -181,6 +181,10 @@ static int strxcat(char* dst, const char* src, int size) {
 #  error "spinlocks are not implemented for your system"
 #endif
 
+#ifndef _POSIX_PRIORITY_SCHEDULING
+#  error "Spinlocks require a working sched_yield implementation"
+#endif
+
 /*********************************/
 /* Semaphores                    */
 /********************************/
@@ -217,6 +221,7 @@ static int mm_do_lock(mm_mutex* lock, int kind)
             return 1;
         }
         _spinlock_unlock(lock);
+        //sched_yield();
     }
     return 1;
 }
