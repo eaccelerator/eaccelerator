@@ -1,3 +1,7 @@
+2010-02-04	Bart Vanbrabant <bart at vanbrabant.eu>
+
+		* Remove some leftovers from the lock api
+
 2010-02-03	Bart Vanbrabant <bart at vanbrabant.eu>
 
 		* Include the resolve path function from php so it is available for

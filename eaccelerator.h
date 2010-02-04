@@ -307,18 +307,6 @@ typedef struct _ea_used_entry {
 	ea_cache_entry *entry;
 } ea_used_entry;
 
-/*
- * Linked list of locks
- */
-typedef struct _ea_lock_entry {
-	struct _ea_lock_entry *next;
-	pid_t pid;
-#ifdef ZTS
-	THREAD_T thread;
-#endif
-	char key[1];
-} ea_lock_entry;
-
 typedef struct _ea_file_header {
 	char magic[8];				/* "EACCELERATOR" */
 	int eaccelerator_version[2];
@@ -344,7 +332,6 @@ typedef struct {
 	unsigned int rem_cnt;
 	time_t last_prune;
 	ea_cache_entry *removed;
-	ea_lock_entry *locks;
 
 	ea_cache_entry *hash[EA_HASH_SIZE];
 } eaccelerator_mm;
@@ -393,9 +380,6 @@ extern zend_module_entry eaccelerator_module_entry;
 
 void format_size (char *s, unsigned int size, int legend);
 void eaccelerator_prune (time_t t);
-
-int eaccelerator_lock (const char *key, int key_len TSRMLS_DC);
-int eaccelerator_unlock (const char *key, int key_len TSRMLS_DC);
 
 void *eaccelerator_malloc2 (size_t size TSRMLS_DC);
 

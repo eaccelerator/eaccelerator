@@ -258,7 +258,6 @@ static int init_mm(TSRMLS_D) {
   ea_mm_instance->optimizer_enabled = 1;
   ea_mm_instance->check_mtime_enabled = 1;
   ea_mm_instance->removed = NULL;
-  ea_mm_instance->locks = NULL;
   ea_mm_instance->last_prune = time(NULL);	/* this time() call is harmless since this is init phase */
   EACCELERATOR_PROTECT();
   return SUCCESS;
@@ -1500,7 +1499,7 @@ static void eaccelerator_clean_request(TSRMLS_D) {
   ea_used_entry  *p = (ea_used_entry*)EAG(used_entries);
   if (ea_mm_instance != NULL) {
     EACCELERATOR_UNPROTECT();
-    if (p != NULL || ea_mm_instance->locks != NULL) {
+    if (p != NULL) {
       EACCELERATOR_LOCK_RW();
       while (p != NULL) {
         p->entry->use_cnt--;
@@ -1524,26 +1523,6 @@ static void eaccelerator_clean_request(TSRMLS_D) {
           }
         }
         p = p->next;
-      }
-      if (ea_mm_instance->locks != NULL) {
-        pid_t    pid    = getpid();
-#ifdef ZTS
-        THREAD_T thread = tsrm_thread_id();
-#endif
-        ea_lock_entry** p = &ea_mm_instance->locks;
-        while ((*p) != NULL) {
-#ifdef ZTS
-          if ((*p)->pid == pid && (*p)->thread == thread) {
-#else
-          if ((*p)->pid == pid) {
-#endif
-            ea_lock_entry* x = *p;
-            *p = (*p)->next;
-            eaccelerator_free_nolock(x);
-          } else {
-            p = &(*p)->next;
-          }
-        }
       }
       EACCELERATOR_UNLOCK_RW();
     }
