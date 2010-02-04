@@ -10,6 +10,7 @@
 		deadlock conditions. This should fix #381 and is a real fix for #340.
 		Instead of using a fake select as yield, a check is added to disable
 		spinlocks on systems that do not have sched_yield.
+		* Fix spinlocks on Solaris with Sun Compiler. #325
 
 2010-01-22	Bart Vanbrabant <bart at vanbrabant.eu>
 
