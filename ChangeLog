@@ -6,6 +6,8 @@
 2010-02-04	Bart Vanbrabant <bart at vanbrabant.eu>
 
 		* Remove some leftovers from the lock api
+		* Now really add the sched_yield command and not only in commented
+		out
 
 2010-02-03	Bart Vanbrabant <bart at vanbrabant.eu>
 
