@@ -453,7 +453,7 @@ int eaccelerator_md5(char* s, const char* prefix, const char* key TSRMLS_DC) {
     s[n++] = '/';
   }
   s[n] = 0;
-  snprintf(s, MAXPATHLEN-1, "%s%s%s", s, prefix, md5str);
+  snprintf(&s[n], MAXPATHLEN-1-n, "%s%s", prefix, md5str);
   return 1;
 }
 
