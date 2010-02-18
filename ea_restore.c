@@ -572,9 +572,6 @@ zend_op_array *restore_op_array(zend_op_array * to, ea_op_array * from TSRMLS_DC
     ++EAG(refcount_helper);
     to->refcount = &EAG(refcount_helper);
 
-    DBG(ea_debug_pad, (EA_DEBUG TSRMLS_CC));
-    DBG(ea_debug_printf, (EA_DEBUG, "[%d] early_binding=%d\n", getpid(), from->early_binding));
-
     return to;
 }
 
