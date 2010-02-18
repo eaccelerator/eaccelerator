@@ -2,6 +2,7 @@
 
 		* Remove some leftover debug output that broke compilation with
 		  php-5.2 and --with-eaccelerator-debug
+		* php_check_open_basedir only needs to be called when restoring
 
 2010-02-04	Hans Rakers <hans at react.nl>
 
