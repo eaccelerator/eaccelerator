@@ -1,3 +1,8 @@
+2010-02-18	Hans Rakers <hans at react.nl>
+
+		* Remove some leftover debug output that broke compilation with
+		  php-5.2 and --with-eaccelerator-debug
+
 2010-02-04	Hans Rakers <hans at react.nl>
 
 		* Fixed linking of ZEND_DECLARE_INHERITED_CLASS_DELAYED across
