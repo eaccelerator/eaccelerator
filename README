@@ -3,12 +3,13 @@ eAccelerator for PHP
 
 What is eAccelerator?
 ----------------------
-eAccelerator is a free open source PHP  accelerator,  optimizer,  encoder  and
-dynamic content cache for PHP. It increases  performance  of  PHP  scripts  by 
-caching them in compiled state, so that the overhead of  compiling  is  almost
-completely eliminated. It also optimises  the  script  to speed  up  execution
-of PHP scripts. eAccelerator typically reduces server load and  increases  the
-speed of your PHP code by 1-10 times.
+eAccelerator is a free open source PHP accelerator and optimizer for PHP. It
+increases the performance of PHP scripts by caching them in compiled state,
+so the overhead of compiling  is  almost completely eliminated. It also
+optimizes the scripts to speed up execution.
+
+eAccelerator typically reduces server load and increases the speed of your
+PHP code by 1-10 times.
 
 eAccelerator is a fork of TurckMMCache 
 ( http://sourceforge.net/project/turckmm-cache/  by Dmitry Stogov )
@@ -28,11 +29,6 @@ eAccelerator does not work in CGI mode but it does work in Fast-CGI mode with
 webservers like lighttpd.
 
 
-Here are some other products that provide the same functionality:
-
- - Zend Performance Suite (http://www.zend.com/)
- - Alternative PHP Cache (http://pecl.php.net/package/APC)
-
 Download
 --------
 Latest eAccelerator versions can be downloaded at the sourceforge page:
@@ -48,16 +44,16 @@ Requirements
 
 Compatibility
 -------------
-eAccelerator has been reported working with php 5.1 and higher.
-It is being used on Linux, FreeBSD, MacOS X, Solaris and Windows 
-with apache 1.3 and 2, lighttpd and IIS.
+eAccelerator works with php version 5.1 and higher.
+It is being used on Linux, FreeBSD, Mac OS X, Solaris and Windows 
+with Apache 1.3 and 2, lighttpd and IIS.
 
 
 Quick install
 -------------
 
-You can find more information about installation on eAccelerator website.
-http://eaccelerator.sourceforge.net/
+You can find more information about the installation of eAccelerator on our
+website at http://www.eaccelerator.net/
 
 Note(1): for Microsoft Windows installation, please refer to README.win32 file.
 
@@ -90,7 +86,7 @@ If not, you need to edit your php.ini file (usually /etc/php.ini).
 
 To install as Zend extension:
 
-  zend_extension="/usr/lib/php4/eaccelerator.so"
+  zend_extension="/usr/lib/php5/eaccelerator.so"
   eaccelerator.shm_size="16"
   eaccelerator.cache_dir="/tmp/eaccelerator"
   eaccelerator.enable="1"
@@ -102,8 +98,6 @@ To install as Zend extension:
   eaccelerator.shm_ttl="0"
   eaccelerator.shm_prune_period="0"
   eaccelerator.shm_only="0"
-  eaccelerator.compress="1"
-  eaccelerator.compress_level="9"
 
   If you use thread safe build of PHP you must use "zend_extension_ts" instead
   of "zend_extension".
@@ -122,8 +116,6 @@ To install as PHP extension:
   eaccelerator.shm_ttl="0"
   eaccelerator.shm_prune_period="0"
   eaccelerator.shm_only="0"
-  eaccelerator.compress="1"
-  eaccelerator.compress_level="9"  
 
 Step 4. Creating cache directory
 
@@ -191,31 +183,6 @@ eaccelerator.shm_only
     on session data and content caching. Default value is "0" that means -  use
     disk and shared memory for caching.
 
-eaccelerator.compress
-    Enables or disables cached content compression. Default value is  "1"  that
-    means enable compression.
-
-eaccelerator.compress_level
-    Compression level used for content caching.  Default value is "9" which  is
-    the maximum value
-
-eaccelerator.name_space
-    A string that's prepended to all keys. This allows two applications that 
-    use the same key names to run on the same host by setting this in .htaccess
-    or in the main configuration file for the whole webserver.
-    
-eaccelerator.keys
-eaccelerator.sessions
-eaccelerator.content
-    Determine where keys, session data and content will be cached. The possible
-    values are:
-    "shm_and_disk" - cache data in shared memory and on disk (default value)
-    "shm"          - cache data in shared memory or on disk if shared memory
-                     is full or data size greater then "eaccelerator.shm_max"
-    "shm_only"     - cache data in shared memory
-    "disk_only"    - cache data on disk
-    "none"         - don't cache data
-
 eaccelerator.allowed_admin_path
     The script paths that are allowed to get admin information and do admin 
     controls
@@ -230,7 +197,8 @@ in the php.ini or eaccelerator.ini in the eaccelerator.allowed_admin_path
 directive. If you don't do this you wont be able to see much information and 
 can't control eAccelerator.
 You can set the username and password needed to access the control-panel in 
-the control.php file.
+the control.php file. By default the username is administrator and the password
+is eAccelerator.
 
 When you compile eAccelerator with --with-eaccelerator-disassembler you need 
 to place the dasm.php and PHP_Highlight.php file also in the same directory 
@@ -247,4 +215,4 @@ API documentation can be found on this website: http://bart.eaccelerator.net/doc
 Contact us
 ----------
 You can contact us with questions, patches or bugs, by sending an email to
-Bart Vanbrabant <zoeloelip at users.sourceforge.net>
+Bart Vanbrabant <bart at vanbrabant.eu>
