@@ -1,3 +1,8 @@
+2010-02-24	Hans Rakers <hans at react.nl>
+
+		* Fixed double free in eaccelerator_globals_dtor. This closes
+		  ticket #404
+
 2010-02-18	Hans Rakers <hans at react.nl>
 
 		* Remove some leftover debug output that broke compilation with

@@ -1627,10 +1627,10 @@ static void eaccelerator_globals_dtor(zend_eaccelerator_globals *eag)
 	/* free the list of patterns */
 	p = eag->pattern_list;
 	while (p != NULL) {
-		q = p;
+		q = p->next;
 		free(p->pattern);
 		free(p);
-		p = q->next;
+		p = q;
 	}
 	eag->pattern_list = NULL;
 }
