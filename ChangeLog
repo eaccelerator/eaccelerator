@@ -1,3 +1,15 @@
+2010-02-25	Hans Rakers <hans at react.nl>
+
+		* Fixed class static variable restore where parent was protected
+		  static and child was public static. This would lead to error
+		  'Access to undeclared static property' upon restore from cache
+		* Added proper handling of class properties during storing in
+		  cache. Public/private/protected is properly handled now. Somehow
+		  this was a long overdue TODO spotted by running the testsuite.
+		  This fixes ticket #408
+		* Small fix that solves some issues with lambda (closure)
+		  functions. This solves ticket #405
+
 2010-02-24	Hans Rakers <hans at react.nl>
 
 		* Fixed double free in eaccelerator_globals_dtor. This closes
