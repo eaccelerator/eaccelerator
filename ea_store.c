@@ -671,17 +671,26 @@ static zend_property_info *store_property_info(char **at, zend_property_info * f
  * parent, the restore phase will take care of that.
  *
  * Most of the logic behind all this can be found in zend_compile.c, functions zend_do_inheritance and
- * zend_do_inherit_property_access_check
+ * do_inherit_property_access_check
 */
 static int store_property_access_check(Bucket * p, zend_class_entry * from_ce)
 {
     zend_class_entry *from = from_ce;
     zend_class_entry *parent = from->parent;
-    
-    if (parent) {
-        // hra: TODO - do some usefull stuff :)
-        // check for ACC_PRIVATE etc.
-        // for now, just return keep
+    zend_property_info* child_info = (zend_property_info*)p->pData;
+    zend_property_info* parent_info = NULL; 
+
+    return (child_info->ce != from);
+
+    if (parent && zend_hash_quick_find(&parent->properties_info, p->arKey, p->nKeyLength, p->h, (void **) &parent_info)==SUCCESS) {
+      if(parent_info->flags & ZEND_ACC_PRIVATE) {
+        return ZEND_HASH_APPLY_KEEP;
+      }
+      /* if public/private/protected mask differs: copy, else let zend_do_inheritance handle this */
+      if((parent_info->flags & ZEND_ACC_PPP_MASK) != (child_info->flags & ZEND_ACC_PPP_MASK)) {
+        return ZEND_HASH_APPLY_KEEP;
+      }
+      return ZEND_HASH_APPLY_REMOVE;
     }
     return ZEND_HASH_APPLY_KEEP;
 }
@@ -713,11 +722,6 @@ static int store_static_member_access_check(Bucket * p, zend_class_entry * from_
         /* lookup the member's info in parent and child */
         if((zend_hash_find(&parent->properties_info, mname, strlen(mname)+1, &pinfo.ptr) == SUCCESS) &&
             (zend_hash_find(&from->properties_info, mname, strlen(mname)+1, &cinfo.ptr) == SUCCESS)) {
-            /* don't copy this static property if protected in parent and static public in child.
-               inheritance will handle this properly on restore */
-            if(cinfo.v->flags & ZEND_ACC_STATIC && (pinfo.v->flags & ZEND_ACC_PROTECTED && cinfo.v->flags & ZEND_ACC_PUBLIC)) {
-                return ZEND_HASH_APPLY_REMOVE;
-            }
             /* If the static member points to the same value in parent and child, remove for proper inheritance during restore */
             if(zend_hash_quick_find(&parent->default_static_members, p->arKey, p->nKeyLength, p->h, &pprop.ptr) == SUCCESS) {
                 if(*pprop.v == *cprop.v) {
