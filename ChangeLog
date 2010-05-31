@@ -1,6 +1,7 @@
 2010-05-31  Bart Vanbrabant <bart at vanbrabant.eu>
 		
 		* Release version 0.9.6.1
+		* php_check_open_basedir only needs to be called when restoring
 
 2010-02-25	Hans Rakers <hans at react.nl>
 

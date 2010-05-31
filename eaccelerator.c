@@ -863,6 +863,10 @@ static zend_op_array* eaccelerator_restore(char *realname, struct stat *buf,
   }
   EACCELERATOR_PROTECT();
   if (p != NULL && p->op_array != NULL) {
+    /* only restore file when open_basedir allows it */
+    if (php_check_open_basedir(realname TSRMLS_CC)) {
+      return NULL;
+    }		
     EAG(class_entry) = NULL;
     op_array = restore_op_array(NULL, p->op_array TSRMLS_CC);
     if (op_array != NULL) {
@@ -1150,11 +1154,6 @@ ZEND_DLEXPORT zend_op_array* eaccelerator_compile_file(zend_file_handle *file_ha
 #endif
     DBG(ea_debug_printf, (EA_DEBUG, "[%d] Leave COMPILE\n", getpid()));
     return t;
-  }
-
-  /* only restore file when open_basedir allows it */
-  if (PG(open_basedir) && php_check_open_basedir(realname TSRMLS_CC)) {
-    zend_error(E_ERROR, "Can't load %s, open_basedir restriction.", file_handle->filename);
   }
 
   if (buf.st_mtime >= EAG(req_start) && ea_debug > 0) {
