@@ -1,3 +1,7 @@
+2010-05-31  Bart Vanbrabant <bart at vanbrabant.eu>
+		
+		* Release version 0.9.6.1
+
 2010-02-25	Hans Rakers <hans at react.nl>
 
 		* Fixed class static variable restore where parent was protected
