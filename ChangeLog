@@ -1,3 +1,7 @@
+2010-06-03	Hans Rakers <hans at react.nl>
+
+		* Fixed compilation against php-5.1. This closes ticket #426.
+
 2010-02-25	Hans Rakers <hans at react.nl>
 
 		* Fixed class static variable restore where parent was protected
