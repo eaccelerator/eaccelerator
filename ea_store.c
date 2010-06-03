@@ -680,7 +680,9 @@ static int store_property_access_check(Bucket * p, zend_class_entry * from_ce)
     zend_property_info* child_info = (zend_property_info*)p->pData;
     zend_property_info* parent_info = NULL; 
 
+#ifdef ZEND_ENGINE_2_2
     return (child_info->ce != from);
+#endif
 
     if (parent && zend_hash_quick_find(&parent->properties_info, p->arKey, p->nKeyLength, p->h, (void **) &parent_info)==SUCCESS) {
       if(parent_info->flags & ZEND_ACC_PRIVATE) {

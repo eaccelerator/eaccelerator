@@ -1,4 +1,8 @@
-2010-05-31  Bart Vanbrabant <bart at vanbrabant.eu>
+2010-06-02	Hans Rakers <hans at react.nl>
+
+		* Fixed compilation against php-5.1. This closes ticket #426.
+
+2010-05-31	Bart Vanbrabant <bart at vanbrabant.eu>
 		
 		* Release version 0.9.6.1
 		* php_check_open_basedir only needs to be called when restoring
