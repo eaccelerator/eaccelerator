@@ -94,7 +94,6 @@ To install as Zend extension:
   eaccelerator.check_mtime="1"
   eaccelerator.debug="0"
   eaccelerator.filter=""
-  eaccelerator.shm_max="0"
   eaccelerator.shm_ttl="0"
   eaccelerator.shm_prune_period="0"
   eaccelerator.shm_only="0"
@@ -112,7 +111,6 @@ To install as PHP extension:
   eaccelerator.check_mtime="1"
   eaccelerator.debug="0"
   eaccelerator.filter=""
-  eaccelerator.shm_max="0"
   eaccelerator.shm_ttl="0"
   eaccelerator.shm_prune_period="0"
   eaccelerator.shm_only="0"
@@ -161,11 +159,6 @@ eaccelerator.filter
     which are matched by the following pattern. Default value is "" that means 
     all PHP scripts will be cached.
 
-eaccelerator.shm_max
-    Disables putting large values into shared memory by " eaccelerator_put() "
-    function. It indicates the largest allowed size in bytes (10240, 10K, 1M). 
-    The "0" disables the limit. Default value is "0".
-
 eaccelerator.shm_ttl
     When eaccelerator fails to get shared memory for new script it removes all
     scripts which were not accessed  at  last "shm_ttl"  seconds  from  shared
@@ -206,6 +199,15 @@ as the control.php file. The disassembler requires PHP to be compiled with
 tokenizer support (--enable-tokenizer).
 You can set the username and password needed to access the disassembler at the
 top of dasm.php.
+
+Known Issues
+------------
+
+* If you use the php ini directive open_basedir for security, be sure to
+  compile eAccelerator with --without-eaccelerator-use-inode. The inode based
+  cache storage mechanism is not compatible with open_basedir. Using
+  open_basedir in conjunction with the inode based cache storage mechanism
+  will result in PHP fatal errors (open_basedir restriction).
 
 eAccelerator API
 ----------------
