@@ -94,7 +94,6 @@ To install as Zend extension:
   eaccelerator.check_mtime="1"
   eaccelerator.debug="0"
   eaccelerator.filter=""
-  eaccelerator.shm_max="0"
   eaccelerator.shm_ttl="0"
   eaccelerator.shm_prune_period="0"
   eaccelerator.shm_only="0"
@@ -112,7 +111,6 @@ To install as PHP extension:
   eaccelerator.check_mtime="1"
   eaccelerator.debug="0"
   eaccelerator.filter=""
-  eaccelerator.shm_max="0"
   eaccelerator.shm_ttl="0"
   eaccelerator.shm_prune_period="0"
   eaccelerator.shm_only="0"
@@ -160,11 +158,6 @@ eaccelerator.filter
     cache. If pattern starts with the character "!", it means to ignore  files
     which are matched by the following pattern. Default value is "" that means 
     all PHP scripts will be cached.
-
-eaccelerator.shm_max
-    Disables putting large values into shared memory by " eaccelerator_put() "
-    function. It indicates the largest allowed size in bytes (10240, 10K, 1M). 
-    The "0" disables the limit. Default value is "0".
 
 eaccelerator.shm_ttl
     When eaccelerator fails to get shared memory for new script it removes all
