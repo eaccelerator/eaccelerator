@@ -332,6 +332,7 @@ typedef struct {
 	unsigned int rem_cnt;
 	time_t last_prune;
 	ea_cache_entry *removed;
+	uid_t cache_dir_uid;
 
 	ea_cache_entry *hash[EA_HASH_SIZE];
 } eaccelerator_mm;

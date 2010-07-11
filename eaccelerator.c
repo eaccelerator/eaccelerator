@@ -257,6 +257,7 @@ static int init_mm(TSRMLS_D) {
   ea_mm_instance->optimizer_enabled = 1;
   ea_mm_instance->check_mtime_enabled = 1;
   ea_mm_instance->removed = NULL;
+  ea_mm_instance->cache_dir_uid = 0;
   ea_mm_instance->last_prune = time(NULL);	/* this time() call is harmless since this is init phase */
   EACCELERATOR_PROTECT();
   return SUCCESS;
@@ -391,7 +392,7 @@ int eaccelerator_md5(char* s, const char* prefix, const char* key TSRMLS_DC) {
   PHP_MD5Update(&context, (unsigned char*)key, strlen(key));
   PHP_MD5Final(digest, &context);
   make_digest(md5str, digest);
-  snprintf(s, MAXPATHLEN-1, "%s/", EAG(cache_dir));
+  snprintf(s, MAXPATHLEN-1, "%s/%d/", EAG(cache_dir), ea_mm_instance->cache_dir_uid);
   n = strlen(s);
   for (i = 0; i < EACCELERATOR_HASH_LEVEL && n < MAXPATHLEN - 1; i++) {
     s[n++] = md5str[i];
@@ -1655,30 +1656,95 @@ static int eaccelerator_check_php_version(TSRMLS_D) {
   return ret;
 }
 
+/*
+ * Create a hash directory
+ */
 static void make_hash_dirs(char *fullpath, int lvl) {
-  int j;
-  int n = strlen(fullpath);
-  mode_t old_umask = umask(0);
-  
-  if (lvl < 1)
-    return;
-  if (fullpath[n-1] != '/')
-    fullpath[n++] = '/';
-  
-  for (j = 0; j < 16; j++) {
-    fullpath[n] = num2hex[j];       
-    fullpath[n+1] = 0;
-    mkdir(fullpath, 0777);
-    make_hash_dirs(fullpath, lvl-1);
-  }
-  fullpath[n+2] = 0;
-  umask(old_umask);
+	int j;
+	int n = strlen(fullpath);
+
+	//ea_debug_error("Creating hash in %s at level %d\n", fullpath, lvl);
+
+	if (lvl < 1) {
+		return;
+	}
+
+	if (fullpath[n-1] != '/') {
+		fullpath[n++] = '/';
+	}
+
+	for (j = 0; j < 16; j++) {
+		fullpath[n] = num2hex[j];
+		fullpath[n+1] = 0;
+		mkdir(fullpath, 0700);
+		make_hash_dirs(fullpath, lvl-1);
+	}
+	fullpath[n+2] = 0;
 }
 
+/*
+ * Initialise the cache directory for use
+ */
+static void init_cache_dir(const char *cache_path) {
+	char fullpath[MAXPATHLEN];
+	uid_t uid = getuid();
+	mode_t old_umask = umask(077);
+	struct stat buffer;
+
+    snprintf(fullpath, MAXPATHLEN-1, "%s/%d/", cache_path, uid);
+    if (lstat(fullpath, &buffer) != 0) {
+    	// error, create the directory
+        if (mkdir(fullpath, 0700) != 0) {
+        	ea_debug_error("Unable to create cachedir %s\n", fullpath);
+        	return;
+        }
+    } else if (!S_ISDIR(buffer.st_mode)) {
+    	// not a directory
+		ea_debug_error("Cachedir %s exists but is not a directory\n",
+				fullpath);
+		return;
+	}
+
+    // create the hashed dirs
+    make_hash_dirs(fullpath, EACCELERATOR_HASH_LEVEL);
+
+	umask(old_umask);
+
+	ea_mm_instance->cache_dir_uid = uid;
+}
+
+/*
+ * Check if the cache dir exists and is world-writable so the forked process
+ * can create the cache directories
+ */
+static void check_cache_dir(const char *cache_path) {
+	struct stat buffer;
+	mode_t old_umask = umask(0);
+
+	int status = stat(cache_path, &buffer);
+
+	if (status == 0) {
+		// check permissions
+		if (buffer.st_mode != 777) {
+			status = chmod(cache_path, 0777);
+			if (status < 0) {
+				ea_debug_error(
+					"Unable to change cache cache directory %s permissions\n",
+					cache_path);
+			}
+		}
+	} else {
+		// create the cache directory if possible
+		status = mkdir(cache_path, 0777);
+		if (status < 0) {
+			ea_debug_error("Unable to create cache directory %s\n", cache_path);
+		}
+	}
+
+	umask(old_umask);
+}
 
 PHP_MINIT_FUNCTION(eaccelerator) {
-  char fullpath[MAXPATHLEN];
-
   if (type == MODULE_PERSISTENT) {
 #ifndef ZEND_WIN32
     if (strcmp(sapi_module.name,"apache") == 0) {
@@ -1710,10 +1776,7 @@ PHP_MINIT_FUNCTION(eaccelerator) {
 
   ea_debug_init(TSRMLS_C);
 
-  if(!ea_scripts_shm_only) {
-    snprintf(fullpath, MAXPATHLEN-1, "%s/", EAG(cache_dir));
-    make_hash_dirs(fullpath, EACCELERATOR_HASH_LEVEL);
-  }
+  check_cache_dir(EAG(cache_dir));
 
   if (type == MODULE_PERSISTENT &&
       strcmp(sapi_module.name, "cgi") != 0 &&
@@ -1809,6 +1872,16 @@ PHP_RINIT_FUNCTION(eaccelerator)
 
 	DBG(ea_debug_printf, (EA_DEBUG, "[%d] Leave RINIT\n",getpid()));
 	
+	if (ea_mm_instance->cache_dir_uid != getuid()) {
+		// lock this operation with a global eA lock and do the check again
+		// to avoid multiple calls during startup
+		EACCELERATOR_LOCK_RW();
+		if (ea_mm_instance->cache_dir_uid != getuid()) {
+			init_cache_dir(EAG(cache_dir));
+		}
+		EACCELERATOR_UNLOCK();
+	}
+
 	return SUCCESS;
 }
 
@@ -1870,14 +1943,14 @@ function_entry eaccelerator_functions[] = {
 #ifdef WITH_EACCELERATOR_INFO
   PHP_FE(eaccelerator_caching, NULL)
   PHP_FE(eaccelerator_clear, NULL)
-	PHP_FE(eaccelerator_clean, NULL)
+  PHP_FE(eaccelerator_clean, NULL)
   PHP_FE(eaccelerator_info, NULL)
   PHP_FE(eaccelerator_purge, NULL)
   PHP_FE(eaccelerator_cached_scripts, NULL)
   PHP_FE(eaccelerator_removed_scripts, NULL)
   PHP_FE(eaccelerator_check_mtime, NULL)
   #ifdef WITH_EACCELERATOR_OPTIMIZER
-    PHP_FE(eaccelerator_optimizer, NULL)
+  PHP_FE(eaccelerator_optimizer, NULL)
   #endif
 #endif
 #ifdef WITH_EACCELERATOR_DISASSEMBLER
