@@ -485,7 +485,7 @@ static void del_bb(BB* bb)
   bb->len  = 0;
   bb->used = 0;
 }
-
+/*
 static void replace_bb(BB* src, BB* dst)
 {
   BBlink* p = src->pred;
@@ -512,7 +512,7 @@ static void replace_bb(BB* src, BB* dst)
   }
   src->pred = NULL;
 }
-
+*/
 static void optimize_jmp(BB* bb, zend_op_array* op_array)
 {
   BB* p;
