@@ -1776,7 +1776,11 @@ PHP_MINIT_FUNCTION(eaccelerator) {
 
   ea_debug_init(TSRMLS_C);
 
-  check_cache_dir(EAG(cache_dir));
+#ifndef ZEND_WIN32
+  if (!ea_scripts_shm_only) {
+	  check_cache_dir(EAG(cache_dir));
+  }
+#endif
 
   if (type == MODULE_PERSISTENT &&
       strcmp(sapi_module.name, "cgi") != 0 &&
@@ -1871,8 +1875,9 @@ PHP_RINIT_FUNCTION(eaccelerator)
 #endif
 
 	DBG(ea_debug_printf, (EA_DEBUG, "[%d] Leave RINIT\n",getpid()));
-	
-	if (ea_mm_instance->cache_dir_uid != getuid()) {
+
+#ifndef ZEND_WIN32
+	if (!ea_scripts_shm_only && ea_mm_instance->cache_dir_uid != getuid()) {
 		// lock this operation with a global eA lock and do the check again
 		// to avoid multiple calls during startup
 		EACCELERATOR_LOCK_RW();
@@ -1881,6 +1886,14 @@ PHP_RINIT_FUNCTION(eaccelerator)
 		}
 		EACCELERATOR_UNLOCK();
 	}
+#else
+	if(!ea_scripts_shm_only) {
+		char fullpath[MAXPATHLEN];
+
+		snprintf(fullpath, MAXPATHLEN-1, "%s/", EAG(cache_dir));
+		make_hash_dirs(fullpath, EACCELERATOR_HASH_LEVEL);
+	}
+#endif
 
 	return SUCCESS;
 }
