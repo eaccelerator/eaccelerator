@@ -2673,7 +2673,7 @@ static int build_cfg(zend_op_array *op_array, BB* bb)
 				bb[line_num+1].start = op+1;
 				break;
 #ifdef ZEND_GOTO
-            case ZEND_GOTO:
+			case ZEND_GOTO:
 #endif
 			case ZEND_JMP:
 				bb[op->op1.u.opline_num].start = &op_array->opcodes[op->op1.u.opline_num];
@@ -2836,16 +2836,10 @@ cont_failed:
 			{
 				case ZEND_JMP:
 				    p->jmp_1 = &bb[op->op1.u.opline_num];
-					if (op->extended_value == ZEND_BRK || op->extended_value == ZEND_CONT)
-					{
-						/* This was a ZEND_BRK or ZEND_CONT opcode changed into a ZEND_JMP in an earlier stage.
-						   see comment above ZEND_BRK/ZEND_CONT below */
-						p->follow = (innermost_ketchup > 0) ? &bb[innermost_ketchup] : &bb[len-1];
-					}
 #  if (PHP_MAJOR_VERSION == 5 && PHP_MINOR_VERSION >= 2 && PHP_RELEASE_VERSION >= 1) || PHP_MAJOR_VERSION >= 6
 					/* php >= 5.2.1 introduces a ZEND_JMP before a ZEND_FETCH_CLASS and ZEND_CATCH
 					   this leaves those blocks intact */
-					else if ((op+1)->opcode == ZEND_FETCH_CLASS && (op+2)->opcode == ZEND_CATCH) { /* fix for #242 */
+					if ((op+1)->opcode == ZEND_FETCH_CLASS && (op+2)->opcode == ZEND_CATCH) { /* fix for #242 */
 						p->follow = &bb[line_num];
 					}
 #  endif
@@ -2868,10 +2862,10 @@ cont_failed:
 					p->follow = &bb[line_num];
 					break;
 #ifdef ZEND_GOTO
-                case ZEND_GOTO:
-                    p->jmp_1 = &bb[op->op1.u.opline_num];
-                    p->follow = &bb[line_num];
-                    break;
+				case ZEND_GOTO:
+					p->jmp_1 = &bb[op->op1.u.opline_num];
+					p->follow = &bb[line_num];
+					break;
 #endif
 				case ZEND_RETURN:
 				case ZEND_EXIT:

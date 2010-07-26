@@ -1,12 +1,23 @@
-2010-07-11 Bart Vanbrabant <bart@vanbrabant.eu>
+2010-07-26	Hans Rakers <hans at react.nl>
 
-    * Changed the way the cache directory is created:
+		* Fix for ticket #432. The optimizer would eliminate the final
+		  ZEND_RETURN of an op array if the script ended with a switch
+		  statement. Last opcodes ZEND_BRK, ZEND_JMP, ZEND_JMP,
+		  ZEND_RETURN. ZEND_BRK gets optimized to a JMP, which is a JMP
+		  to RETURN so gets eliminated. Other 2 JMPs get eliminated,
+		  RETURN loses all predecessors, and thus gets eliminated aswell,
+		  resulting in a crash. Problem ended up being in the handling of
+		  the ZEND_BRK to ZEND_JMP optimization. /long story
+
+2010-07-11	Bart Vanbrabant <bart@vanbrabant.eu>
+
+		* Changed the way the cache directory is created:
 		- The forked process creates the cache dir and makes it world writable
 		- The first request creates a subdir with the userid of the process and
 		with permissions 700.
 
-	* Comment out an unused function to support compilin with -Werror
-	* Add sched.h include to fix a compiler warning
+		* Comment out an unused function to support compilin with -Werror
+		* Add sched.h include to fix a compiler warning
 
 2010-06-03	Hans Rakers <hans at react.nl>
 
