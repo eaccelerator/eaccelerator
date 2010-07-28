@@ -1729,7 +1729,7 @@ static void check_cache_dir(const char *cache_path) {
 			status = chmod(cache_path, 0777);
 			if (status < 0) {
 				ea_debug_error(
-					"Unable to change cache cache directory %s permissions\n",
+					"eAccelerator: Unable to change cache directory %s permissions\n",
 					cache_path);
 			}
 		}
@@ -1737,7 +1737,7 @@ static void check_cache_dir(const char *cache_path) {
 		// create the cache directory if possible
 		status = mkdir(cache_path, 0777);
 		if (status < 0) {
-			ea_debug_error("Unable to create cache directory %s\n", cache_path);
+			ea_debug_error("eAccelerator: Unable to create cache directory %s\n", cache_path);
 		}
 	}
 

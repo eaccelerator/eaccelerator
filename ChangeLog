@@ -1,3 +1,8 @@
+2010-07-28  Bart Vanbrabant <bart at vanbrabant.eu>
+
+		* Make the error message about creating the cache directory more
+		  clear.
+
 2010-07-26	Hans Rakers <hans at react.nl>
 
 		* Fix for ticket #432. The optimizer would eliminate the final
