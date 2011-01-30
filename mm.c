@@ -617,12 +617,12 @@ static void mm_destroy_lock(mm_mutex* lock)
 #elif defined(MM_SEM_BEOS)
 
 #define MM_SEM_TYPE "beos"
-#error "Semophore type (MM_SEM_BEOS) is not implemented"
+#error "Semaphore type (MM_SEM_BEOS) is not implemented"
 
 #elif defined(MM_SEM_OS2)
 
 #define MM_SEM_TYPE "os2"
-#error "Semophore type (MM_SEM_OS2) is not implemented"
+#error "Semaphore type (MM_SEM_OS2) is not implemented"
 
 #elif defined(MM_SEM_WIN32)
 
@@ -738,7 +738,7 @@ static int mm_do_unlock(mm_mutex* lock)
 }
 
 #else
-#  error "Semaohore type is not selected. Define one of the following: MM_SEM_SPINLOCK, MM_SEM_PTHREAD, MM_SEM_POSIX, MM_SEM_IPC, MM_SEM_FCNTL, MM_SEM_FLOCK, MM_SEM_BEOS, MM_SEM_OS2, MM_SEM_WIN32"
+#  error "Semaphore type is not selected. Define one of the following: MM_SEM_SPINLOCK, MM_SEM_PTHREAD, MM_SEM_POSIX, MM_SEM_IPC, MM_SEM_FCNTL, MM_SEM_FLOCK, MM_SEM_BEOS, MM_SEM_OS2, MM_SEM_WIN32"
 #endif
 
 int mm_lock(MM* mm, int kind)
@@ -981,14 +981,14 @@ static void mm_destroy_shm(MM* mm)
 #elif defined(MM_SHM_BEOS)
 
 #define MM_SHM_TYPE "beos"
-#error "Shared memeory type (MM_SHM_BEOS) is not implemented"
+#error "Shared memory type (MM_SHM_BEOS) is not implemented"
 
 /* ######################################################################### */
 
 #elif defined(MM_SHM_OS2)
 
 #define MM_SHM_TYPE "os2"
-#error "Shared memeory type (MM_SHM_OS2) is not implemented"
+#error "Shared memory type (MM_SHM_OS2) is not implemented"
 
 /* ######################################################################### */
 
@@ -1106,7 +1106,7 @@ static void mm_destroy_shm(MM* mm)
 
 #else
 #define MM_SHM_TYPE "none"
-#  error "Shared memeory type is not selected. Define one of the following: MM_SHM_IPC, MM_SHM_MMAP_ANON, MM_SHM_MMAP_ZERO, MM_SHM_MMAP_FILE, MM_SHM_MALLOC, MM_SHM_BEOS, MM_SHM_OS2, MM_SHM_WIN32"
+#  error "Shared memory type is not selected. Define one of the following: MM_SHM_IPC, MM_SHM_MMAP_ANON, MM_SHM_MMAP_ZERO, MM_SHM_MMAP_FILE, MM_SHM_MALLOC, MM_SHM_BEOS, MM_SHM_OS2, MM_SHM_WIN32"
 #endif
 
 #ifdef MM_SHM_MALLOC
