@@ -131,6 +131,7 @@ static ea_cache_entry* hash_find_mm(const char  *key,
 {
     unsigned int hv, slot;
     ea_cache_entry *p, *q;
+  int key_len = strlen(key);
 
     hv = zend_get_hash_value((char *)key, strlen(key));
     slot = hv & EA_HASH_MAX;
@@ -139,7 +140,7 @@ static ea_cache_entry* hash_find_mm(const char  *key,
     q = NULL;
     p = ea_mm_instance->hash[slot];
     while (p != NULL) {
-        if ((p->hv == hv) && (strcmp(p->realfilename, key) == 0)) {
+    if (p->hv == hv && p->realfilename_len == key_len && memcmp(p->realfilename, key, key_len) == 0) {
             if (EAG(check_mtime_enabled) && ea_mm_instance->check_mtime_enabled &&
                     (buf->st_mtime != p->mtime || buf->st_size != p->filesize)) {
                 /* key is invalid. Remove it. */
@@ -185,7 +186,7 @@ static void hash_add_mm(ea_cache_entry *x)
 {
     ea_cache_entry *p,*q;
     unsigned int slot;
-    x->hv = zend_get_hash_value(x->realfilename, strlen(x->realfilename));
+  x->hv = zend_get_hash_value(x->realfilename, x->realfilename_len);
     slot = x->hv & EA_HASH_MAX;
 
     EACCELERATOR_LOCK_RW();
@@ -195,8 +196,7 @@ static void hash_add_mm(ea_cache_entry *x)
     q = x;
     p = x->next;
     while (p != NULL) {
-        if ((p->hv == x->hv) &&
-                (strcmp(p->realfilename, x->realfilename) == 0)) {
+    if (p->hv == x->hv && p->realfilename_len == x->realfilename_len && memcmp(p->realfilename, x->realfilename, p->realfilename_len) == 0) {
             q->next = p->next;
             ea_mm_instance->hash_cnt--;
             ea_mm_instance->hash[slot]->nreloads += p->nreloads;

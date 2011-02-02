@@ -346,6 +346,7 @@ typedef struct _ea_cache_entry {
     ea_fc_entry *f_head;		/* list of nested functions          */
     ea_fc_entry *c_head;		/* list of nested classes            */
     zend_bool removed;			/* the entry is scheduled to remove  */
+	int realfilename_len;
     char realfilename[1];		/* real file name (must be last el.) */
 } ea_cache_entry;
 
