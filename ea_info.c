@@ -122,12 +122,12 @@ static void clear_filecache(const char* dir)
     size_t dirlen = strlen(dir);
 
     memcpy(path, dir, dirlen);
-    strcpy(path + dirlen++, "\\eaccelerator*");
+    strlcpy(path + dirlen++, "\\eaccelerator*", sizeof(path));
 
     hFind = FindFirstFile(path, &wfd);
     if (hFind == INVALID_HANDLE_VALUE) {
         do {
-            strcpy(path + dirlen, wfd.cFileName);
+			strlcpy(path + dirlen, wfd.cFileName, sizeof(path));
             if (FILE_ATTRIBUTE_DIRECTORY & wfd.dwFileAttributes) {
                 clear_filecache(path);
             } else if (!DeleteFile(path)) {

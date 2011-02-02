@@ -998,7 +998,7 @@ static int ea_get_realname(zend_file_handle *file_handle, char* realname TSRMLS_
     }
 
     if (file_handle->opened_path != NULL) {
-        strcpy(realname, file_handle->opened_path);
+		strlcpy(realname, file_handle->opened_path, MAXPATHLEN);
         return 1;
     }
 
@@ -1016,7 +1016,7 @@ static int ea_get_realname(zend_file_handle *file_handle, char* realname TSRMLS_
             return 0;
         }
 
-        strcpy(realname, temp_name);
+		strlcpy(realname, temp_name, MAXPATHLEN);
         efree(temp_name);
         return 1;
     }
@@ -1068,7 +1068,7 @@ static int eaccelerator_stat(zend_file_handle *file_handle,
             if (filename_len >= MAXPATHLEN) {
                 return 0;
             }
-            strcpy(realname, file_handle->filename);
+			strlcpy(realname, file_handle->filename, MAXPATHLEN);
             return (stat(phar_name, buf) == 0 && S_ISREG(buf->st_mode));
         }
 #endif
