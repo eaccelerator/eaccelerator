@@ -817,14 +817,14 @@ static zend_op_array* eaccelerator_restore(char *realname, struct stat *buf,
             /* only restore the classes and functions when we restore this script
              * for the first time.
              */
-            if (!zend_hash_exists(&EAG(restored), p->realfilename, strlen(p->realfilename))) {
+      if (!zend_hash_exists(&EAG(restored), p->realfilename, p->realfilename_len)) {
                 for (e = p->c_head; e!=NULL; e = e->next) {
                     restore_class(e TSRMLS_CC);
                 }
                 for (e = p->f_head; e!=NULL; e = e->next) {
                     restore_function(e TSRMLS_CC);
                 }
-                zend_hash_add(&EAG(restored), p->realfilename, strlen(p->realfilename), NULL, 0, NULL);
+				zend_hash_add(&EAG(restored), p->realfilename, p->realfilename_len, NULL, 0, NULL);  
             }
             EAG(mem) = p->realfilename;
         }
