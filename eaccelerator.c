@@ -133,7 +133,7 @@ static ea_cache_entry* hash_find_mm(const char  *key,
     ea_cache_entry *p, *q;
   int key_len = strlen(key);
 
-    hv = zend_get_hash_value((char *)key, strlen(key));
+  hv = zend_get_hash_value((char *)key, strlen(key) + 1);
     slot = hv & EA_HASH_MAX;
 
     EACCELERATOR_LOCK_RW();
@@ -186,7 +186,7 @@ static void hash_add_mm(ea_cache_entry *x)
 {
     ea_cache_entry *p,*q;
     unsigned int slot;
-  x->hv = zend_get_hash_value(x->realfilename, x->realfilename_len);
+  x->hv = zend_get_hash_value(x->realfilename, x->realfilename_len + 1);
     slot = x->hv & EA_HASH_MAX;
 
     EACCELERATOR_LOCK_RW();
@@ -817,14 +817,14 @@ static zend_op_array* eaccelerator_restore(char *realname, struct stat *buf,
             /* only restore the classes and functions when we restore this script
              * for the first time.
              */
-      if (!zend_hash_exists(&EAG(restored), p->realfilename, p->realfilename_len)) {
+      if (!zend_hash_exists(&EAG(restored), p->realfilename, p->realfilename_len + 1)) {
                 for (e = p->c_head; e!=NULL; e = e->next) {
                     restore_class(e TSRMLS_CC);
                 }
                 for (e = p->f_head; e!=NULL; e = e->next) {
                     restore_function(e TSRMLS_CC);
                 }
-				zend_hash_add(&EAG(restored), p->realfilename, p->realfilename_len, NULL, 0, NULL);  
+				zend_hash_add(&EAG(restored), p->realfilename, p->realfilename_len + 1, NULL, 0, NULL);  
             }
             EAG(mem) = p->realfilename;
         }
