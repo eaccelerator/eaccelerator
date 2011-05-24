@@ -1344,7 +1344,9 @@ ZEND_DLEXPORT zend_op_array* eaccelerator_compile_file(zend_file_handle *file_ha
 #endif
     DBG(ea_debug_printf, (EA_DEBUG, "[%d] Leave COMPILE\n", getpid()));
 #ifdef ZEND_COMPILE_DELAYED_BINDING
+  if (t) {
     zend_do_delayed_early_binding(t TSRMLS_CC);
+  }
 #endif
     return t;
 }
