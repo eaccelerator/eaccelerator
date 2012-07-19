@@ -2,7 +2,7 @@
    +----------------------------------------------------------------------+
    | eAccelerator project                                                 |
    +----------------------------------------------------------------------+
-   | Copyright (c) 2004 - 2010 eAccelerator                               |
+   | Copyright (c) 2004 - 2012 eAccelerator                               |
    | http://eaccelerator.net                                              |
    +----------------------------------------------------------------------+
    | This program is free software; you can redistribute it and/or        |
@@ -22,7 +22,7 @@
    |                                                                      |
    | A copy is availble at http://www.gnu.org/copyleft/gpl.txt            |
    +----------------------------------------------------------------------+
-   $Id$
+   $Id: mm.h 376 2010-01-19 16:49:49Z hans $
 */
 
 /* libmm replacement */
@@ -46,32 +46,32 @@ extern "C" {
 #define MM_LOCK_RW 1
 #define MM_LOCK_RD 0
 
-MM*    _mm_create(size_t size, const char* key);
-void   _mm_set_attach(MM* mm, void* attach_addr);
-void*  _mm_attach(size_t size, const char* key);
-size_t _mm_size(MM* mm);
-void   _mm_destroy(MM* mm);
-int    _mm_lock(MM* mm, int kind);
-int    _mm_unlock(MM* mm);
-size_t _mm_available(MM* mm);
-size_t _mm_maxsize(MM* mm);
-void*  _mm_malloc_lock(MM* mm, size_t size);
-void   _mm_free_lock(MM* mm, void* p);
-void*  _mm_malloc_nolock(MM* mm, size_t size);
-void   _mm_free_nolock(MM* mm, void* p);
-size_t _mm_sizeof(MM* mm, void* x);
+    MM*    _mm_create(size_t size, const char* key);
+    void   _mm_set_attach(MM* mm, void* attach_addr);
+    void*  _mm_attach(size_t size, const char* key);
+    size_t _mm_size(MM* mm);
+    void   _mm_destroy(MM* mm);
+    int    _mm_lock(MM* mm, int kind);
+    int    _mm_unlock(MM* mm);
+    size_t _mm_available(MM* mm);
+    size_t _mm_maxsize(MM* mm);
+    void*  _mm_malloc_lock(MM* mm, size_t size);
+    void   _mm_free_lock(MM* mm, void* p);
+    void*  _mm_malloc_nolock(MM* mm, size_t size);
+    void   _mm_free_nolock(MM* mm, void* p);
+    size_t _mm_sizeof(MM* mm, void* x);
 
 
-const char* mm_shm_type();
-const char* mm_sem_type();
-void mm_check_mem(void *x);
+    const char* mm_shm_type();
+    const char* mm_sem_type();
+    void mm_check_mem(void *x);
 
 #define MM_PROT_NONE  1
 #define MM_PROT_READ  2
 #define MM_PROT_WRITE 4
 #define MM_PROT_EXEC  8
 
-int mm_protect(MM* mm, int mode);
+    int mm_protect(MM* mm, int mode);
 
 #define mm_create(A, B)        _mm_create(A, B)
 #define mm_set_attach(A, B)    _mm_set_attach(A, B)
@@ -93,3 +93,12 @@ int mm_protect(MM* mm, int mode);
 #endif
 
 #endif
+
+/*
+ * Local variables:
+ * tab-width: 4
+ * c-basic-offset: 4
+ * End:
+ * vim600: et sw=4 ts=4 fdm=marker
+ * vim<600: et sw=4 ts=4
+ */

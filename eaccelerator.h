@@ -2,8 +2,8 @@
    +----------------------------------------------------------------------+
    | eAccelerator project                                                 |
    +----------------------------------------------------------------------+
-   | Copyright (c) 2004 - 2010 eAccelerator                               |
-   | http://eaccelerator.net                                  		      |
+   | Copyright (c) 2004 - 2012 eAccelerator                               |
+   | http://eaccelerator.net                                  	          |
    +----------------------------------------------------------------------+
    | This program is free software; you can redistribute it and/or        |
    | modify it under the terms of the GNU General Public License          |
@@ -22,7 +22,7 @@
    |                                                                      |
    | A copy is availble at http://www.gnu.org/copyleft/gpl.txt            |
    +----------------------------------------------------------------------+
-   $Id$
+   $Id: eaccelerator.h 423 2010-07-11 21:03:25Z bart $
 */
 
 #ifndef INCLUDED_EACCELERATOR_H
@@ -42,7 +42,7 @@
 #endif
 
 #if PHP_MAJOR_VERSION == 4 || (PHP_MAJOR_VERSION == 5 && PHP_MINOR_VERSION < 1)
-    #error "eAccelerator only supports PHP 5.1 and higher"
+#error "eAccelerator only supports PHP 5.1 and higher"
 #endif
 
 #if PHP_MAJOR_VERSION == 5 && PHP_MINOR_VERSION >= 2
@@ -51,6 +51,10 @@
 
 #if PHP_MAJOR_VERSION == 5 && PHP_MINOR_VERSION >= 3
 #   define ZEND_ENGINE_2_3
+#endif
+
+#if PHP_MAJOR_VERSION == 5 && PHP_MINOR_VERSION >= 4
+#   define ZEND_ENGINE_2_4
 #endif
 
 /* fixes compile errors on php5.1 */
@@ -106,20 +110,20 @@
 #endif
 
 #if !defined(_INTPTR_T_DEFINED) && ZEND_WIN32
-	typedef intptr_t;
-	#define _INTPTR_T_DEFINED
+typedef intptr_t;
+#define _INTPTR_T_DEFINED
 #else
 #  ifdef HAVE_STDINT_H
 #    include <stdint.h>
-#  elif HAVE_INTTYPES_H 
-#    include <inttypes.h> 
-#  endif 
+#  elif HAVE_INTTYPES_H
+#    include <inttypes.h>
+#  endif
 #endif
 
 #if !defined(ssize_t) && ZEND_WIN32
-	/* define ssize_t for Win32. */
-	#define ssize_t int
-#endif 
+/* define ssize_t for Win32. */
+#define ssize_t int
+#endif
 
 #ifdef HAVE_EACCELERATOR
 
@@ -185,9 +189,9 @@
 #define EA_SIZE_ALIGN(n) (n) = ((((size_t)(n)-1) & ~(EACCELERATOR_PLATFORM_ALIGNMENT-1)) + EACCELERATOR_PLATFORM_ALIGNMENT)
 
 #ifdef ZEND_ENGINE_2_3
-    #define RESET_PZVAL_REFCOUNT(z) Z_SET_REFCOUNT_P(z, 1)
+#define RESET_PZVAL_REFCOUNT(z) Z_SET_REFCOUNT_P(z, 1)
 #else
-    #define RESET_PZVAL_REFCOUNT(z) (z)->refcount = 1;
+#define RESET_PZVAL_REFCOUNT(z) (z)->refcount = 1;
 #endif
 
 #define MAX_DUP_STR_LEN 256
@@ -207,72 +211,118 @@
 #endif
 
 typedef struct _eaccelerator_op_array {
-	zend_uchar type;
+    zend_uchar type;
+#ifndef ZEND_ENGINE_2_3
+    zend_bool uses_this;
+#endif
+    zend_uint num_args;
+    zend_uint required_num_args;
+    zend_arg_info *arg_info;
+#ifdef ZEND_ENGINE_2_4
+    const char *function_name;
+#else
+    zend_bool pass_rest_by_reference;
+    zend_bool return_reference;
+
+    char *function_name;
+#endif
+    char *scope_name;
+    int scope_name_len;
+    zend_uint fn_flags;
+    zend_op *opcodes;
+    zend_uint last;
+    zend_compiled_variable *vars;
+    int last_var;
+    zend_uint T;
+    zend_brk_cont_element *brk_cont_array;
+    int last_brk_cont;
+    zend_try_catch_element *try_catch_array;
+    int last_try_catch;
+    HashTable *static_variables;
+
+#ifdef ZEND_ENGINE_2_3
+    zend_uint this_var;
+#endif
+
+#ifdef ZEND_ENGINE_2_4
+    const char *filename;
+#else
+    char *filename;
+#endif
+    zend_uint line_start;
+    zend_uint line_end;
+#ifdef INCLUDE_DOC_COMMENTS
+#  ifdef ZEND_ENGINE_2_4
+    const char *doc_comment;
+#  else
+    char *doc_comment;
+#  endif
+    zend_uint doc_comment_len;
+#endif
 #ifdef ZEND_ENGINE_2_3
     zend_uint early_binding;
-    zend_uint this_var;
-#else
-	zend_bool uses_this;
 #endif
-	zend_bool return_reference;
-	zend_uint num_args;
-	zend_uint required_num_args;
-	zend_arg_info *arg_info;
-	zend_bool pass_rest_by_reference;
-	char *function_name;
-	char *scope_name;
-	int scope_name_len;
-	zend_uint fn_flags;
-	zend_op *opcodes;
-	zend_uint last;
-	zend_compiled_variable *vars;
-    int last_var;
-	zend_uint T;
-	zend_brk_cont_element *brk_cont_array;
-	zend_uint last_brk_cont;
-	zend_try_catch_element *try_catch_array;
-	int last_try_catch;
-	HashTable *static_variables;
-	char *filename;
-	zend_uint line_start;
-	zend_uint line_end;
-#ifdef INCLUDE_DOC_COMMENTS
-    char *doc_comment;
-    zend_uint doc_comment_len;
+#ifdef ZEND_ENGINE_2_4
+    zend_literal *literals;
+    int last_literal;
+
+    int last_cache_slot;
 #endif
 } ea_op_array;
 
 typedef struct _eaccelerator_class_entry {
-	char type;
-	char *name;
-	zend_uint name_length;
-	char *parent;
-	HashTable function_table;
-	HashTable default_properties;
-	HashTable properties_info;
-	HashTable default_static_members;
-	HashTable *static_members;
-	HashTable constants_table;
-	zend_uint ce_flags;
-	zend_uint num_interfaces;
+    char type;
+#ifdef ZEND_ENGINE_2_4
+    const char *name;
+#else
+    char *name;
+#endif
+    zend_uint name_length;
+    char *parent;
+    HashTable function_table;
+    HashTable properties_info;
+#ifdef ZEND_ENGINE_2_4
+    zval **default_properties_table;
+    zval **default_static_members_table;
+    zval **static_members_table;
+#else
+    HashTable default_properties;
+    HashTable default_static_members;
+    HashTable *static_members;
+#endif
+    HashTable constants_table;
+#ifdef ZEND_ENGINE_2_4
+    int default_properties_count;
+    int default_static_members_count;
+#endif
+    zend_uint ce_flags;
+    zend_uint num_interfaces;
 
-	char *filename;
-	zend_uint line_start;
-	zend_uint line_end;
-#  ifdef INCLUDE_DOC_COMMENTS
+#ifdef ZEND_ENGINE_2_4
+    const char *filename;
+#else
+    char *filename;
+#endif
+    zend_uint line_start;
+    zend_uint line_end;
+#ifdef INCLUDE_DOC_COMMENTS
+#  ifdef ZEND_ENGINE_2_4
+    const char *doc_comment;
+#  else
     char *doc_comment;
-    zend_uint doc_comment_len;
 #  endif
+    zend_uint doc_comment_len;
+#endif
 } ea_class_entry;
 
 /*
  * To cache functions and classes.
  */
 typedef struct _ea_fc_entry {
-	void *fc;
-	struct _ea_fc_entry *next;
-	int htablen;
-	char htabkey[1];			/* must be last element */
+    void *fc;
+    struct _ea_fc_entry *next;
+    int htablen;
+    char htabkey[1];			/* must be last element */
 } ea_fc_entry;
 
 
@@ -282,84 +332,84 @@ typedef struct _ea_fc_entry {
  * the list of ea_fc_entry.
  */
 typedef struct _ea_cache_entry {
-	struct _ea_cache_entry *next;
-	unsigned int hv;			/* hash value                            */
-	off_t filesize;				/* file size */
-	time_t mtime;				/* file last modification time           */
-	time_t ttl;				/* expiration time (updated on each hit) */
-	time_t ts;				/* timestamp of cache entry              */
-	unsigned int size;			/* entry size (bytes)                    */
-	unsigned int nhits;			/* hits count                            */
-	unsigned int nreloads;			/* count of reloads                      */
-	int use_cnt;			/* how many processes uses the entry     */
-	ea_op_array *op_array;	/* script's global scope code        */
-	ea_fc_entry *f_head;		/* list of nested functions          */
-	ea_fc_entry *c_head;		/* list of nested classes            */
-	zend_bool removed;			/* the entry is scheduled to remove  */
-	char realfilename[1];		/* real file name (must be last el.) */
+    struct _ea_cache_entry *next;
+    unsigned int hv;			/* hash value                            */
+    off_t filesize;				/* file size */
+    time_t mtime;				/* file last modification time           */
+    time_t ttl;				/* expiration time (updated on each hit) */
+    time_t ts;				/* timestamp of cache entry              */
+    unsigned int size;			/* entry size (bytes)                    */
+    unsigned int nhits;			/* hits count                            */
+    unsigned int nreloads;			/* count of reloads                      */
+    int use_cnt;			/* how many processes uses the entry     */
+    ea_op_array *op_array;	/* script's global scope code        */
+    ea_fc_entry *f_head;		/* list of nested functions          */
+    ea_fc_entry *c_head;		/* list of nested classes            */
+    zend_bool removed;			/* the entry is scheduled to remove  */
+    char realfilename[1];		/* real file name (must be last el.) */
 } ea_cache_entry;
 
 /*
  * Linked list of ea_cache_entry which are used by process/thread
  */
 typedef struct _ea_used_entry {
-	struct _ea_used_entry *next;
-	ea_cache_entry *entry;
+    struct _ea_used_entry *next;
+    ea_cache_entry *entry;
 } ea_used_entry;
 
 typedef struct _ea_file_header {
-	char magic[8];				/* "EACCELERATOR" */
-	int eaccelerator_version[2];
-	int zend_version[2];
-	int php_version[2];
-	int size;
-	time_t mtime;
-	time_t ts;
-	unsigned int crc32;
+    char magic[8];				/* "EACCELERATOR" */
+    int eaccelerator_version[2];
+    int zend_version[2];
+    int php_version[2];
+    int size;
+    time_t mtime;
+    time_t ts;
+    unsigned int crc32;
 } ea_file_header;
 
 int check_header(ea_file_header *hdr);
 void init_header(ea_file_header *hdr);
 
 typedef struct {
-	MM *mm;
-	pid_t owner;
-	size_t total;
-	unsigned int hash_cnt;
-	zend_bool enabled;
-	zend_bool optimizer_enabled;
-	zend_bool check_mtime_enabled;
-	unsigned int rem_cnt;
-	time_t last_prune;
-	ea_cache_entry *removed;
-	uid_t cache_dir_uid;
+    MM *mm;
+    pid_t owner;
+    size_t total;
+    unsigned int hash_cnt;
+    zend_bool enabled;
+    zend_bool optimizer_enabled;
+    zend_bool check_mtime_enabled;
+    unsigned int rem_cnt;
+    time_t last_prune;
+    ea_cache_entry *removed;
+    uid_t cache_dir_uid;
 
-	ea_cache_entry *hash[EA_HASH_SIZE];
+    ea_cache_entry *hash[EA_HASH_SIZE];
 } eaccelerator_mm;
 
 /*
  * Where to cache
  */
 typedef enum _ea_cache_place {
-	ea_shm_and_disk,	/* in shm and in disk */
-	ea_shm,				/* in shm, but if it is not possible then on disk */
-	ea_shm_only,		/* in shm only  */
-	ea_disk_only,		/* on disk only */
-	ea_none				/* don't cache  */
+    ea_shm_and_disk,	/* in shm and in disk */
+    ea_shm,				/* in shm, but if it is not possible then on disk */
+    ea_shm_only,		/* in shm only  */
+    ea_disk_only,		/* on disk only */
+    ea_none				/* don't cache  */
 } ea_cache_place;
 
 typedef union align_union {
-  double d;
-  void *v;
-  int (*func)(int);
-  long l;
+    double d;
+    void *v;
+    int (*func)(int);
+    long l;
 } align_union;
 
 #ifdef ZEND_ENGINE_2_2
 typedef union _align_test {
-  void *ptr;
-  double dbl;
-  long lng;
+    void *ptr;
+    double dbl;
+    long lng;
 } align_test;
 #endif
 
@@ -385,7 +435,7 @@ void eaccelerator_prune (time_t t);
 void *eaccelerator_malloc2 (size_t size TSRMLS_DC);
 
 unsigned int eaccelerator_crc32 (const char *p, size_t n);
-int eaccelerator_md5 (char *s, const char *prefix, const char *key TSRMLS_DC); 
+int eaccelerator_md5 (char *s, const char *prefix, const char *key TSRMLS_DC);
 
 #  ifdef WITH_EACCELERATOR_OPTIMIZER
 void eaccelerator_optimize (zend_op_array * op_array);
@@ -398,8 +448,8 @@ void eaccelerator_optimize (zend_op_array * op_array);
 #endif
 
 struct ea_pattern_t {
-  struct ea_pattern_t *next;
-  char *pattern;
+    struct ea_pattern_t *next;
+    char *pattern;
 };
 
 /*
@@ -407,7 +457,7 @@ struct ea_pattern_t {
  */
 ZEND_BEGIN_MODULE_GLOBALS (eaccelerator)
 void *used_entries;			/* list of files which are used     */
-					/* by process/thread                */
+/* by process/thread                */
 zend_bool enabled;
 zend_bool optimizer_enabled;
 zend_bool check_mtime_enabled;
@@ -459,3 +509,12 @@ ZEND_EXTERN_MODULE_GLOBALS (eaccelerator)
 
 #endif 		/* HAVE_EACCELERATOR */
 #endif		/* #ifndef INCLUDED_EACCELERATOR_H */
+
+/*
+ * Local variables:
+ * tab-width: 4
+ * c-basic-offset: 4
+ * End:
+ * vim>600: expandtab sw=4 ts=4 sts=4 fdm=marker
+ * vim<600: expandtab sw=4 ts=4 sts=4
+ */

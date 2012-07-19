@@ -2,7 +2,7 @@
    +----------------------------------------------------------------------+
    | eAccelerator project                                                 |
    +----------------------------------------------------------------------+
-   | Copyright (c) 2004 - 2010 eAccelerator                               |
+   | Copyright (c) 2004 - 2012 eAccelerator                               |
    | http://eaccelerator.net                                              |
    +----------------------------------------------------------------------+
    | This program is free software; you can redistribute it and/or        |
@@ -22,7 +22,7 @@
    |                                                                      |
    | A copy is availble at http://www.gnu.org/copyleft/gpl.txt            |
    +----------------------------------------------------------------------+
-   $Id$
+   $Id: debug.h 375 2010-01-19 15:49:13Z bart $
 */
 
 #ifndef INCLUDED_DEBUG_H
@@ -58,9 +58,9 @@
 /* print information about the file that's loaded or cached */
 #define EA_LOG	 		(1<<0L)
 
-/* print debugging information, mostly about the storing and restoring of a 
+/* print debugging information, mostly about the storing and restoring of a
  * script's data structures. Gives you detailed information about what eA is
- * doing 
+ * doing
  */
 #define EA_DEBUG		(1<<1L)
 
@@ -79,7 +79,7 @@ void ea_debug_printf (long debug_level, char *format, ...);
 void ea_debug_error (char *format, ...);
 void ea_debug_pad (long debug_level TSRMLS_DC);
 void ea_debug_log (char *format, ...);
-void ea_debug_binary_print (long debug_level, char *p, int len);
+void ea_debug_binary_print (long debug_level, const char *p, int len);
 void ea_debug_put (long debug_level, char *message);
 void ea_debug_log_hashkeys (char *p, HashTable * ht);
 
@@ -91,3 +91,12 @@ void ea_debug_dump_ea_class_entry(ea_class_entry *ce);
 void ea_debug_dump_zend_class_entry(zend_class_entry *ce);
 
 #endif /* INCLUDED_DEBUG_H */
+
+/*
+ * Local variables:
+ * tab-width: 4
+ * c-basic-offset: 4
+ * End:
+ * vim>600: expandtab sw=4 ts=4 sts=4 fdm=marker
+ * vim<600: expandtab sw=4 ts=4 sts=4
+ */

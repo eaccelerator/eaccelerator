@@ -2,7 +2,7 @@
    +----------------------------------------------------------------------+
    | eAccelerator project                                                 |
    +----------------------------------------------------------------------+
-   | Copyright (c) 2004 - 2010 eAccelerator                               |
+   | Copyright (c) 2004 - 2012 eAccelerator                               |
    | http://eaccelerator.net                                              |
    +----------------------------------------------------------------------+
    | This program is free software; you can redistribute it and/or        |
@@ -22,7 +22,7 @@
    |                                                                      |
    | A copy is availble at http://www.gnu.org/copyleft/gpl.txt            |
    +----------------------------------------------------------------------+
-   $Id$
+   $Id: opcodes.h 377 2010-01-20 14:58:03Z hans $
 */
 
 #include "eaccelerator.h"
@@ -85,19 +85,77 @@
 
 #define OPS_STD       EXT_STD | OP1_STD | OP2_STD | RES_STD
 
-#ifdef ZEND_ENGINE_2
-#  define VAR_NUM(var) ((unsigned int)(((temp_variable *)((intptr_t) var))-((temp_variable *)NULL)))
-#  define VAR_VAL(var) ((unsigned int)((var)*sizeof(temp_variable)))
+#define VAR_NUM(var) ((unsigned int)(((temp_variable *)((intptr_t) var))-((temp_variable *)NULL)))
+#define VAR_VAL(var) ((unsigned int)((var)*sizeof(temp_variable)))
+
+#ifdef ZEND_ENGINE_2_4
+#define OP1_TYPE(op) (op)->op1_type
+#define OP2_TYPE(op) (op)->op2_type
+#define RES_TYPE(op) (op)->result_type
+
+/* OP1_VAR/OP2_VAR/RES_VAR already defined above, hence the VARR */
+#define OP1_VARR(op) (op)->op1.var
+#define OP2_VARR(op) (op)->op2.var
+#define RES_VARR(op) (op)->result.var
+
+#define OP1_OPLINE_NUM(op) (op)->op1.opline_num
+#define OP2_OPLINE_NUM(op) (op)->op2.opline_num
+#define RES_OPLINE_NUM(op) (op)->result.opline_num
+
+#define OP1_JMP_ADDR(op) (op)->op1.jmp_addr
+#define OP2_JMP_ADDR(op) (op)->op2.jmp_addr
+#define RES_JMP_ADDR(op) (op)->result.jmp_addr
+
+
+/*#define OP1_CONST(op) (*(op)->op1.zv)
+#define OP2_CONST(op) (*(op)->op2.zv)
+#define RES_CONST(op) (*(op)->result.zv)*/
+#define OP1_CONST(op) op_array->literals[(op)->op1.constant].constant
+#define OP2_CONST(op) op_array->literals[(op)->op2.constant].constant
+#define RES_CONST(op) op_array->literals[(op)->result.constant].constant
+
+#define OP1_CONST_TYPE(op) OP1_CONST((op)).type
+#define OP2_CONST_TYPE(op) OP2_CONST((op)).type
+#define RES_CONST_TYPE(op) RES_CONST((op)).type
+
+#define RES_USED(op) (op)->result_type
+
+#define CONSTANT(op) op_array->literals[op].constant
+
 #else
-#  define VAR_NUM(var) ((unsigned int)(var))
-#  define VAR_VAL(var) ((unsigned int)(var))
+
+#define OP1_TYPE(op) (op)->op1.op_type
+#define OP2_TYPE(op) (op)->op2.op_type
+#define RES_TYPE(op) (op)->result.op_type
+
+#define OP1_VARR(op) (op)->op1.u.var
+#define OP2_VARR(op) (op)->op2.u.var
+#define RES_VARR(op) (op)->result.u.var
+
+#define OP1_OPLINE_NUM(op) (op)->op1.u.opline_num
+#define OP2_OPLINE_NUM(op) (op)->op2.u.opline_num
+#define RES_OPLINE_NUM(op) (op)->result.u.opline_num
+
+#define OP1_JMP_ADDR(op) (op)->op1.u.jmp_addr
+#define OP2_JMP_ADDR(op) (op)->op2.u.jmp_addr
+#define RES_JMP_ADDR(op) (op)->result.u.jmp_addr
+
+#define OP1_CONST(op) (op)->op1.u.constant
+#define OP2_CONST(op) (op)->op2.u.constant
+#define RES_CONST(op) (op)->result.u.constant
+
+#define OP1_CONST_TYPE(op) OP1_CONST((op)).type
+#define OP2_CONST_TYPE(op) OP2_CONST((op)).type
+#define RES_CONST_TYPE(op) RES_CONST((op)).type
+
+#define RES_USED(op) (op)->result.u.EA.type
 #endif
 
 typedef struct {
 #ifdef WITH_EACCELERATOR_DISASSEMBLER
-  const char*  opname;
+    const char*  opname;
 #endif
-  unsigned int ops;
+    unsigned int ops;
 } opcode_dsc;
 
 const opcode_dsc* get_opcode_dsc(unsigned int n);
@@ -107,3 +165,12 @@ opcode_handler_t get_opcode_handler(zend_uchar opcode TSRMLS_DC);
 #endif
 
 #endif
+
+/*
+ * Local variables:
+ * tab-width: 4
+ * c-basic-offset: 4
+ * End:
+ * vim600: et sw=4 ts=4 fdm=marker
+ * vim<600: et sw=4 ts=4
+ */

@@ -3,8 +3,8 @@
    +----------------------------------------------------------------------+
    | eAccelerator control panel                                           |
    +----------------------------------------------------------------------+
-   | Copyright (c) 2004-2010 eAccelerator								  |
-   | http://eaccelerator.net											  |
+   | Copyright (c) 2004-2012 eAccelerator                                 |
+   | http://eaccelerator.net                                              |
    +----------------------------------------------------------------------+
    | This source file is subject to version 2.00 of the Zend license,     |
    | that is bundled with this package in the file LICENSE, and is        |
@@ -15,7 +15,7 @@
    | license@zend.com so we can mail you a copy immediately.              |
    +----------------------------------------------------------------------+
 
-   $ Id: $
+   $Id: $
 
 /** config **/
 $auth = true;		// Set to false to disable authentication

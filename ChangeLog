@@ -1,4 +1,13 @@
-2010-07-28  Bart Vanbrabant <bart at vanbrabant.eu>
+2012-07-19	Hans Rakers <hans at rakers.org>
+
+		* PHP-5.4 compatibility
+		* Fixed a segfault when restoring class doc comments from
+		  disk cache
+		* Storing doc comments in cache is default now since most
+		  frameworks require this (Reflection API).
+		* Re-indented all files using astyle and bumped year
+
+2010-07-28	Bart Vanbrabant <bart at vanbrabant.eu>
 
 		* Make the error message about creating the cache directory more
 		  clear.

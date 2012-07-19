@@ -3,7 +3,7 @@
    	+-----------------------------------------------------------------------+
    	| eAccelerator control panel                                           	|
    	+-----------------------------------------------------------------------+
-   	| Copyright (c) 2004-2010 eAccelerator                                 	|
+   	| Copyright (c) 2004-2012 eAccelerator                                 	|
 	| http://eaccelerator.net                                              	|
    	+-----------------------------------------------------------------------+
    	| This source file is subject to version 3.0 of the PHP license,       	|
@@ -14,6 +14,8 @@
 	| obtain it through the world-wide-web, please send a note to          	|
 	| license@php.net so we can mail you a copy immediately.             	|
 	+-----------------------------------------------------------------------+
+
+	$Id: $
 */
 
 /*** CONFIG ***/

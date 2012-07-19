@@ -19,14 +19,14 @@ PHP_ARG_ENABLE(eaccelerator, whether to enable eaccelerator support,
 [  --enable-eaccelerator                    Enable eaccelerator support])
 
 AC_ARG_WITH(eaccelerator-crash-detection,
-[  --without-eaccelerator-crash-detection   Do not include eaccelerator crash detection],[
+[  --without-eaccelerator-crash-detection   Do not include eAccelerator crash detection],[
   eaccelerator_crash_detection=$withval
 ],[
   eaccelerator_crash_detection=yes
 ])
 
 AC_ARG_WITH(eaccelerator-optimizer,
-[  --without-eaccelerator-optimizer         Do not include eaccelerator optimizer],[
+[  --without-eaccelerator-optimizer         Do not include the eAccelerator optimizer],[
   eaccelerator_optimizer=$withval
 ],[
   eaccelerator_optimizer=yes
@@ -39,6 +39,13 @@ AC_ARG_WITH(eaccelerator-info,
   eaccelerator_info=yes
 ])
 
+AC_ARG_WITH(eaccelerator-doc-comment-inclusion,
+[  --without-eaccelerator-doc-comment-inclusion  If you want eAccelerator to strip doc-comments from internal php structures.],[
+    enable_doc_comment_inclusion=$withval
+],[
+    enable_doc_comment_inclusion=yes
+])
+
 AC_ARG_WITH(eaccelerator-disassembler,
 [  --with-eaccelerator-disassembler         Include disassembler],[
   eaccelerator_disassembler=$withval
@@ -47,7 +54,7 @@ AC_ARG_WITH(eaccelerator-disassembler,
 ])
 
 AC_ARG_WITH(eaccelerator-debug,
-[  --with-eaccelerator-debug                Enable the debug code so eaccelerator logs verbose.],[
+[  --with-eaccelerator-debug                Enable the debug code so eAccelerator logs verbose.],[
   eaccelerator_debug=$withval
 ],[
   eaccelerator_debug=no
@@ -58,13 +65,6 @@ AC_ARG_WITH(eaccelerator-userid,
   ea_userid=$withval
 ],[
   ea_userid=0
-])
-
-AC_ARG_WITH(eaccelerator-doc-comment-inclusion,
-[  --with-eaccelerator-doc-comment-inclusion  If you want eAccelerator to retain doc-comments in  internal php structures.],[
-    enable_doc_comment_inclusion=$withval
-],[
-    enable_doc_comment_inclusion=no
 ])
 
 dnl PHP_BUILD_SHARED
@@ -308,10 +308,10 @@ dnl Determine the best type
   fi
   AC_MSG_RESULT([$msg])
   if test "$msg" = "no" ; then
-    AC_MSG_ERROR([eaccelerator cannot semaphores type, which is required])
+    AC_MSG_ERROR([eaccelerator cannot determine semaphore type, which is required])
   fi
 
   AC_CHECK_FUNC(mprotect,[
-      AC_DEFINE(HAVE_MPROTECT, 1, [Define if ou have mprotect function])
+      AC_DEFINE(HAVE_MPROTECT, 1, [Define if you have mprotect function])
     ])
 fi

@@ -2,7 +2,7 @@
    +----------------------------------------------------------------------+
    | eAccelerator project                                                 |
    +----------------------------------------------------------------------+
-   | Copyright (c) 2004 - 2010 eAccelerator                               |
+   | Copyright (c) 2004 - 2012 eAccelerator                               |
    | http://eaccelerator.net                                              |
    +----------------------------------------------------------------------+
    | This program is free software; you can redistribute it and/or        |
@@ -22,7 +22,7 @@
    |                                                                      |
    | A copy is availble at http://www.gnu.org/copyleft/gpl.txt            |
    +----------------------------------------------------------------------+
-   $Id$
+   $Id: ea_restore.h 375 2010-01-19 15:49:13Z bart $
 */
 
 #ifndef EA_RESTORE_H
@@ -40,3 +40,12 @@ zend_op_array* restore_op_array(zend_op_array *to, ea_op_array *from TSRMLS_DC);
 dtor_func_t get_zend_destroy_property_info(TSRMLS_D);
 
 #endif /* EA_RESTORE_H */
+
+/*
+ * Local variables:
+ * tab-width: 4
+ * c-basic-offset: 4
+ * End:
+ * vim600: et sw=4 ts=4 fdm=marker
+ * vim<600: et sw=4 ts=4
+ */

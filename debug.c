@@ -2,7 +2,7 @@
    +----------------------------------------------------------------------+
    | eAccelerator project                                                 |
    +----------------------------------------------------------------------+
-   | Copyright (c) 2004 - 2010 eAccelerator                               |
+   | Copyright (c) 2004 - 2012 eAccelerator                               |
    | http://eaccelerator.net                                              |
    +----------------------------------------------------------------------+
    | This program is free software; you can redistribute it and/or        |
@@ -22,7 +22,7 @@
    |                                                                      |
    | A copy is availble at http://www.gnu.org/copyleft/gpl.txt            |
    +----------------------------------------------------------------------+
-   $Id$
+   $Id: debug.c 375 2010-01-19 15:49:13Z bart $
 */
 
 #include "eaccelerator.h"
@@ -44,8 +44,9 @@ long ea_debug = 0;
 void ea_debug_init (TSRMLS_D)
 {
     F_fp = fopen (EAG(ea_log_file), "a");
-    if (!F_fp)
+    if (!F_fp) {
         F_fp = stderr;
+    }
     file_no = fileno(F_fp);
 }
 
@@ -55,8 +56,9 @@ void ea_debug_init (TSRMLS_D)
 void ea_debug_shutdown ()
 {
     fflush (F_fp);
-    if (F_fp != stderr)
+    if (F_fp != stderr) {
         fclose (F_fp);
+    }
     F_fp = NULL;
 }
 
@@ -76,12 +78,12 @@ void ea_debug_log (char *format, ...)
         va_end (args);
 
         if (F_fp != stderr) {
-        	EACCELERATOR_FLOCK(file_no, LOCK_EX);
+            EACCELERATOR_FLOCK(file_no, LOCK_EX);
         }
         fputs (output_buf, F_fp);
         fflush (F_fp);
         if (F_fp != stderr) {
-        	EACCELERATOR_FLOCK(file_no, LOCK_UN);
+            EACCELERATOR_FLOCK(file_no, LOCK_UN);
         }
     }
 }
@@ -103,7 +105,7 @@ void ea_debug_error (char *format, ...)
     fflush (stderr);
 }
 
-/* 
+/*
  * All these functions aren't compiled when eA isn't compiled with DEBUG. They
  * are replaced with function with no body, so it's optimized away by the compiler.
  * Even if the debug level is ok.
@@ -121,14 +123,14 @@ void ea_debug_printf (long debug_level, char *format, ...)
         va_start (args, format);
         vsnprintf (output_buf, sizeof (output_buf), format, args);
         va_end (args);
-        
+
         if (F_fp != stderr) {
-        	EACCELERATOR_FLOCK(file_no, LOCK_EX);
+            EACCELERATOR_FLOCK(file_no, LOCK_EX);
         }
         fputs (output_buf, F_fp);
         fflush (F_fp);
         if (F_fp != stderr) {
-        	EACCELERATOR_FLOCK(file_no, LOCK_UN);
+            EACCELERATOR_FLOCK(file_no, LOCK_UN);
         }
     }
 }
@@ -140,12 +142,12 @@ void ea_debug_put (long debug_level, char *message)
 {
     if (debug_level & ea_debug) {
         if (F_fp != stderr) {
-        	EACCELERATOR_FLOCK(file_no, LOCK_EX);
+            EACCELERATOR_FLOCK(file_no, LOCK_EX);
         }
         fputs (message, F_fp);
         fflush (F_fp);
         if (F_fp != stderr) {
-        	EACCELERATOR_FLOCK(file_no, LOCK_UN);
+            EACCELERATOR_FLOCK(file_no, LOCK_UN);
         }
     }
 }
@@ -153,19 +155,24 @@ void ea_debug_put (long debug_level, char *message)
 /**
  * Print a binary message
  */
-void ea_debug_binary_print (long debug_level, char *p, int len)
+void ea_debug_binary_print (long debug_level, const char *p, int len)
 {
     if (ea_debug & debug_level) {
         if (F_fp != stderr) {
-        	EACCELERATOR_FLOCK(file_no, LOCK_EX);
+            EACCELERATOR_FLOCK(file_no, LOCK_EX);
         }
         while (len--) {
-            fputc (*p++, F_fp);
+            if (*p == 0) {
+                fputs ("\\0", F_fp);
+            } else {
+                fputc (*p, F_fp);
+            }
+            p++;
         }
         fputc ('\n', F_fp);
         fflush (F_fp);
         if (F_fp != stderr) {
-        	EACCELERATOR_FLOCK(file_no, LOCK_UN);
+            EACCELERATOR_FLOCK(file_no, LOCK_UN);
         }
     }
 }
@@ -182,7 +189,7 @@ void ea_debug_log_hashkeys (char *p, HashTable * ht)
         b = ht->pListHead;
 
         if (F_fp != stderr) {
-        	EACCELERATOR_FLOCK(file_no, LOCK_EX);
+            EACCELERATOR_FLOCK(file_no, LOCK_EX);
         }
         fputs(p, F_fp);
         fflush(F_fp);
@@ -194,7 +201,7 @@ void ea_debug_log_hashkeys (char *p, HashTable * ht)
             i++;
         }
         if (F_fp != stderr) {
-        	EACCELERATOR_FLOCK(file_no, LOCK_UN);
+            EACCELERATOR_FLOCK(file_no, LOCK_UN);
         }
     }
 }
@@ -206,16 +213,16 @@ void ea_debug_pad (long debug_level TSRMLS_DC)
 {
 #ifdef DEBUG /* This ifdef is still req'd because xpad is N/A in a non-debug compile */
     if (ea_debug & debug_level) {
-		int i;
+        int i;
         if (F_fp != stderr) {
-        	EACCELERATOR_FLOCK(file_no, LOCK_EX);
+            EACCELERATOR_FLOCK(file_no, LOCK_EX);
         }
         i = EAG (xpad);
         while (i-- > 0) {
             fputc ('\t', F_fp);
         }
         if (F_fp != stderr) {
-        	EACCELERATOR_FLOCK(file_no, LOCK_UN);
+            EACCELERATOR_FLOCK(file_no, LOCK_UN);
         }
     }
 #endif
@@ -241,21 +248,21 @@ long ea_debug_elapsed_time (struct timeval *tvstart)
  */
 void ea_debug_hash_display(HashTable * ht)
 {
-	Bucket *p;
-	uint i;
+    Bucket *p;
+    uint i;
 
-	fprintf(F_fp, "ht->nTableSize: %d\n", ht->nTableSize);
-	fprintf(F_fp, "ht->nNumOfElements: %d\n", ht->nNumOfElements);
+    fprintf(F_fp, "ht->nTableSize: %d\n", ht->nTableSize);
+    fprintf(F_fp, "ht->nNumOfElements: %d\n", ht->nNumOfElements);
 
-	for (i = 0; i < ht->nTableSize; i++) {
-		p = ht->arBuckets[i];
-		while (p != NULL) {
-			fprintf(F_fp, "\t%s <==> 0x%lX\n", p->arKey, p->h);
-			p = p->pNext;
-		}
-	}
+    for (i = 0; i < ht->nTableSize; i++) {
+        p = ht->arBuckets[i];
+        while (p != NULL) {
+            fprintf(F_fp, "\t%s <==> 0x%lX\n", p->arKey, p->h);
+            p = p->pNext;
+        }
+    }
 
-	fflush(F_fp);
+    fflush(F_fp);
 }
 
 /*
@@ -267,10 +274,15 @@ void ea_debug_dump_ea_class_entry(ea_class_entry *ce)
     fprintf(F_fp, "\tparent: '%s'\n", ce->parent);
     fprintf(F_fp, "\ttype: %d\n", ce->type);
     fprintf(F_fp, "\tfunction_table: %u entries\n", ce->function_table.nNumOfElements);
-    fprintf(F_fp, "\tdefault_properties: %u entries\n", ce->default_properties.nNumOfElements);
     fprintf(F_fp, "\tproperties_info: %u entries\n", ce->properties_info.nNumOfElements);
+#ifdef ZEND_ENGINE_2_4
+    fprintf(F_fp, "\tdefault_properties: %u entries\n", ce->default_properties_count);
+    fprintf(F_fp, "\tdefault_static_members: %u entries\n", ce->default_static_members_count);
+#else
+    fprintf(F_fp, "\tdefault_properties: %u entries\n", ce->default_properties.nNumOfElements);
     fprintf(F_fp, "\tdefault_static_members: %u entries\n", ce->default_static_members.nNumOfElements);
     fprintf(F_fp, "\tstatic_members: %u entries\n", ce->static_members->nNumOfElements);
+#endif
     fprintf(F_fp, "\tconstants_Table: %u entries\n", ce->constants_table.nNumOfElements);
     fprintf(F_fp, "\tce_flags: %u\n", ce->ce_flags);
     fprintf(F_fp, "\tnum_interfaces: %u\n", ce->num_interfaces);
@@ -293,21 +305,47 @@ void ea_debug_dump_zend_class_entry(zend_class_entry *ce)
     fprintf(F_fp, "\tparent: '%s'\n", (ce->parent == NULL) ? "none" : ce->parent->name);
     fprintf(F_fp, "\ttype: %d\n", ce->type);
     fprintf(F_fp, "\tfunction_table: %u entries\n", ce->function_table.nNumOfElements);
-    fprintf(F_fp, "\tdefault_properties: %u entries\n", ce->default_properties.nNumOfElements);
     fprintf(F_fp, "\tproperties_info: %u entries\n", ce->properties_info.nNumOfElements);
+#  ifdef ZEND_ENGINE_2_4
+    fprintf(F_fp, "\tdefault_properties: %u entries\n", ce->default_properties_count);
+    fprintf(F_fp, "\tdefault_static_members: %u entries\n", ce->default_static_members_count);
+#  else
+    fprintf(F_fp, "\tdefault_properties: %u entries\n", ce->default_properties.nNumOfElements);
     fprintf(F_fp, "\tdefault_static_members: %u entries\n", ce->default_static_members.nNumOfElements);
     fprintf(F_fp, "\tstatic_members: %u entries\n", ce->static_members->nNumOfElements);
+#  endif
     fprintf(F_fp, "\tconstants_Table: %u entries\n", ce->constants_table.nNumOfElements);
     fprintf(F_fp, "\tce_flags: %u\n", ce->ce_flags);
     fprintf(F_fp, "\tnum_interfaces: %u\n", ce->num_interfaces);
+#  ifdef ZEND_ENGINE_2_4
+    fprintf(F_fp, "\tfilename: %s\n", ce->info.user.filename);
+    fprintf(F_fp, "\tline_start: %u\n", ce->info.user.line_start);
+    fprintf(F_fp, "\tline_end: %u\n", ce->info.user.line_end);
+#  else
     fprintf(F_fp, "\tfilename: %s\n", ce->filename);
     fprintf(F_fp, "\tline_start: %u\n", ce->line_start);
     fprintf(F_fp, "\tline_end: %u\n", ce->line_end);
+#  endif
 #  ifdef INCLUDE_DOC_COMMENTS
+#    ifdef ZEND_ENGINE_2_4
+    fprintf(F_fp, "\tdoc_comment: %s\n", ce->info.user.doc_comment);
+    fprintf(F_fp, "\tdoc_comment_len: %u\n", ce->info.user.doc_comment_len);
+#    else
     fprintf(F_fp, "\tdoc_comment: %s\n", ce->doc_comment);
     fprintf(F_fp, "\tdoc_comment_len: %u\n", ce->doc_comment_len);
+#    endif
 #  endif
     fflush(F_fp);
 }
 
 #endif /* #ifdef HAVE_EACCELERATOR */
+
+/*
+ * Local variables:
+ * tab-width: 4
+ * c-basic-offset: 4
+ * End:
+ * vim>600: expandtab sw=4 ts=4 sts=4 fdm=marker
+ * vim<600: expandtab sw=4 ts=4 sts=4
+ */
+ 

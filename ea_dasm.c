@@ -2,7 +2,7 @@
    +----------------------------------------------------------------------+
    | eAccelerator project                                                 |
    +----------------------------------------------------------------------+
-   | Copyright (c) 2004 - 2010 eAccelerator                               |
+   | Copyright (c) 2004 - 2012 eAccelerator                               |
    | http://eaccelerator.net                                              |
    +----------------------------------------------------------------------+
    | This program is free software; you can redistribute it and/or        |
@@ -22,7 +22,7 @@
    |                                                                      |
    | A copy is availble at http://www.gnu.org/copyleft/gpl.txt            |
    +----------------------------------------------------------------------+
-   $Id$
+   $Id: ea_dasm.c 377 2010-01-20 14:58:03Z hans $
 */
 
 #include "ea_dasm.h"
@@ -34,7 +34,7 @@
 
 extern eaccelerator_mm *ea_mm_instance;
 
-#define LOOKUP(arr, index, max, ptr) if (index < max) { ptr = arr[index]; } else { ptr = "UNDEFINED (todo)"; };
+#define LOOKUP(arr, index, max, ptr) if (index < max) { ptr = arr[index]; } else { ptr = "UNDEFINED (TODO)"; };
 
 /* {{{ static const char *extopnames_declare[] */
 static const char *extopnames_declare[] = {
@@ -70,7 +70,7 @@ static const char *extopnames_fetch[] = {
     "FETCH_ADD_LOCK",           /* 1 */
     "FETCH_MAKE_REF"            /* 2 */
 };
-#define EXTOPNAMES_FETCH_NUM 2
+#define EXTOPNAMES_FETCH_NUM 3
 #define GET_EXTOPNAMES_FETCH(index, ptr) LOOKUP(extopnames_fetch, index, EXTOPNAMES_FETCH_NUM, ptr)
 /* }}} */
 
@@ -85,7 +85,7 @@ static const char *extopnames_fetch_class[] = {
     "FETCH_CLASS_INTERFACE",        /* 6 */
     "FETCH_CLASS_STATIC",           /* 7 */
 };
-#define EXTOPNAMES_FETCH_CLASS_NUM 6
+#define EXTOPNAMES_FETCH_CLASS_NUM 8
 #define GET_EXTOPNAMES_FETCH_CLASS(index, ptr) LOOKUP(extopnames_fetch_class, index, EXTOPNAMES_FETCH_CLASS_NUM, ptr)
 /* }}} */
 
@@ -105,9 +105,11 @@ static const char *extopnames_sendnoref[] = {
     "&nbsp;",                   /* 0 */
     "ARG_SEND_BY_REF",          /* 1 */
     "ARG_COMPILE_TIME_BOUND",   /* 2 */
-    "ARG_SEND_BY_REF | ZEND_ARG_COMPILE_TIME_BOUND" /* 3 */
+    "ARG_SEND_BY_REF | ZEND_ARG_COMPILE_TIME_BOUND", /* 3 */
+    "ZEND_ARG_SEND_FUNCTION"    /* 4 */
+    /* bleh, this sucks for bitmasks */
 };
-#define EXTOPNAMES_SENDNOREF_NUM 4
+#define EXTOPNAMES_SENDNOREF_NUM 5
 #define GET_EXTOPNAMES_SENDNOREF(index, ptr) LOOKUP(extopnames_sendnoref, index, EXTOPNAMES_SENDNOREF_NUM, ptr)
 /* }}} */
 
@@ -142,65 +144,65 @@ static char *get_zval(zval *v)
     size_t size;
 
     switch (Z_TYPE_P(v) & ~IS_CONSTANT_INDEX) {
-        case IS_NULL:
-            str = emalloc(sizeof("null"));
-            strncpy(str, "null", sizeof("null"));
-            break;
-        case IS_LONG:
-            snprintf(buf, sizeof(buf), "long(%ld)", Z_LVAL_P(v));
-            str = emalloc(strlen(buf) + 1);
-            strcpy(str, buf);
-            break;
-        case IS_DOUBLE:
-            snprintf(buf, sizeof(buf), "double(%e)", Z_DVAL_P(v));
-            str = emalloc(strlen(buf) + 1);
-            strcpy(str, buf);
-            break;
-        case IS_STRING:
-            size = Z_STRLEN_P(v) + 1 + sizeof("string('')");
-            str = emalloc(size);
-            snprintf(str, size, "string('%s')", Z_STRVAL_P(v)); 
-            break;
-        case IS_BOOL:
-            if (Z_LVAL_P(v)) {
-                str = emalloc(sizeof("bool(true)"));
-                strcpy(str, "bool(true)");
-            } else {
-                str = emalloc(sizeof("bool(false)"));
-                strcpy(str, "bool(false)");
-            }
-            break;
-        case IS_ARRAY:
-            str = emalloc(sizeof("array(?)"));
-            strcpy(str, "array(?)");
-            break;
-        case IS_OBJECT:
-            str = emalloc(sizeof("object(?)"));
-            strcpy(str, "object(?)");
-            break;
-        case IS_RESOURCE:
-            str = emalloc(sizeof("resource(?)"));
-            strcpy(str, "resource(?)");
-            break;
-        case IS_CONSTANT:
-            size = Z_STRLEN_P(v) + 1 + sizeof("constant('')");
-            str = emalloc(size);
-            snprintf(str, size, "constant('%s')", Z_STRVAL_P(v)); 
-            break;
-        case IS_CONSTANT_ARRAY:
-            str = emalloc(sizeof("constant_array(?)"));
-            strcpy(str, "constant_array(?)");
-            break;
-        default:
-            snprintf(buf, sizeof(buf), "unknown(type=%d)", Z_TYPE_P(v));
-            str = emalloc(strlen(buf) + 1);
-            strcpy(str, buf);
+    case IS_NULL:
+        str = emalloc(sizeof("null"));
+        strncpy(str, "null", sizeof("null"));
+        break;
+    case IS_LONG:
+        snprintf(buf, sizeof(buf), "long(%ld)", Z_LVAL_P(v));
+        str = emalloc(strlen(buf) + 1);
+        strcpy(str, buf);
+        break;
+    case IS_DOUBLE:
+        snprintf(buf, sizeof(buf), "double(%e)", Z_DVAL_P(v));
+        str = emalloc(strlen(buf) + 1);
+        strcpy(str, buf);
+        break;
+    case IS_STRING:
+        size = Z_STRLEN_P(v) + 1 + sizeof("string('')");
+        str = emalloc(size);
+        snprintf(str, size, "string('%s')", Z_STRVAL_P(v));
+        break;
+    case IS_BOOL:
+        if (Z_LVAL_P(v)) {
+            str = emalloc(sizeof("bool(true)"));
+            strcpy(str, "bool(true)");
+        } else {
+            str = emalloc(sizeof("bool(false)"));
+            strcpy(str, "bool(false)");
+        }
+        break;
+    case IS_ARRAY:
+        str = emalloc(sizeof("array(?)"));
+        strcpy(str, "array(?)");
+        break;
+    case IS_OBJECT:
+        str = emalloc(sizeof("object(?)"));
+        strcpy(str, "object(?)");
+        break;
+    case IS_RESOURCE:
+        str = emalloc(sizeof("resource(?)"));
+        strcpy(str, "resource(?)");
+        break;
+    case IS_CONSTANT:
+        size = Z_STRLEN_P(v) + 1 + sizeof("constant('')");
+        str = emalloc(size);
+        snprintf(str, size, "constant('%s')", Z_STRVAL_P(v));
+        break;
+    case IS_CONSTANT_ARRAY:
+        str = emalloc(sizeof("constant_array(?)"));
+        strcpy(str, "constant_array(?)");
+        break;
+    default:
+        snprintf(buf, sizeof(buf), "unknown(type=%d)", Z_TYPE_P(v));
+        str = emalloc(strlen(buf) + 1);
+        strcpy(str, buf);
     }
     return str;
 }
 /* }}} */
 
-/* {{{ get_op_array: return a php array with the given op_array structure 
+/* {{{ get_op_array: return a php array with the given op_array structure
  * array() { [0] .. [n] =>
  *      array () {
  *          [lineno]        => // the line number in the source code
@@ -208,11 +210,11 @@ static char *get_zval(zval *v)
  *          [extended_value]=> // the extended value field
  *          [op1]           => // the first opcode
  *          [op2]           => // the second opcode
- *          [result]        => // the result 
+ *          [result]        => // the result
  *      }
  * }
  */
-static zval *get_op_array(ea_op_array *op_array TSRMLS_DC) 
+static zval *get_op_array(ea_op_array *op_array TSRMLS_DC)
 {
     zval *return_value;
     MAKE_STD_ZVAL(return_value);
@@ -221,7 +223,7 @@ static zval *get_op_array(ea_op_array *op_array TSRMLS_DC)
     if (op_array->opcodes) {
         zend_op *opline;
         zend_op *end;
-        
+
         opline = op_array->opcodes;
         end = opline + op_array->last;
 
@@ -236,7 +238,7 @@ static zval *get_op_array(ea_op_array *op_array TSRMLS_DC)
 
             /* lineno */
             add_assoc_long(el, "lineno", opline->lineno);
-           
+
             /* opname */
             if (op != NULL) {
                 add_assoc_string(el, "opcode", (char *)op->opname, 1);
@@ -247,7 +249,7 @@ static zval *get_op_array(ea_op_array *op_array TSRMLS_DC)
 
             /* extended value */
             if ((op->ops & EXT_MASK) == EXT_OPLINE) {
-                snprintf(buf, sizeof(buf), "opline(%lu)", opline->extended_value); 
+                snprintf(buf, sizeof(buf), "opline(%lu)", opline->extended_value);
             } else if ((op->ops & EXT_MASK) == EXT_FCALL) {
                 snprintf(buf, sizeof(buf), "args(%lu)", opline->extended_value);
             } else if ((op->ops & EXT_MASK) == EXT_ARG) {
@@ -318,26 +320,31 @@ static zval *get_op_array(ea_op_array *op_array TSRMLS_DC)
 
             /* op1 */
             zval_used = 0;
-            if (opline->op1.op_type == IS_CV) {
-                snprintf(buf, sizeof(buf), "$cv%u(%s)", opline->op1.u.var, op_array->vars[opline->op1.u.var].name);
+            if (OP1_TYPE(opline) == IS_CV) {
+                snprintf(buf, sizeof(buf), "$cv%u(%s)", OP1_VARR(opline),
+                         op_array->vars[OP1_VARR(opline)].name);
             } else if ((op->ops & OP1_MASK) == OP1_OPLINE) {
-                snprintf(buf, sizeof(buf), "opline(%d)", opline->op1.u.opline_num);
+                snprintf(buf, sizeof(buf), "opline(%d)", OP1_OPLINE_NUM(opline));
             } else if ((op->ops & OP1_MASK) == OP1_JMPADDR) {
-                snprintf(buf, sizeof(buf), "opline(%u)", (unsigned int)(opline->op1.u.jmp_addr - op_array->opcodes));
+                snprintf(buf, sizeof(buf), "opline(%u)", (unsigned int)(OP1_JMP_ADDR(opline) - op_array->opcodes));
             } else if ((op->ops & OP1_MASK) == OP1_CLASS) {
-                snprintf(buf, sizeof(buf), "$class%u", VAR_NUM(opline->op1.u.var));
+                snprintf(buf, sizeof(buf), "$class%u", VAR_NUM(OP1_VARR(opline)));
 #ifdef ZEND_ENGINE_2_3
             } else if ((op->ops & OP1_MASK) == OP1_UCLASS) {
-                if (opline->op1.op_type == IS_UNUSED) {
+                if (OP1_TYPE(opline) == IS_UNUSED) {
                     buf[0] = '\0';
                 } else {
-                    snprintf(buf, sizeof(buf), "$class%u", VAR_NUM(opline->op1.u.var));
+                    snprintf(buf, sizeof(buf), "$class%u", VAR_NUM(OP1_VARR(opline)));
                 }
 #endif
             } else if ((op->ops & OP1_MASK) == OP1_BRK) {
-                if (opline->op1.u.opline_num != -1 && opline->op2.op_type == IS_CONST && opline->op2.u.constant.type == IS_LONG) {
-                    int level = opline->op2.u.constant.value.lval;
-                    zend_uint offset = opline->op1.u.opline_num;
+                if (OP1_OPLINE_NUM(opline) != -1 && OP2_TYPE(opline) == IS_CONST && Z_TYPE_P(opline->op2.zv) == IS_LONG) {
+#ifdef ZEND_ENGINE_2_4
+                    int level = Z_LVAL_P(opline->op2.zv);
+#else
+                    int level = Z_LVAL(OP2_CONST(opline));
+#endif
+                    zend_uint offset = OP1_OPLINE_NUM(opline);
                     zend_brk_cont_element *jmp_to;
                     do {
                         if (offset >= op_array->last_brk_cont) {
@@ -349,12 +356,16 @@ static zval *get_op_array(ea_op_array *op_array TSRMLS_DC)
                     snprintf(buf, sizeof(buf), "opline(%d)", jmp_to->brk);
                 } else {
 brk_failed:
-                    snprintf(buf, sizeof(buf), "brk_cont(%u)", opline->op1.u.opline_num);
+                    snprintf(buf, sizeof(buf), "brk_cont(%u)", OP1_OPLINE_NUM(opline));
                 }
             } else if ((op->ops & OP1_MASK) == OP1_CONT) {
-                if (opline->op1.u.opline_num != -1 && opline->op2.op_type == IS_CONST && opline->op2.u.constant.type == IS_LONG) {
-                    int level = opline->op2.u.constant.value.lval;
-                    zend_uint offset = opline->op1.u.opline_num;
+                if (OP1_OPLINE_NUM(opline) != -1 && OP2_TYPE(opline) == IS_CONST && Z_TYPE_P(opline->op2.zv) == IS_LONG) {
+#ifdef ZEND_ENGINE_2_4
+                    int level = Z_LVAL_P(opline->op2.zv);
+#else
+                    int level = Z_LVAL(OP2_CONST(opline));
+#endif
+                    zend_uint offset = OP1_OPLINE_NUM(opline);
                     zend_brk_cont_element *jmp_to;
                     do {
                         if (offset >= op_array->last_brk_cont) {
@@ -366,26 +377,34 @@ brk_failed:
                     snprintf(buf, sizeof(buf), "opline(%d)", jmp_to->cont);
                 } else {
 cont_failed:
-                    snprintf(buf, sizeof(buf), "brk_cont(%u)", opline->op1.u.opline_num);
+                    snprintf(buf, sizeof(buf), "brk_cont(%u)", OP1_OPLINE_NUM(opline));
                 }
             } else if ((op->ops & OP1_MASK) == OP1_ARG) {
-                snprintf(buf, sizeof(buf), "arg(%ld)", opline->op1.u.constant.value.lval);
+#ifdef ZEND_ENGINE_2_4
+                snprintf(buf, sizeof(buf), "arg(%ld)", Z_LVAL(CONSTANT(opline->op1.constant)));
+#else
+                snprintf(buf, sizeof(buf), "arg(%ld)", Z_LVAL(OP1_CONST(opline));
+#endif
             } else if ((op->ops & OP1_MASK) == OP1_VAR) {
-                snprintf(buf, sizeof(buf), "$var%u", VAR_NUM(opline->op1.u.var));
+                snprintf(buf, sizeof(buf), "$var%u", VAR_NUM(OP1_VARR(opline)));
             } else if ((op->ops & OP1_MASK) == OP1_TMP) {
-                snprintf(buf, sizeof(buf), "$tmp%u", VAR_NUM(opline->op1.u.var));
+                snprintf(buf, sizeof(buf), "$tmp%u", VAR_NUM(OP1_VARR(opline)));
             } else {
-                if (opline->op1.op_type == IS_CONST) {
+                if (OP1_TYPE(opline) == IS_CONST) {
                     zval_used = 1;
+#ifdef ZEND_ENGINE_2_4
+                    add_assoc_string(el, "op1", get_zval((zval*)opline->op1.literal), 0);
+#else
                     add_assoc_string(el, "op1", get_zval(&opline->op1.u.constant), 0);
-                } else if (opline->op1.op_type == IS_TMP_VAR) {
-                    snprintf(buf, sizeof(buf), "$tmp%u", VAR_NUM(opline->op1.u.var));
-                } else if (opline->op1.op_type == IS_VAR) {
-                    snprintf(buf, sizeof(buf), "$var%u", VAR_NUM(opline->op1.u.var));
-                } else if (opline->op1.op_type == IS_UNUSED) {
+#endif
+                } else if (OP1_TYPE(opline) == IS_TMP_VAR) {
+                    snprintf(buf, sizeof(buf), "$tmp%u", VAR_NUM(OP1_VARR(opline)));
+                } else if (OP1_TYPE(opline) == IS_VAR) {
+                    snprintf(buf, sizeof(buf), "$var%u", VAR_NUM(OP1_VARR(opline)));
+                } else if (OP1_TYPE(opline) == IS_UNUSED) {
                     buf[0] = '\0';
                 } else {
-                    snprintf(buf, sizeof(buf), "UNKNOWN NODE %d", opline->op1.op_type);
+                    snprintf(buf, sizeof(buf), "UNKNOWN NODE %d", OP1_TYPE(opline));
                 }
             }
             if (zval_used == 0) {
@@ -394,25 +413,45 @@ cont_failed:
 
             /* op2 */
             zval_used = 0;
-            if (opline->op2.op_type == IS_CV) {
-                snprintf(buf, sizeof(buf), "$cv%u(%s)", opline->op2.u.var, op_array->vars[opline->op2.u.var].name);
+            if (OP2_TYPE(opline) == IS_CV) {
+                snprintf(buf, sizeof(buf), "$cv%u(%s)", OP2_VARR(opline), op_array->vars[OP2_VARR(opline)].name);
             } else if ((op->ops & OP2_MASK) == OP2_OPLINE) {
-                snprintf(buf, sizeof(buf), "opline(%d)", opline->op2.u.opline_num);
+                snprintf(buf, sizeof(buf), "opline(%d)", OP2_OPLINE_NUM(opline));
             } else if ((op->ops & OP2_MASK) == OP2_JMPADDR) {
-                snprintf(buf, sizeof(buf), "opline(%u)", (unsigned int) (opline->op2.u.jmp_addr - op_array->opcodes));
+                snprintf(buf, sizeof(buf), "opline(%u)", (unsigned int) (OP2_JMP_ADDR(opline) - op_array->opcodes));
             } else if ((op->ops & OP2_MASK) == OP2_CLASS) {
-                snprintf(buf, sizeof(buf), "$class%u", VAR_NUM(opline->op2.u.var));
+                snprintf(buf, sizeof(buf), "$class%u", VAR_NUM(OP2_VARR(opline)));
             } else if ((op->ops & OP2_MASK) == OP2_VAR) {
-                snprintf(buf, sizeof(buf), "$var%u", VAR_NUM(opline->op2.u.var));
+                snprintf(buf, sizeof(buf), "$var%u", VAR_NUM(OP2_VARR(opline)));
             } else if ((op->ops & OP2_MASK) == OP2_FETCH) {
                 const char *typename = NULL;
+#ifdef ZEND_ENGINE_2_4
+                GET_FETCHTYPENAME(opline->extended_value, typename);
+                if (opline->extended_value == ZEND_FETCH_STATIC_MEMBER) {
+#else
                 GET_FETCHTYPENAME(opline->op2.u.EA.type, typename);
                 if (opline->op2.u.EA.type == ZEND_FETCH_STATIC_MEMBER) {
-                    snprintf(buf, sizeof(buf), "%s $class%u", typename, VAR_NUM(opline->op2.u.var));
+#endif
+                    snprintf(buf, sizeof(buf), "%s $class%u", typename, VAR_NUM(OP2_VARR(opline)));
                 } else {
                     snprintf(buf, sizeof(buf), "%s", typename);
                 }
             } else if ((op->ops & OP2_MASK) == OP2_INCLUDE) {
+#ifdef ZEND_ENGINE_2_4
+                if (opline->extended_value == ZEND_EVAL) {
+                    snprintf(buf, sizeof(buf), "ZEND_EVAL");
+                } else if (opline->extended_value == ZEND_INCLUDE) {
+                    snprintf(buf, sizeof(buf), "ZEND_INCLUDE");
+                } else if (opline->extended_value == ZEND_INCLUDE_ONCE) {
+                    snprintf(buf, sizeof(buf), "ZEND_INCLUDE_ONCE");
+                } else if (opline->extended_value == ZEND_REQUIRE) {
+                    snprintf(buf, sizeof(buf), "ZEND_REQUIRE");
+                } else if (opline->extended_value == ZEND_REQUIRE_ONCE) {
+                    snprintf(buf, sizeof(buf), "ZEND_REQUIRE_ONCE");
+                } else {
+                    buf[0] = '\0';
+                }
+#else
                 if (opline->op2.u.constant.value.lval == ZEND_EVAL) {
                     snprintf(buf, sizeof(buf), "ZEND_EVAL");
                 } else if (opline->op2.u.constant.value.lval == ZEND_INCLUDE) {
@@ -426,9 +465,19 @@ cont_failed:
                 } else {
                     buf[0] = '\0';
                 }
+#endif
             } else if ((op->ops & OP2_MASK) == OP2_ARG) {
-                snprintf(buf, sizeof(buf), "arg(%u)", opline->op2.u.opline_num);
+                snprintf(buf, sizeof(buf), "arg(%u)", OP2_OPLINE_NUM(opline));
             } else if ((op->ops & OP2_MASK) == OP2_ISSET) {
+#ifdef ZEND_ENGINE_2_4
+                if (opline->extended_value == ZEND_ISSET) {
+                    snprintf(buf, sizeof(buf), "ZEND_ISSET");
+                } else if (opline->extended_value == ZEND_ISEMPTY) {
+                    snprintf(buf, sizeof(buf), "ZEND_ISEMPTY");
+                } else {
+                    buf[0] = '\0';
+                }
+#else
                 if (opline->op2.u.constant.value.lval == ZEND_ISSET) {
                     snprintf(buf, sizeof(buf), "ZEND_ISSET");
                 } else if (opline->op2.u.constant.value.lval == ZEND_ISEMPTY) {
@@ -436,18 +485,23 @@ cont_failed:
                 } else {
                     buf[0] = '\0';
                 }
+#endif
             } else {
-                if (opline->op2.op_type == IS_CONST) {
+                if (OP2_TYPE(opline) == IS_CONST) {
                     zval_used = 1;
+#ifdef ZEND_ENGINE_2_4
+                    add_assoc_string(el, "op2", get_zval((zval*)opline->op2.literal), 0);
+#else
                     add_assoc_string(el, "op2", get_zval(&opline->op2.u.constant), 0);
-                } else if (opline->op2.op_type == IS_TMP_VAR) {
-                    snprintf(buf, sizeof(buf), "$tmp%u", VAR_NUM(opline->op2.u.var));
-                } else if (opline->op2.op_type == IS_VAR) {
-                    snprintf(buf, sizeof(buf), "$var%u", VAR_NUM(opline->op2.u.var));
-                } else if (opline->op2.op_type == IS_UNUSED) {
+#endif
+                } else if (OP2_TYPE(opline) == IS_TMP_VAR) {
+                    snprintf(buf, sizeof(buf), "$tmp%u", VAR_NUM(OP2_VARR(opline)));
+                } else if (OP2_TYPE(opline) == IS_VAR) {
+                    snprintf(buf, sizeof(buf), "$var%u", VAR_NUM(OP2_VARR(opline)));
+                } else if (OP2_TYPE(opline) == IS_UNUSED) {
                     buf[0] = '\0';
                 } else {
-                    snprintf(buf, sizeof(buf), "UNKNOWN NODE %d", opline->op2.op_type);
+                    snprintf(buf, sizeof(buf), "UNKNOWN NODE %d", OP2_TYPE(opline));
                 }
             }
             if (zval_used == 0) {
@@ -456,51 +510,63 @@ cont_failed:
 
             /* result */
             zval_used = 0;
-            if (opline->result.op_type == IS_CV) {
-                snprintf(buf, sizeof(buf), "$cv%u(%s)", opline->result.u.var, op_array->vars[opline->result.u.var].name);
-            } else 
-            switch (op->ops & RES_MASK) {
+            if (RES_TYPE(opline) == IS_CV) {
+                snprintf(buf, sizeof(buf), "$cv%u(%s)", RES_VARR(opline), op_array->vars[RES_VARR(opline)].name);
+            } else
+                switch (op->ops & RES_MASK) {
                 case RES_STD:
-                    if (opline->result.op_type == IS_CONST) {
+                    if (RES_TYPE(opline) == IS_CONST) {
                         zval_used = 1;
+#ifdef ZEND_ENGINE_2_4
+                        add_assoc_string(el, "result", get_zval((zval*)opline->result.literal), 0);
+#else
                         add_assoc_string(el, "result", get_zval(&opline->result.u.constant), 0);
-                    } else if (opline->result.op_type == IS_TMP_VAR) {
-                        snprintf(buf, sizeof(buf), "$tmp%u", VAR_NUM(opline->result.u.var)); 
-                    } else if (opline->result.op_type == IS_VAR) {
+#endif
+                    } else if (RES_TYPE(opline) == IS_TMP_VAR) {
+                        snprintf(buf, sizeof(buf), "$tmp%u", VAR_NUM(RES_VARR(opline)));
+                    } else if (RES_TYPE(opline) == IS_VAR) {
+#ifdef ZEND_ENGINE_2_4
+                        if ((RES_TYPE(opline) & EXT_TYPE_UNUSED) != 0) {
+#else
                         if ((opline->result.u.EA.type & EXT_TYPE_UNUSED) != 0) {
-                            snprintf(buf, sizeof(buf), "$var%u (unused)", VAR_NUM(opline->result.u.var));
+#endif
+                            snprintf(buf, sizeof(buf), "$var%u (unused)", VAR_NUM(RES_VARR(opline)));
                         } else {
-                            snprintf(buf, sizeof(buf), "$var%u", VAR_NUM(opline->result.u.var));
+                            snprintf(buf, sizeof(buf), "$var%u", VAR_NUM(RES_VARR(opline)));
                         }
-                    } else if (opline->result.op_type == IS_UNUSED) {
+                    } else if (RES_TYPE(opline) == IS_UNUSED) {
                         buf[0] = '\0';
                     } else {
-                        snprintf(buf, sizeof(buf), "UNKNOWN NODE %d", opline->result.op_type);
+                        snprintf(buf, sizeof(buf), "UNKNOWN NODE %d", RES_TYPE(opline));
                     }
                     break;
                 case RES_CLASS:
-                    snprintf(buf, sizeof(buf), "$class%u", VAR_NUM(opline->result.u.var));
+                    snprintf(buf, sizeof(buf), "$class%u", VAR_NUM(RES_VARR(opline)));
                     break;
                 case RES_TMP:
-                    snprintf(buf, sizeof(buf), "$tmp%u", VAR_NUM(opline->result.u.var));
+                    snprintf(buf, sizeof(buf), "$tmp%u", VAR_NUM(RES_VARR(opline)));
                     break;
                 case RES_VAR:
+#ifdef ZEND_ENGINE_2_4
+                    if ((RES_TYPE(opline) & EXT_TYPE_UNUSED) != 0) {
+#else
                     if ((opline->result.u.EA.type & EXT_TYPE_UNUSED) != 0) {
-                        snprintf(buf, sizeof(buf), "$var%u (unused)", VAR_NUM(opline->result.u.var));
+#endif
+                        snprintf(buf, sizeof(buf), "$var%u (unused)", VAR_NUM(RES_VARR(opline)));
                     } else {
-                        snprintf(buf, sizeof(buf), "$var%u", VAR_NUM(opline->result.u.var));
+                        snprintf(buf, sizeof(buf), "$var%u", VAR_NUM(RES_VARR(opline)));
                     }
                     break;
                 case RES_UNUSED:
                     buf[0] = '\0';
                     break;
                 case RES_OPLINE:
-                    snprintf(buf, sizeof(buf), "opline(%d)", opline->result.u.opline_num);
+                    snprintf(buf, sizeof(buf), "opline(%d)", RES_OPLINE_NUM(opline));
                     break;
                 default:
-                    snprintf(buf, sizeof(buf), "UNKNOWN NODE %d", opline->result.op_type);
+                    snprintf(buf, sizeof(buf), "UNKNOWN NODE %d", RES_TYPE(opline));
                     break;
-            }
+                }
             if (zval_used == 0) {
                 add_assoc_string(el, "result", buf, 1);
             }
@@ -513,11 +579,12 @@ cont_failed:
 /* }}} */
 
 /* {{{ get_cache_entry: get the cache_entry for the given file */
-static ea_cache_entry *get_cache_entry(const char *file) {
+static ea_cache_entry *get_cache_entry(const char *file)
+{
     unsigned int slot;
     ea_cache_entry *p;
     ea_cache_entry *result = NULL;
-    
+
     if (file != NULL) {
         EACCELERATOR_UNPROTECT();
         EACCELERATOR_LOCK_RD();
@@ -561,8 +628,9 @@ PHP_FUNCTION(eaccelerator_dasm_file)
     zval *functions;
     zval *classes;
 
-    if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &file, &file_len) == FAILURE)
+    if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &file, &file_len) == FAILURE) {
         return;
+    }
 
     if (ea_mm_instance == NULL || php_check_open_basedir(file TSRMLS_CC)) {
         RETURN_NULL();
@@ -572,9 +640,9 @@ PHP_FUNCTION(eaccelerator_dasm_file)
     if (p == NULL) {
         RETURN_NULL();
     }
-  
+
     array_init(return_value);
-   
+
     /* file op_array */
     add_assoc_zval(return_value, "op_array", get_op_array(p->op_array TSRMLS_CC));
 
@@ -614,7 +682,7 @@ PHP_FUNCTION(eaccelerator_dasm_file)
             fc = fc->next;
         }
     }
-    add_assoc_zval(return_value, "classes", classes); 
+    add_assoc_zval(return_value, "classes", classes);
 }
 /* }}} */
 
@@ -625,7 +693,6 @@ PHP_FUNCTION(eaccelerator_dasm_file)
  * tab-width: 4
  * c-basic-offset: 4
  * End:
- * vim600: noet sw=4 ts=4 fdm=marker
- * vim<600: noet sw=4 ts=4
+ * vim600: et sw=4 ts=4 fdm=marker
+ * vim<600: et sw=4 ts=4
  */
-
