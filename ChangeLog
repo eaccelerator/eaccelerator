@@ -1,195 +1,202 @@
-2012-07-19	Hans Rakers <hans at rakers.org>
+2012-07-26  Hans Rakers <hans at rakers.org>
 
-		* PHP-5.4 compatibility
-		* Fixed a segfault when restoring class doc comments from
-		  disk cache
-		* Storing doc comments in cache is default now since most
-		  frameworks require this (Reflection API).
-		* Re-indented all files using astyle and bumped year
+	* fixed compilation of ea_dasm.c against php < 5.4
+	* fixed handling of hashes for php < 5.4
+	* disabled MM_CHECK by default because it is broken and causes segfaults when
+	  shared memory is exhausted (debug builds only).
 
-2010-07-28	Bart Vanbrabant <bart at vanbrabant.eu>
+2012-07-19  Hans Rakers <hans at rakers.org>
 
-		* Make the error message about creating the cache directory more
-		  clear.
+	* PHP-5.4 compatibility
+	* Fixed a segfault when restoring class doc comments from
+	  disk cache
+	* Storing doc comments in cache is default now since most
+	  frameworks require this (Reflection API).
+	* Re-indented all files using astyle and bumped year
 
-2010-07-26	Hans Rakers <hans at react.nl>
+2010-07-28  Bart Vanbrabant <bart at vanbrabant.eu>
 
-		* Fix for ticket #432. The optimizer would eliminate the final
-		  ZEND_RETURN of an op array if the script ended with a switch
-		  statement. Last opcodes ZEND_BRK, ZEND_JMP, ZEND_JMP,
-		  ZEND_RETURN. ZEND_BRK gets optimized to a JMP, which is a JMP
-		  to RETURN so gets eliminated. Other 2 JMPs get eliminated,
-		  RETURN loses all predecessors, and thus gets eliminated aswell,
-		  resulting in a crash. Problem ended up being in the handling of
-		  the ZEND_BRK to ZEND_JMP optimization. /long story
+	* Make the error message about creating the cache directory more
+	  clear.
 
-2010-07-11	Bart Vanbrabant <bart@vanbrabant.eu>
+2010-07-26  Hans Rakers <hans at react.nl>
 
-		* Changed the way the cache directory is created:
-		- The forked process creates the cache dir and makes it world writable
-		- The first request creates a subdir with the userid of the process and
-		with permissions 700.
+	* Fix for ticket #432. The optimizer would eliminate the final
+	  ZEND_RETURN of an op array if the script ended with a switch
+	  statement. Last opcodes ZEND_BRK, ZEND_JMP, ZEND_JMP,
+	  ZEND_RETURN. ZEND_BRK gets optimized to a JMP, which is a JMP
+	  to RETURN so gets eliminated. Other 2 JMPs get eliminated,
+	  RETURN loses all predecessors, and thus gets eliminated aswell,
+	  resulting in a crash. Problem ended up being in the handling of
+	  the ZEND_BRK to ZEND_JMP optimization. /long story
 
-		* Comment out an unused function to support compilin with -Werror
-		* Add sched.h include to fix a compiler warning
+2010-07-11  Bart Vanbrabant <bart@vanbrabant.eu>
 
-2010-06-03	Hans Rakers <hans at react.nl>
+	* Changed the way the cache directory is created:
+	- The forked process creates the cache dir and makes it world writable
+	- The first request creates a subdir with the userid of the process and
+	with permissions 700.
 
-		* Fixed compilation against php-5.1. This closes ticket #426.
+	* Comment out an unused function to support compilin with -Werror
+	* Add sched.h include to fix a compiler warning
 
-2010-02-25	Hans Rakers <hans at react.nl>
+2010-06-03  Hans Rakers <hans at react.nl>
 
-		* Fixed class static variable restore where parent was protected
-		  static and child was public static. This would lead to error
-		  'Access to undeclared static property' upon restore from cache
-		* Added proper handling of class properties during storing in
-		  cache. Public/private/protected is properly handled now. Somehow
-		  this was a long overdue TODO spotted by running the testsuite.
-		  This fixes ticket #408
-		* Small fix that solves some issues with lambda (closure)
-		  functions. This solves ticket #405
+	* Fixed compilation against php-5.1. This closes ticket #426.
 
-2010-02-24	Hans Rakers <hans at react.nl>
+2010-02-25  Hans Rakers <hans at react.nl>
 
-		* Fixed double free in eaccelerator_globals_dtor. This closes
-		  ticket #404
+	* Fixed class static variable restore where parent was protected
+	  static and child was public static. This would lead to error
+	  'Access to undeclared static property' upon restore from cache
+	* Added proper handling of class properties during storing in
+	  cache. Public/private/protected is properly handled now. Somehow
+	  this was a long overdue TODO spotted by running the testsuite.
+	  This fixes ticket #408
+	* Small fix that solves some issues with lambda (closure)
+	  functions. This solves ticket #405
 
-2010-02-18	Hans Rakers <hans at react.nl>
+2010-02-24  Hans Rakers <hans at react.nl>
 
-		* Remove some leftover debug output that broke compilation with
-		  php-5.2 and --with-eaccelerator-debug
-		* php_check_open_basedir only needs to be called when restoring
+	* Fixed double free in eaccelerator_globals_dtor. This closes
+	  ticket #404
 
-2010-02-04	Hans Rakers <hans at react.nl>
+2010-02-18  Hans Rakers <hans at react.nl>
 
-		* Fixed linking of ZEND_DECLARE_INHERITED_CLASS_DELAYED across
-		  bb's in the optimizer. This fixes bug #399
+	* Remove some leftover debug output that broke compilation with
+	  php-5.2 and --with-eaccelerator-debug
+	* php_check_open_basedir only needs to be called when restoring
 
-2010-02-04	Bart Vanbrabant <bart at vanbrabant.eu>
+2010-02-04  Hans Rakers <hans at react.nl>
 
-		* Remove some leftovers from the lock api
-		* Now really add the sched_yield command and not only in commented
-		out
+	* Fixed linking of ZEND_DECLARE_INHERITED_CLASS_DELAYED across
+	  bb's in the optimizer. This fixes bug #399
 
-2010-02-03	Bart Vanbrabant <bart at vanbrabant.eu>
+2010-02-04  Bart Vanbrabant <bart at vanbrabant.eu>
 
-		* Include the resolve path function from php so it is available for
-		older PHP versions as well. Includes that start file:// work now.
-		* Enable phar caching: Files in included from a phar file are cached
-		now. The phar archive is used to excute the stat on.
-		* Enable check_mtime usage again
-		* Use snprintf the right way. See #290
-		* Add a call to sched_yield after a failed spinlock to prevent
-		deadlock conditions. This should fix #381 and is a real fix for #340.
-		Instead of using a fake select as yield, a check is added to disable
-		spinlocks on systems that do not have sched_yield.
-		* Fix spinlocks on Solaris with Sun Compiler. #325
+	* Remove some leftovers from the lock api
+	* Now really add the sched_yield command and not only in commented
+	  out
+
+2010-02-03  Bart Vanbrabant <bart at vanbrabant.eu>
+
+	* Include the resolve path function from php so it is available for
+	  older PHP versions as well. Includes that start file:// work now.
+	* Enable phar caching: Files in included from a phar file are cached
+	  now. The phar archive is used to excute the stat on.
+	* Enable check_mtime usage again
+	* Use snprintf the right way. See #290
+	* Add a call to sched_yield after a failed spinlock to prevent
+	  deadlock conditions. This should fix #381 and is a real fix for #340.
+	  Instead of using a fake select as yield, a check is added to disable
+	  spinlocks on systems that do not have sched_yield.
+	* Fix spinlocks on Solaris with Sun Compiler. #325
 
 2010-02-02  Bart Vanbrabant <bart at vanbrabant.eu>
 
-		* Fix two compiler warnings
+	* Fix two compiler warnings
 
 2010-02-01  Bart Vanbrabant <bart at vanbrabant.eu>
 
-		* A retab on eaccelerator.c
-		* Remove caching based on inodes
-		* Reimplement eaccelerator_stat to speed it up: the new ea_stat is
-		almost twice as fast as the old version with inodes. The tests were
-		done on a file that includes 10k empty files.
-		* Increment version to 1.0-dev
+	* A retab on eaccelerator.c
+	* Remove caching based on inodes
+	* Reimplement eaccelerator_stat to speed it up: the new ea_stat is
+	  almost twice as fast as the old version with inodes. The tests were
+	  done on a file that includes 10k empty files.
+	* Increment version to 1.0-dev
 
-2010-01-22	Bart Vanbrabant <bart at vanbrabant.eu>
+2010-01-22  Bart Vanbrabant <bart at vanbrabant.eu>
 
-		* Release 0.9.6-rc2
+	* Release 0.9.6-rc2
 
-2010-01-21	Hans Rakers <hans at react.nl>
+2010-01-21  Hans Rakers <hans at react.nl>
 
-		* Set op_array->early_binding in a later stage.
-		  This fixes ticket #394
+	* Set op_array->early_binding in a later stage.
+	  This fixes ticket #394
 
-2010-01-20	Hans Rakers <hans at react.nl>
+2010-01-20  Hans Rakers <hans at react.nl>
 
-		* Some more work on delayed early binding. This fixes
-		  ticket #388
-		* Some reformatting in ea_dasm.c
-		* Win32 VC6 project file updated
+	* Some more work on delayed early binding. This fixes
+	  ticket #388
+	* Some reformatting in ea_dasm.c
+	* Win32 VC6 project file updated
 
-2010-01-19	Bart Vanbrabant <bart at vanbrabant.eu>
+2010-01-19  Bart Vanbrabant <bart at vanbrabant.eu>
 
-		* Remove obsolete documentation
-		* Update year in copyright
+	* Remove obsolete documentation
+	* Update year in copyright
 
-2010-01-19	Hans Rakers <hans at react.nl>
+2010-01-19  Hans Rakers <hans at react.nl>
 
-		* Implemented ZEND_GOTO
-		* Implemented delayed early binding for php-5.3. This
-		  solves ticket #146 (Problems with require_once with
-		  circular dependencies) for everyone using php-5.3.
-		  See http://marc.info/?l=php-internals&m=120539866910125&w=2
-		  for more info on this.
-		* Fixed ticket #386 (Crash using const & php-5.3)
-		* Fixed a bunch of other php-5.3 related issues found by
-		  using the test suite and all php-5.3 Zend engine tests
-		* Win32 project files updated
-		* Win32 ZTS fixes
+	* Implemented ZEND_GOTO
+	* Implemented delayed early binding for php-5.3. This
+	  solves ticket #146 (Problems with require_once with
+	  circular dependencies) for everyone using php-5.3.
+	  See http://marc.info/?l=php-internals&m=120539866910125&w=2
+	  for more info on this.
+	* Fixed ticket #386 (Crash using const & php-5.3)
+	* Fixed a bunch of other php-5.3 related issues found by
+	  using the test suite and all php-5.3 Zend engine tests
+	* Win32 project files updated
+	* Win32 ZTS fixes
 
-2009-12-23	Hans Rakers <hans at react.nl>
+2009-12-23  Hans Rakers <hans at react.nl>
 
-		* Fixed ticket #383 (crash on ZEND_ADD_INTERFACE)
-		* check_mtime can now be enabled/disabled through the web
-		  interface as requested in ticket #32
-		* Shortened some variable names
-		* ZEND_JMP_SET support
+	* Fixed ticket #383 (crash on ZEND_ADD_INTERFACE)
+	* check_mtime can now be enabled/disabled through the web
+	  interface as requested in ticket #32
+	* Shortened some variable names
+	* ZEND_JMP_SET support
 
-2009-12-01	Hans Rakers <hans at react.nl>
+2009-12-01  Hans Rakers <hans at react.nl>
 
-		* Win32 compilation fixes (compiles in VC++ 2008)
-		* Updated VC++ project file to VC++ 2008 format
+	* Win32 compilation fixes (compiles in VC++ 2008)
+	* Updated VC++ project file to VC++ 2008 format
 
-2009-11-30	Hans Rakers <hans at react.nl>
+2009-11-30  Hans Rakers <hans at react.nl>
 
-		* Added a whole bunch of standard functions to
-		  opt_result_is_numeric()
-		* init allocated memblocks with memset instead of a for loop
-		  in reassign_registers()
-		* Fix in build_cfg for PHP 5.3 UCLASS znodes. These are
-		  handled differently in 5.3 due to namespaces.
-		* Some tweaks and additions to ea_dasm.c
-		* Some quick and dirty tweaks to dasm.php to sync looks with
-		  control.php
-		* Fixed ordering of table columns in control.php. This solves
-		  ticket #364
+	* Added a whole bunch of standard functions to
+	  opt_result_is_numeric()
+	* init allocated memblocks with memset instead of a for loop
+	  in reassign_registers()
+	* Fix in build_cfg for PHP 5.3 UCLASS znodes. These are
+	  handled differently in 5.3 due to namespaces.
+	* Some tweaks and additions to ea_dasm.c
+	* Some quick and dirty tweaks to dasm.php to sync looks with
+	  control.php
+	* Fixed ordering of table columns in control.php. This solves
+	  ticket #364
 
-2009-11-25	Hans Rakers <hans at react.nl>
+2009-11-25  Hans Rakers <hans at react.nl>
 
-		* Optimizer and general PHP 5.3 fixes
-		* Some cleanups
+	* Optimizer and general PHP 5.3 fixes
+	* Some cleanups
 
-2009-11-11	Bart Vanbrabant <bart at vanbrabant.eu>
+2009-11-11  Bart Vanbrabant <bart at vanbrabant.eu>
 
-		* Add the optimizer back
+	* Add the optimizer back
 
-2009-11-11	Hans Rakers <hans at react.nl>
+2009-11-11  Hans Rakers <hans at react.nl>
 
-		* PHP 5.3 ZEND_JMP_SET support. Fixes ticket #371
-		* open_basedir bypass fixed. Fixes ticket #104
-		* Fix for ticket #194
-		* Stripped old opcodes from opcode.c and added new ones
+	* PHP 5.3 ZEND_JMP_SET support. Fixes ticket #371
+	* open_basedir bypass fixed. Fixes ticket #104
+	* Fix for ticket #194
+	* Stripped old opcodes from opcode.c and added new ones
 
-2009-07-14	Bart Vanbrabant <bart at vanbrabant.eu>
+2009-07-14  Bart Vanbrabant <bart at vanbrabant.eu>
 	
-		* Fix two PHP 5.3 bugs
-		* Remove the optimizer
-		* Remove the user cache functions
+	* Fix two PHP 5.3 bugs
+	* Remove the optimizer
+	* Remove the user cache functions
 
-2009-05-06	Bart Vanbrabant <bart at vanbrabant.eu>
+2009-05-06  Bart Vanbrabant <bart at vanbrabant.eu>
 
-		* Remove code that is only needed for php < 5
-		* Rebase to code to minimal PHP 5.1
-		* Update support for PHP 5.3
-		* Remove have_sched_yield check in config.m4. This is not used
-		  anywhere and and causes some compilation errors.
-		* Apply patch from ticket [324]
+	* Remove code that is only needed for php < 5
+	* Rebase to code to minimal PHP 5.1
+	* Update support for PHP 5.3
+	* Remove have_sched_yield check in config.m4. This is not used
+	  anywhere and and causes some compilation errors.
+	* Apply patch from ticket [324]
 
 2008-06-20  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
@@ -204,11 +211,11 @@
 2008-06-18  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 	
         * Add patch from ticket 232: removes an unlock that isn't
-		  needed there.
+	  needed there.
 
 2008-02-12  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 		
-		* Add new opcodes introduced in PHP 5.3
+	* Add new opcodes introduced in PHP 5.3
 
 2007-08-20  Hans Rakers <hans at react.nl>
 
