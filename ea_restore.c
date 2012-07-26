@@ -396,7 +396,7 @@ static HashTable *restore_hash(HashTable * target, HashTable * source,
 //        }
 #else
         np = (Bucket *) emalloc(offsetof(Bucket, arKey) + p->nKeyLength);
-        memcpy(np->arKey, p->arKey, p->nKeyLength);
+        memcpy(np, p, offsetof(Bucket, arKey) + p->nKeyLength);
 #endif
 
         nIndex = p->h % target->nTableSize;

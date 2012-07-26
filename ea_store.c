@@ -480,7 +480,7 @@ static void store_hash_int(char **at, HashTable *target, HashTable *source,
 //            }
 #else
             np = (Bucket *)ALLOCATE(at, offsetof(Bucket, arKey) + p->nKeyLength);
-            memcpy(np->arKey, p->arKey, p->nKeyLength);
+            memcpy(np, p, offsetof(Bucket, arKey) + p->nKeyLength);
 #endif
 
             nIndex = p->h % target->nTableSize;

@@ -68,7 +68,7 @@
 
 /* Enable the memory corruption check in debug builds (cheap red zone implementation) */
 #ifdef DEBUG
-#define MM_CHECK 1
+#define MM_CHECK 0
 #endif
 #define MM_PATTERN  0xdeadbeef
 

@@ -338,10 +338,11 @@ static zval *get_op_array(ea_op_array *op_array TSRMLS_DC)
                 }
 #endif
             } else if ((op->ops & OP1_MASK) == OP1_BRK) {
-                if (OP1_OPLINE_NUM(opline) != -1 && OP2_TYPE(opline) == IS_CONST && Z_TYPE_P(opline->op2.zv) == IS_LONG) {
 #ifdef ZEND_ENGINE_2_4
+                if (OP1_OPLINE_NUM(opline) != -1 && OP2_TYPE(opline) == IS_CONST && Z_TYPE_P(opline->op2.zv) == IS_LONG) {
                     int level = Z_LVAL_P(opline->op2.zv);
 #else
+                if (OP1_OPLINE_NUM(opline) != -1 && OP2_TYPE(opline) == IS_CONST && opline->op2.u.constant.type == IS_LONG) {
                     int level = Z_LVAL(OP2_CONST(opline));
 #endif
                     zend_uint offset = OP1_OPLINE_NUM(opline);
@@ -359,10 +360,11 @@ brk_failed:
                     snprintf(buf, sizeof(buf), "brk_cont(%u)", OP1_OPLINE_NUM(opline));
                 }
             } else if ((op->ops & OP1_MASK) == OP1_CONT) {
-                if (OP1_OPLINE_NUM(opline) != -1 && OP2_TYPE(opline) == IS_CONST && Z_TYPE_P(opline->op2.zv) == IS_LONG) {
 #ifdef ZEND_ENGINE_2_4
+                if (OP1_OPLINE_NUM(opline) != -1 && OP2_TYPE(opline) == IS_CONST && Z_TYPE_P(opline->op2.zv) == IS_LONG) {
                     int level = Z_LVAL_P(opline->op2.zv);
 #else
+                if (OP1_OPLINE_NUM(opline) != -1 && OP2_TYPE(opline) == IS_CONST && opline->op2.u.constant.type == IS_LONG) {
                     int level = Z_LVAL(OP2_CONST(opline));
 #endif
                     zend_uint offset = OP1_OPLINE_NUM(opline);
@@ -383,7 +385,7 @@ cont_failed:
 #ifdef ZEND_ENGINE_2_4
                 snprintf(buf, sizeof(buf), "arg(%ld)", Z_LVAL(CONSTANT(opline->op1.constant)));
 #else
-                snprintf(buf, sizeof(buf), "arg(%ld)", Z_LVAL(OP1_CONST(opline));
+                snprintf(buf, sizeof(buf), "arg(%ld)", Z_LVAL(OP1_CONST(opline)));
 #endif
             } else if ((op->ops & OP1_MASK) == OP1_VAR) {
                 snprintf(buf, sizeof(buf), "$var%u", VAR_NUM(OP1_VARR(opline)));
