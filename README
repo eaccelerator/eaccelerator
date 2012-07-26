@@ -200,12 +200,7 @@ tokenizer support (--enable-tokenizer).
 You can set the username and password needed to access the disassembler at the
 top of dasm.php.
 
-eAccelerator API
-----------------
-
-API documentation can be found on this website: http://bart.eaccelerator.net/doc/phpdoc/
-
 Contact us
 ----------
-You can contact us with questions, patches or bugs, by sending an email to
-Bart Vanbrabant <bart at vanbrabant.eu>
+You can contact us with questions, patches or bugs on GitHub
+https://github.com/eaccelerator/eaccelerator
