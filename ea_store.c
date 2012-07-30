@@ -1082,7 +1082,7 @@ void eaccelerator_store_int(ea_cache_entry *entry, char *key, int len, zend_op_a
     q = NULL;
     while (c != NULL) {
         DBG(ea_debug_pad, (EA_DEBUG TSRMLS_CC));
-        DBG(ea_debug_printf, (EA_DEBUG, "[%d] eaccelerator_store_int:     class hashkey(%d)=", getpid(), f->nKeyLength));
+        DBG(ea_debug_printf, (EA_DEBUG, "[%d] eaccelerator_store_int:     class hashkey(%d)=", getpid(), c->nKeyLength));
         DBG(ea_debug_binary_print, (EA_DEBUG, c->arKey, c->nKeyLength));
 
         fc = (ea_fc_entry *)ALLOCATE(&p, offsetof(ea_fc_entry, htabkey) + c->nKeyLength);
