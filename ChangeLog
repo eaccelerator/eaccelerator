@@ -6,6 +6,10 @@
 	  updating but i currently don't have a win32 development station
 	* Fixed segfault in store_default_property_access_check when
 	  compiled with -O2 and removed unused vars
+	* Fixed a very stupid bug in restore_class_parent
+	* Rewrote the spinlock implementation. This hopefully takes care of
+	  deadlock issues reported on the old Trac site.
+	* Removed some excessive debug output
 
 2012-07-26  Hans Rakers <hans at rakers.org>
 

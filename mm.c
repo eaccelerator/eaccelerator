@@ -202,45 +202,83 @@ static int strxcat(char* dst, const char* src, int size)
 #include <sched.h>
 
 typedef struct mm_mutex {
-    volatile unsigned int lock;
-    volatile pid_t pid;
-    volatile int locked;
+    volatile unsigned int locked;
 } mm_mutex;
 
-#define spinlock_try_lock(rw)  asm volatile("lock ; decl %0" :"=m" ((rw)->lock) : : "memory")
-#define _spinlock_unlock(rw)   asm volatile("lock ; incl %0" :"=m" ((rw)->lock) : : "memory")
+static void mm_do_lock_slow(volatile unsigned int* locked);
 
 static int mm_init_lock(const char* key, mm_mutex* lock)
 {
-    lock->lock = 0x1;
-    lock->pid = -1;
     lock->locked = 0;
     return 1;
 }
 
-static int mm_do_lock(mm_mutex* lock, int kind)
+static inline int mm_do_lock(mm_mutex* lock, int kind)
 {
-    while (1) {
-        spinlock_try_lock(lock);
-        if (lock->lock == 0) {
-            lock->pid = getpid();
-            lock->locked = 1;
-            return 1;
+    int ret, i;
+    __asm__ __volatile__
+    ("xchgl %0, %1"
+     : "=r"(ret), "=m"(lock->locked)
+     : "0"(1), "m"(lock->locked)
+     : "memory");
+
+    if (ret) {
+        /* We didn't immediately get the lock,
+           try again 1000 times with pause instruction in the loop */
+        for (i = 0; i < 1000; i++) {
+            __asm__ __volatile__
+            ("pause\n"
+             "xchgl %0, %1"
+             : "=r"(ret), "=m"(lock->locked)
+             : "0"(1), "m"(lock->locked)
+             : "memory");
+            
+            if (!ret) {
+                return 1;
+            }
         }
-        _spinlock_unlock(lock);
-        sched_yield();
+
+        if (ret) {
+            /* Still no luck, try the slow approach */
+            mm_do_lock_slow(&lock->locked);
+        }
     }
     return 1;
 }
 
-static int mm_do_unlock(mm_mutex* lock)
+static void mm_do_lock_slow(volatile unsigned int* locked)
 {
-    if (lock->locked && (lock->pid == getpid())) {
-        lock->pid = 0;
-        lock->locked = 0;
-        _spinlock_unlock(lock);
+    sched_yield();
+    while(1) {
+        int ret;
+        __asm__ __volatile__
+        ("pause\n"
+         "xchgl %0, %1"
+         : "=r"(ret), "=m"(*locked)
+         : "0"(1), "m"(*locked)
+         : "memory");
+
+        if (!ret) {
+            return;
+        }
+
+        /* Sleep for a while */
+        struct timespec t;
+        t.tv_sec = 0;
+        t.tv_nsec = 2000000;
+        nanosleep(&t, NULL);
     }
-    return 1;
+}
+
+static inline int mm_do_unlock(mm_mutex* lock)
+{
+    __asm__ __volatile__
+    ("movl $0, %0"
+     : "=m"(lock->locked)
+     : "m" (lock->locked)
+     : "memory");
+     
+     return 1;
 }
 
 static void mm_destroy_lock(mm_mutex* lock)

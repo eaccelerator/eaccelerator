@@ -742,9 +742,6 @@ static int eaccelerator_store(char* key, struct stat *buf, int nreloads,
         return 0;
     }
 
-    DBG(ea_debug_pad, (EA_DEBUG TSRMLS_CC));
-    DBG(ea_debug_printf, (EA_DEBUG, "[%d] eaccelerator_store:  returned %d, mm=%p\n", getpid(), size, ea_mm_instance->mm));
-
     EACCELERATOR_UNPROTECT();
     EAG(mem) = eaccelerator_malloc(size);
     if (EAG(mem) == NULL) {

@@ -3023,7 +3023,6 @@ static int build_cfg(zend_op_array *op_array, BB* bb)
             break;
         case ZEND_BRK:
             /* Replace BRK by JMP */
-            DBG(ea_debug_printf, (EA_DEBUG, "build_cfg: ZEND_BRK found at %u\n", op - op_array->opcodes));
             if (OP1_OPLINE_NUM(op) == -1) {
             }
 #ifdef ZEND_ENGINE_2_4
@@ -3047,7 +3046,6 @@ static int build_cfg(zend_op_array *op_array, BB* bb)
                     }
                     offset = jmp_to->parent;
                 } while (--level > 0);
-                DBG(ea_debug_printf, (EA_DEBUG, "build_cfg: replacing ZEND_BRK with ZEND_JMP at %u\n", op - op_array->opcodes));
                 op->opcode = ZEND_JMP;
                 OP1_OPLINE_NUM(op) = jmp_to->brk;
                 OP2_TYPE(op) = IS_UNUSED;

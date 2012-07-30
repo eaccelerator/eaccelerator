@@ -703,7 +703,6 @@ static zend_property_info *restore_property_info(zend_property_info *
 #ifdef ZEND_ENGINE_2_2
     to->ce = EAG(class_entry);
 #endif
-    DBG(ea_debug_printf, (EA_DEBUG, "restore_property_info: restored property '%s'\n", to->name));
     return to;
 }
 
@@ -717,11 +716,11 @@ static void restore_class_parent(char *parent, int len, zend_class_entry * to TS
                                 NULL,
 #endif
                                 0,
-                                &parent_ptr TSRMLS_CC)) {
+                                &parent_ptr TSRMLS_CC) == SUCCESS) {
         /* parent found */
         to->parent = *parent_ptr;
-        DBG(ea_debug_printf, (EA_DEBUG, "restore_class_parent: found parent %s..\n", to->parent->name));
-        DBG(ea_debug_printf, (EA_DEBUG, "restore_class_parent: parent type=%d child type=%d\n", to->parent->type, to->type));
+        DBG(ea_debug_pad, (EA_DEBUG TSRMLS_CC));
+        DBG(ea_debug_printf, (EA_DEBUG, "[%d] restore_class_parent: found parent %s..\n", getpid(), to->parent->name));
     } else {
         ea_debug_error("[%d] EACCELERATOR can't restore parent class \"%s\" of class \"%s\"\n", getpid(), (char *) parent, to->name);
         to->parent = NULL;

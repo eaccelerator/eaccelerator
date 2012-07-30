@@ -790,7 +790,6 @@ static zend_property_info *store_property_info(char **at, zend_property_info * f
     to->doc_comment_len = 0;
     to->doc_comment = NULL;
 #endif
-    DBG(ea_debug_printf, (EA_DEBUG, "store_property_info: stored property '%s'\n", to->name));
     return to;
 }
 
@@ -812,8 +811,6 @@ static int store_property_access_check(Bucket * p, zend_class_entry * from)
     zend_class_entry *parent = from->parent;
     zend_property_info* child_info = (zend_property_info*)p->pData;
     zend_property_info* parent_info = NULL;
-
-    DBG(ea_debug_printf, (EA_DEBUG, "store_property_info_access_check: checking property '%s'...\n", p->arKey));
 
 #ifdef ZEND_ENGINE_2_2
     return (child_info->ce != from);
@@ -840,7 +837,7 @@ static int store_default_property_access_check(Bucket * p, zend_class_entry * fr
     union {
         zend_property_info *v;
         void *ptr;
-    } pinfo, cinfo;
+    } pinfo;
     union {
         zval **v;
         void *ptr;
@@ -1085,7 +1082,7 @@ void eaccelerator_store_int(ea_cache_entry *entry, char *key, int len, zend_op_a
     q = NULL;
     while (c != NULL) {
         DBG(ea_debug_pad, (EA_DEBUG TSRMLS_CC));
-        DBG(ea_debug_printf, (EA_DEBUG, "[%d] eaccelerator_store_int:     class hashkey=", getpid ()));
+        DBG(ea_debug_printf, (EA_DEBUG, "[%d] eaccelerator_store_int:     class hashkey(%d)=", getpid(), f->nKeyLength));
         DBG(ea_debug_binary_print, (EA_DEBUG, c->arKey, c->nKeyLength));
 
         fc = (ea_fc_entry *)ALLOCATE(&p, offsetof(ea_fc_entry, htabkey) + c->nKeyLength);
