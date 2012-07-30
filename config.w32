@@ -5,10 +5,8 @@ ARG_ENABLE("eaccelerator", "Enable eaccelerator support", "no");
 
 ARG_WITH("eaccelerator-crash-detection", "Include eaccelerator crash detection", "yes");
 ARG_WITH("eaccelerator-optimizer", "Include eaccelerator optimizer", "yes");
-ARG_WITH("eaccelerator-shared-memory", "Include eaccelerator shared memory functions", "no");
-ARG_WITH("eaccelerator-sessions", "Include eaccelerator sessions", "no");
-ARG_WITH("eaccelerator-content-caching", "Include eaccelerator content caching", "no");
 ARG_WITH("eaccelerator-info", "Compile the eAccelerator information functions", "yes");
+ARG_WITH("eaccelerator-doc-comment-inclusion", "Strip doc-comments from internal php structures", "no");
 ARG_WITH("eaccelerator-disassembler", "Include disassembler", "no");
 ARG_WITH("eaccelerator-debug", "Enable the debug code so eaccelerator logs verbosely", "no");
 
@@ -22,17 +20,11 @@ if (PHP_EACCELERATOR != "no") {
 	if (PHP_EACCELERATOR_OPTIMIZER != "no") {
 		AC_DEFINE("WITH_EACCELERATOR_OPTIMIZER", 1, "Define if you like to use peephole opcode optimization");
 	}
-	if (PHP_EACCELERATOR_SHARED_MEMORY != "no" || PHP_EACCELERATOR_CONTENT_CACHING != "no") {
-		AC_DEFINE("WITH_EACCELERATOR_SHM", 1, "Define if you like to use the eAccelerator functions to store keys in shared memory");
-	}
 	if (PHP_EACCELERATOR_INFO != "no") {
 		AC_DEFINE("WITH_EACCELERATOR_INFO", 1, "Define if you want the information functions");
 	}
-	if (PHP_EACCELERATOR_SESSIONS != "no") {
-		AC_DEFINE("WITH_EACCELERATOR_SESSIONS", 1, "Define if you like to use eAccelerator session handlers to store session's information in shared memory");
-	}
-	if (PHP_EACCELERATOR_CONTENT_CACHING != "no") {
-		AC_DEFINE("WITH_EACCELERATOR_CONTENT_CACHING", 1, "Define if you like to use eAccelerator content cachin API");
+	if (PHP_EACCELERATOR_DOC_COMMENT_INCLUSION != "no") {
+		AC_DEFINE("INCLUDE_DOC_COMMENTS", 1, "Define if you want eAccelerator to retain doc-comments in internal php structures");
 	}
 	if (PHP_EACCELERATOR_DISASSEMBLER != "no") {
 		AC_DEFINE("WITH_EACCELERATOR_DISASSEMBLER", 1, "Define if you like to explore Zend bytecode");
@@ -41,5 +33,4 @@ if (PHP_EACCELERATOR != "no") {
 		AC_DEFINE("DEBUG", 1, "Undef when you want to enable eaccelerator debug code");
 	}
 
-	AC_DEFINE("HAVE_EXT_SESSION_PHP_SESSION_H", 1, "Define if you have the <ext/session/php_session.h> header file.");
 }

@@ -1,3 +1,12 @@
+2012-07-30  Hans Rakers <hans at rakers.org>
+
+	* Fixed open_basedir issues as reported on the old Trac site
+	* Removed key/value store and session handler bits from config.w32
+	  and added doc-comment-inclusion. Win32 project files also need
+	  updating but i currently don't have a win32 development station
+	* Fixed segfault in store_default_property_access_check when
+	  compiled with -O2 and removed unused vars
+
 2012-07-26  Hans Rakers <hans at rakers.org>
 
 	* fixed compilation of ea_dasm.c against php < 5.4

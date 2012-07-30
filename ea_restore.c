@@ -87,7 +87,9 @@ typedef void (*fixup_bucket_t) (char *, void *TSRMLS_DC);
 static void fixup_property_info(char *base, zend_property_info * from TSRMLS_DC)
 {
     FIXUP(base, from->name);
+#ifdef INCLUDE_DOC_COMMENTS
     FIXUP(base, from->doc_comment);
+#endif
 }
 
 static void fixup_hash(char *base, HashTable * source,

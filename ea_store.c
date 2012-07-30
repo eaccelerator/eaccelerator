@@ -845,14 +845,14 @@ static int store_default_property_access_check(Bucket * p, zend_class_entry * fr
         zval **v;
         void *ptr;
     } pprop, cprop;
-    char *mname, *cname = NULL;
 
     cprop.v = p->pData;
+    pprop.v = NULL;
     /* Check if this is a parent class. If so, copy unconditionally */
     if (parent &&
             zend_hash_quick_find(&parent->default_properties, p->arKey, p->nKeyLength, p->h, &pinfo.ptr)==SUCCESS) {
 
-        if ((*pprop.v == *cprop.v) && (*pprop.v == *cprop.v)) {
+        if ((pprop.v == cprop.v) && (*pprop.v == *cprop.v)) {
             return ZEND_HASH_APPLY_REMOVE;
         }
     }

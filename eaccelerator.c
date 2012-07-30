@@ -803,7 +803,7 @@ static zend_op_array* eaccelerator_restore(char *realname, struct stat *buf,
     EACCELERATOR_PROTECT();
     if (p != NULL && p->op_array != NULL) {
         /* only restore file when open_basedir allows it */
-        if (php_check_open_basedir(realname TSRMLS_CC)) {
+        if (PG(open_basedir) && php_check_open_basedir(p->realfilename TSRMLS_CC)) {
             return NULL;
         }
         EAG(class_entry) = NULL;
