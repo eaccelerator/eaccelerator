@@ -298,7 +298,7 @@ static size_t calc_class_entry(zend_class_entry * from TSRMLS_DC)
         ADDSIZE(size, sizeof(zval *) * from->default_properties_count);
         for (i = 0; i < from->default_properties_count; i++) {
             if (from->default_properties_table[i]) {
-                size += calc_zval_ptr(&from->default_properties_table[i]);
+                size += calc_zval_ptr(&from->default_properties_table[i] TSRMLS_CC);
             }
         }
     }
@@ -307,7 +307,7 @@ static size_t calc_class_entry(zend_class_entry * from TSRMLS_DC)
         ADDSIZE(size, sizeof(zval *) * from->default_static_members_count);
         for (i = 0; i < from->default_static_members_count; i++) {
             if (from->default_static_members_table[i]) {
-                size += calc_zval_ptr(&from->default_static_members_table[i]);
+                size += calc_zval_ptr(&from->default_static_members_table[i] TSRMLS_CC);
             }
         }
     }
