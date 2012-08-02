@@ -512,21 +512,21 @@ cont_failed:
 
             /* result */
             zval_used = 0;
-            if (RES_TYPE(opline) == IS_CV) {
+            if (RES_TYPE(opline) & IS_CV) {
                 snprintf(buf, sizeof(buf), "$cv%u(%s)", RES_VARR(opline), op_array->vars[RES_VARR(opline)].name);
             } else
                 switch (op->ops & RES_MASK) {
                 case RES_STD:
-                    if (RES_TYPE(opline) == IS_CONST) {
+                    if (RES_TYPE(opline) & IS_CONST) {
                         zval_used = 1;
 #ifdef ZEND_ENGINE_2_4
                         add_assoc_string(el, "result", get_zval((zval*)opline->result.literal), 0);
 #else
                         add_assoc_string(el, "result", get_zval(&opline->result.u.constant), 0);
 #endif
-                    } else if (RES_TYPE(opline) == IS_TMP_VAR) {
+                    } else if (RES_TYPE(opline) & IS_TMP_VAR) {
                         snprintf(buf, sizeof(buf), "$tmp%u", VAR_NUM(RES_VARR(opline)));
-                    } else if (RES_TYPE(opline) == IS_VAR) {
+                    } else if (RES_TYPE(opline) & IS_VAR) {
 #ifdef ZEND_ENGINE_2_4
                         if ((RES_TYPE(opline) & EXT_TYPE_UNUSED) != 0) {
 #else
@@ -536,7 +536,7 @@ cont_failed:
                         } else {
                             snprintf(buf, sizeof(buf), "$var%u", VAR_NUM(RES_VARR(opline)));
                         }
-                    } else if (RES_TYPE(opline) == IS_UNUSED) {
+                    } else if (RES_TYPE(opline) & IS_UNUSED) {
                         buf[0] = '\0';
                     } else {
                         snprintf(buf, sizeof(buf), "UNKNOWN NODE %d", RES_TYPE(opline));
