@@ -40,8 +40,6 @@
 
 #include "debug.h"
 
-#define EMBED_BREAKPOINT asm volatile ("int3;")
-
 typedef unsigned int* set;
 
 struct _BBlink;
@@ -1829,6 +1827,8 @@ static void optimize_bb(BB* bb, zend_op_array* op_array, char* global, int pass 
 #endif
             SET_TO_NOP(x);
         }
+
+/* TODO PHP 5.4 */
 #ifndef ZEND_ENGINE_2_4
         if (op->opcode == ZEND_IS_EQUAL) {
             if (OP1_TYPE(op) == IS_CONST &&
@@ -1908,6 +1908,18 @@ static void optimize_bb(BB* bb, zend_op_array* op_array, char* global, int pass 
             }
         }
 #endif
+
+        /* Eliminate ZEND_ECHO's with empty strings (as in echo '') */
+        if (op->opcode == ZEND_ECHO && OP1_TYPE(op) == IS_CONST &&
+            Z_TYPE(OP1_CONST(op)) == IS_STRING && Z_STRLEN(OP1_CONST(op)) == 0) {
+#ifndef ZEND_ENGINE_2_4
+            /* TODO We can't go around free'ing random literal strings in PHP 5.4
+                    For now, we just leave them. Nasty but works. */
+            STR_FREE(Z_STRVAL(OP1_CONST(op)));
+#endif
+            SET_TO_NOP(op);
+        }
+
         if ((op->opcode == ZEND_ADD ||
                 op->opcode == ZEND_SUB ||
                 op->opcode == ZEND_MUL ||
@@ -1915,7 +1927,10 @@ static void optimize_bb(BB* bb, zend_op_array* op_array, char* global, int pass 
                 op->opcode == ZEND_MOD ||
                 op->opcode == ZEND_SL ||
                 op->opcode == ZEND_SR ||
+#ifndef ZEND_ENGINE_2_4
+                /* TODO PHP 5.4 */
                 op->opcode == ZEND_CONCAT ||
+#endif
                 op->opcode == ZEND_BW_OR ||
                 op->opcode == ZEND_BW_AND ||
                 op->opcode == ZEND_BW_XOR ||
@@ -1946,6 +1961,7 @@ static void optimize_bb(BB* bb, zend_op_array* op_array, char* global, int pass 
 #endif
                     op->opcode = ZEND_QM_ASSIGN;
                     op->extended_value = 0;
+                    INIT_PZVAL(&res);
                     OP1_TYPE(op) = IS_CONST;
                     memcpy(&OP1_CONST(op), &res, sizeof(zval));
                     OP2_TYPE(op) = IS_UNUSED;
@@ -1969,6 +1985,7 @@ static void optimize_bb(BB* bb, zend_op_array* op_array, char* global, int pass 
 #endif
                     op->opcode = ZEND_QM_ASSIGN;
                     op->extended_value = 0;
+                    INIT_PZVAL(&res);
                     OP1_TYPE(op) = IS_CONST;
                     memcpy(&OP1_CONST(op), &res, sizeof(zval));
                     OP2_TYPE(op) = IS_UNUSED;
@@ -1979,6 +1996,7 @@ static void optimize_bb(BB* bb, zend_op_array* op_array, char* global, int pass 
                    OP1_TYPE(op) == IS_CONST &&
                    RES_TYPE(op) == IS_TMP_VAR) {
             zval res;
+            INIT_PZVAL(&res);
             res.type = IS_BOOL;
             res.value.lval = zend_is_true(&OP1_CONST(op));
 #ifndef ZEND_ENGINE_2_4
@@ -2031,15 +2049,15 @@ static void optimize_bb(BB* bb, zend_op_array* op_array, char* global, int pass 
             memcpy(&OP1_CONST(op), &res, sizeof(zval));
             OP2_TYPE(op) = IS_UNUSED;
 
+/* TODO PHP 5.4 */
+#ifndef ZEND_ENGINE_2_4
             /* FREE(CONST) => NOP
             */
         } else if (op->opcode == ZEND_FREE &&
                    OP1_TYPE(op) == IS_CONST) {
-#ifndef ZEND_ENGINE_2_4
             zval_dtor(&OP1_CONST(op));
-            /* TODO check */
-#endif
             SET_TO_NOP(op);
+#endif
 
             /* INIT_STRING ADD_CHAR ADD_STRING ADD_VAR folding */
 
@@ -2144,8 +2162,8 @@ static void optimize_bb(BB* bb, zend_op_array* op_array, char* global, int pass 
             op->op1_type = x->op2_type;
 #endif
 #ifndef ZEND_ENGINE_2_4
-            STR_FREE(Z_STRVAL(OP1_CONST(x)));
             /* TODO */
+            STR_FREE(Z_STRVAL(OP1_CONST(x)));
 #endif
             SET_TO_NOP(x);
             /* ADD_CHAR($x,CONST,$y) + ADD_CHAR($y,CHAR,$z) => ADD_STRING($x, CONST, $z)
@@ -2249,11 +2267,13 @@ static void optimize_bb(BB* bb, zend_op_array* op_array, char* global, int pass 
             len = Z_STRLEN(OP2_CONST(DEFINED_OP(op->op1))) + Z_STRLEN(OP2_CONST(op));
 #ifdef ZEND_ENGINE_2_4
             if (IS_INTERNED(Z_STRVAL(OP2_CONST(DEFINED_OP(op->op1)))) ) {
-                char *tmp = safe_emalloc(1, len, 1);
+                //char *tmp = safe_emalloc(1, len, 1);
+                char *tmp = emalloc(len + 1);
                 memcpy(tmp, Z_STRVAL(OP2_CONST(DEFINED_OP(op->op1))), Z_STRLEN(OP2_CONST(DEFINED_OP(op->op1))) + 1);
                 Z_STRVAL(OP2_CONST(DEFINED_OP(op->op1))) = tmp;
             } else {
-                Z_STRVAL(OP2_CONST(DEFINED_OP(op->op1))) = safe_erealloc(Z_STRVAL(OP2_CONST(DEFINED_OP(op->op1))), 1, len, 1);
+                //Z_STRVAL(OP2_CONST(DEFINED_OP(op->op1))) = safe_erealloc(Z_STRVAL(OP2_CONST(DEFINED_OP(op->op1))), 1, len, 1);
+                STR_REALLOC(Z_STRVAL(OP2_CONST(DEFINED_OP(op->op1))), len + 1);
             }
 #else
             STR_REALLOC(Z_STRVAL(OP2_CONST(DEFINED_OP(op->op1))), len + 1);
@@ -2576,11 +2596,13 @@ static void optimize_bb(BB* bb, zend_op_array* op_array, char* global, int pass 
             len = Z_STRLEN(OP1_CONST(prev)) + Z_STRLEN(OP1_CONST(op));
 #ifdef ZEND_ENGINE_2_4
             if (IS_INTERNED(Z_STRVAL(OP1_CONST(prev))) ) {
-                char *tmp = safe_emalloc(1, len, 1);
-                memcpy(tmp, Z_STRVAL(OP1_CONST(prev)), Z_STRLEN(OP1_CONST(prev)) + 1);
+                //char *tmp = safe_emalloc(1, len, 1);
+                char *tmp = emalloc(len + 1);
+                memcpy(tmp, Z_STRVAL(OP1_CONST(prev)), Z_STRLEN(OP1_CONST(prev)));
                 Z_STRVAL(OP1_CONST(prev)) = tmp;
             } else {
-                Z_STRVAL(OP1_CONST(prev)) = safe_erealloc(Z_STRVAL(OP1_CONST(prev)), 1, len, 1);
+                //Z_STRVAL(OP1_CONST(prev)) = safe_erealloc(Z_STRVAL(OP1_CONST(prev)), 1, len, 1);
+                STR_REALLOC(Z_STRVAL(OP1_CONST(prev)), len + 1);
             }
 #else
             STR_REALLOC(Z_STRVAL(OP1_CONST(prev)), len + 1);
@@ -2590,8 +2612,8 @@ static void optimize_bb(BB* bb, zend_op_array* op_array, char* global, int pass 
             Z_STRVAL(OP1_CONST(prev))[len] = 0;
             Z_STRLEN(OP1_CONST(prev)) = len;
 #ifndef ZEND_ENGINE_2_4
-            STR_FREE(Z_STRVAL(OP1_CONST(op)));
             /* TODO */
+            STR_FREE(Z_STRVAL(OP1_CONST(op)));
 #endif
             SET_TO_NOP(op);
             /* END_SILENCE + BEGIN_SILENCE => NOP + NOP */
@@ -2771,16 +2793,30 @@ static void optimize_bb(BB* bb, zend_op_array* op_array, char* global, int pass 
                             zend_op *v;
                             void *ptr;
                         } op_copy;
-                        char *s = emalloc(Z_STRLEN(OP1_CONST(x)) + 2);
-                        op_copy.v = op;
-                        memcpy(s, Z_STRVAL(OP1_CONST(x)), Z_STRLEN(OP1_CONST(x)));
-                        s[Z_STRLEN(OP1_CONST(x))] = (char)FETCH_TYPE(x);
-                        s[Z_STRLEN(OP1_CONST(x)) + 1] = '\0';
-                        zend_hash_update(&assigns, s, Z_STRLEN(OP1_CONST(x)) + 2, &op_copy.ptr,
-                                         sizeof(void*), NULL);
-                        efree(s);
+                        zend_op *y = DEFINED_OP(x->op2);
+                        
+                        if (y){
+                            unsigned int use_classname = 0;
+                            unsigned int nKeyLength = Z_STRLEN(OP1_CONST(x)) + 2;
+                            if (y->opcode == ZEND_FETCH_CLASS &&
+                                OP2_TYPE(y) == IS_CONST && Z_TYPE(OP2_CONST(y)) == IS_STRING) {
+                                nKeyLength += Z_STRLEN(OP2_CONST(y));
+                                use_classname = 1;
+                            }
+                            char *s = emalloc(nKeyLength);
+                            op_copy.v = op;
+                            memcpy(s, Z_STRVAL(OP1_CONST(x)), Z_STRLEN(OP1_CONST(x)));
+                            s[Z_STRLEN(OP1_CONST(x))] = (char)FETCH_TYPE(x);
+                            if (y->opcode == ZEND_FETCH_CLASS && use_classname) {
+                                memcpy(&s[(Z_STRLEN(OP1_CONST(x)) + 1)], Z_STRVAL(OP2_CONST(y)), Z_STRLEN(OP2_CONST(y)));
+                            }
+                            s[nKeyLength - 1] = 0;
+                            zend_hash_update(&assigns, s, nKeyLength, &op_copy.ptr, sizeof(void*), NULL);
+                            efree(s);
+                        }
                     }
                 }
+            /* Eliminate FETCH if the value has already been assigned earlier */
             } else if ((op->opcode == ZEND_FETCH_R || op->opcode == ZEND_FETCH_IS) &&
                        !global[VAR_NUM(RES_VARR(op))] && OP1_TYPE(op) == IS_CONST &&
                        Z_TYPE(OP1_CONST(op)) == IS_STRING) {
@@ -2788,28 +2824,40 @@ static void optimize_bb(BB* bb, zend_op_array* op_array, char* global, int pass 
                     zend_op *v;
                     void *ptr;
                 } x;
-                char *s = emalloc(Z_STRLEN(OP1_CONST(op)) + 2);
-                memcpy(s, Z_STRVAL(OP1_CONST(op)), Z_STRLEN(OP1_CONST(op)));
-                s[Z_STRLEN(OP1_CONST(op))] = (char)FETCH_TYPE(op);
-                s[Z_STRLEN(OP1_CONST(op)) + 1] = '\0';
+                zend_op *y = DEFINED_OP(op->op2);
+                if (y) {
+                    unsigned int use_classname = 0;
+                    unsigned int nKeyLength = Z_STRLEN(OP1_CONST(op)) + 2;
+                    if (y->opcode == ZEND_FETCH_CLASS &&
+                        OP2_TYPE(y) == IS_CONST && Z_TYPE(OP2_CONST(y)) == IS_STRING) {
+                        nKeyLength += Z_STRLEN(OP2_CONST(y));
+                        use_classname = 1;
+                    }
+                    char *s = emalloc(nKeyLength);
+                    memcpy(s, Z_STRVAL(OP1_CONST(op)), Z_STRLEN(OP1_CONST(op)));
+                    s[Z_STRLEN(OP1_CONST(op))] = (char)FETCH_TYPE(op);
+                    if (y->opcode == ZEND_FETCH_CLASS && use_classname) {
+                        memcpy(&s[(Z_STRLEN(OP1_CONST(op)) + 1)], Z_STRVAL(OP2_CONST(y)), Z_STRLEN(OP2_CONST(y)));
+                    }
+                    s[nKeyLength - 1] = 0;
 
-                if (zend_hash_find(&assigns, s, Z_STRLEN(OP1_CONST(op)) + 2,
-                                   &x.ptr) == SUCCESS) {
-                    x.v = *(zend_op**)x.v;
-                    memcpy(&x.v->result, &op->result, sizeof(op->result));
+                    if (zend_hash_find(&assigns, s, nKeyLength, &x.ptr) == SUCCESS) {
+                        x.v = *(zend_op**)x.v;
+                        memcpy(&x.v->result, &op->result, sizeof(op->result));
 #ifdef ZEND_ENGINE_2_4
-                    x.v->result_type = op->result_type;
+                        x.v->result_type = op->result_type;
 #endif
-                    RES_USED(x.v) = 0;
-                    SET_DEFINED(x.v);
-                    zend_hash_del(&assigns, s, Z_STRLEN(OP1_CONST(op)) + 2);
+                        RES_USED(x.v) &= ~EXT_TYPE_UNUSED;
+                        SET_DEFINED(x.v);
+                        zend_hash_del(&assigns, s, nKeyLength);
 #ifndef ZEND_ENGINE_2_4
-                    STR_FREE(Z_STRVAL(OP1_CONST(op)));
-                    /* TODO */
+                        STR_FREE(Z_STRVAL(OP1_CONST(op)));
+                        /* TODO */
 #endif
-                    SET_TO_NOP(op);
+                        SET_TO_NOP(op);
+                    }
+                    efree(s);
                 }
-                efree(s);
             } else if (op->opcode == ZEND_FETCH_DIM_R &&
                        op->extended_value != ZEND_FETCH_ADD_LOCK &&
                        OP1_TYPE(op) == IS_VAR &&
@@ -2849,7 +2897,7 @@ static void optimize_bb(BB* bb, zend_op_array* op_array, char* global, int pass 
                     op_copy.v = op;
                     memcpy(s, Z_STRVAL(OP1_CONST(x)), Z_STRLEN(OP1_CONST(x)));
                     s[Z_STRLEN(OP1_CONST(x))] = (char)FETCH_TYPE(x);
-                    s[Z_STRLEN(OP1_CONST(x)) + 1] = '\0';
+                    s[Z_STRLEN(OP1_CONST(x)) + 1] = 0;
                     if (zend_hash_find(&fetch_dim, s, Z_STRLEN(OP1_CONST(x)) + 2,
                                        &y.ptr) == SUCCESS) {
                         y.v = *(zend_op**)y.v;
@@ -2876,10 +2924,10 @@ static void optimize_bb(BB* bb, zend_op_array* op_array, char* global, int pass 
         if (op->opcode != ZEND_NOP) {
             prev = op;
         }
-        if ((RES_TYPE(op) == IS_VAR &&
+        if ((RES_TYPE(op) & IS_VAR &&
                 (op->opcode == ZEND_RECV || op->opcode == ZEND_RECV_INIT ||
                  (RES_USED(op) & EXT_TYPE_UNUSED) == 0)) ||
-                (RES_TYPE(op) == IS_TMP_VAR)) {
+                (RES_TYPE(op) & IS_TMP_VAR)) {
             if (op->opcode == ZEND_RECV ||
                     op->opcode == ZEND_RECV_INIT) {
                 SET_UNDEFINED(op->result);
@@ -2900,7 +2948,7 @@ static void optimize_bb(BB* bb, zend_op_array* op_array, char* global, int pass 
                 next++;
             }
             if (next < end) {
-                memcpy(op,next,(end-next) * sizeof(zend_op));
+                memmove(op,next,(end-next) * sizeof(zend_op));
                 while (next > op) {
                     --end;
                     SET_TO_NOP(end);
@@ -2976,7 +3024,12 @@ static int build_cfg(zend_op_array *op_array, BB* bb)
             }
 #ifndef ZEND_ENGINE_2_4
             else if ((dsc->ops & OP2_MASK) == OP2_FETCH &&
-                     op->op2.u.EA.type == ZEND_FETCH_STATIC_MEMBER) {
+                     FETCH_TYPE(op) == ZEND_FETCH_STATIC_MEMBER) {
+                OP2_TYPE(op) = IS_VAR;
+            }
+#else
+            else if ((dsc->ops & OP2_MASK) == OP2_FETCH &&
+                     FETCH_TYPE(op) == ZEND_FETCH_STATIC_MEMBER) {
                 OP2_TYPE(op) = IS_VAR;
             }
 #endif
@@ -3455,7 +3508,7 @@ void reassign_registers(zend_op_array *op_array, BB* p, char *global)
                     RES_VARR(op) = VAR_VAL(assigned[r]);
                     if (
                         (op->opcode != ZEND_RECV && op->opcode != ZEND_RECV_INIT &&
-                         (RES_TYPE(op) == IS_VAR && RES_USED(op) & EXT_TYPE_UNUSED) != 0) ||
+                         (RES_TYPE(op) & IS_VAR && RES_USED(op) & EXT_TYPE_UNUSED) != 0) ||
                         (!(OP1_TYPE(op) == RES_TYPE(op) && OP1_VARR(op) == RES_VARR(op)) &&
                          !(OP2_TYPE(op) == RES_TYPE(op) && OP2_VARR(op) == RES_VARR(op)) &&
                          !global[r] && op->opcode != ZEND_ADD_ARRAY_ELEMENT )

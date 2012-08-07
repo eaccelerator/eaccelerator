@@ -1,3 +1,12 @@
+2012-08-06  Hans Rakers <hans at rakers.org>
+
+	* Fixed memory leaks in restore_hash() and the optimizer
+	* Fixed several issues in the optimizer related to result type
+	  checking / setting (PHP 5.4 uses op.result_type for both result
+	  type and 'result used mask' instead of two seperate values)
+	* Fixed displaying of function/method names in the disassembler
+	* Fixed handling of fetch ops by the optimizer and the disassembler
+
 2012-07-30  Hans Rakers <hans at rakers.org>
 
 	* Fixed open_basedir issues as reported on the old Trac site

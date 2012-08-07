@@ -566,28 +566,21 @@ static ea_op_array *store_op_array(char **at, zend_op_array * from TSRMLS_DC)
     to->type = from->type;
     to->num_args = from->num_args;
     to->required_num_args = from->required_num_args;
+
     if (from->num_args > 0) {
         to->arg_info = (zend_arg_info *)ALLOCATE(at, from->num_args * sizeof(zend_arg_info));
-
+        memcpy(to->arg_info, from->arg_info, from->num_args * sizeof(zend_arg_info));
+        
         for (i = 0; i < from->num_args; i++) {
             if (from->arg_info[i].name) {
                 to->arg_info[i].name = store_string(at, from->arg_info[i].name, from->arg_info[i].name_len + 1 TSRMLS_CC);
-                to->arg_info[i].name_len = from->arg_info[i].name_len;
             }
             if (from->arg_info[i].class_name) {
                 to->arg_info[i].class_name = store_string(at, from->arg_info[i].class_name, from->arg_info[i].class_name_len + 1 TSRMLS_CC);
-                to->arg_info[i].class_name_len = from->arg_info[i].class_name_len;
             }
-            to->arg_info[i].allow_null = from->arg_info[i].allow_null;
-            to->arg_info[i].pass_by_reference = from->arg_info[i].pass_by_reference;
-#ifdef ZEND_ENGINE_2_4
-            to->arg_info[i].type_hint = from->arg_info[i].type_hint;
-#else
-            to->arg_info[i].array_type_hint = from->arg_info[i].array_type_hint;
-            to->arg_info[i].return_reference = from->arg_info[i].return_reference;
-#endif
         }
     }
+
 #ifndef ZEND_ENGINE_2_4
     to->pass_rest_by_reference = from->pass_rest_by_reference;
 #endif
@@ -893,7 +886,8 @@ static int store_static_member_access_check(Bucket * p, zend_class_entry * from_
     }
     return ZEND_HASH_APPLY_KEEP;
 }
-#endif
+
+#endif /* ZEND_ENGINE_2_4 */
 
 /*
  * This function makes sure that functions/methods that are not in the scope of the current

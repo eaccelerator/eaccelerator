@@ -391,10 +391,16 @@ static HashTable *restore_hash(HashTable * target, HashTable * source,
 //           memcpy(np, p, sizeof(Bucket));
 //        } else {
         DBG(ea_debug_printf, (EA_DEBUG, "[%d] restore_hash: restoring regular arKey '%s'\n", getpid(), p->arKey));
-        np = (Bucket *) emalloc(sizeof(Bucket));
-        memcpy(np, p, sizeof(Bucket));
-        np->arKey = (char *) emalloc(p->nKeyLength);
-        memcpy((char*)np->arKey, p->arKey, p->nKeyLength);
+
+        if (IS_INTERNED(p->arKey) || !p->nKeyLength) {
+            np = (Bucket *) emalloc(sizeof(Bucket));
+            memcpy(np, p, sizeof(Bucket));
+        } else {
+            np = (Bucket *) emalloc(sizeof(Bucket) + p->nKeyLength);
+            memcpy(np, p, sizeof(Bucket));
+            np->arKey = (char*)(np + 1);
+            memcpy((char*)np->arKey, p->arKey, p->nKeyLength);
+        }
 //        }
 #else
         np = (Bucket *) emalloc(offsetof(Bucket, arKey) + p->nKeyLength);

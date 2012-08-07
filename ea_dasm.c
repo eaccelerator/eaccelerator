@@ -383,7 +383,7 @@ cont_failed:
                 }
             } else if ((op->ops & OP1_MASK) == OP1_ARG) {
 #ifdef ZEND_ENGINE_2_4
-                snprintf(buf, sizeof(buf), "arg(%ld)", Z_LVAL(CONSTANT(opline->op1.constant)));
+                snprintf(buf, sizeof(buf), "arg(%ld)", opline->op1.num);
 #else
                 snprintf(buf, sizeof(buf), "arg(%ld)", Z_LVAL(OP1_CONST(opline)));
 #endif
@@ -428,16 +428,21 @@ cont_failed:
             } else if ((op->ops & OP2_MASK) == OP2_FETCH) {
                 const char *typename = NULL;
 #ifdef ZEND_ENGINE_2_4
-                GET_FETCHTYPENAME(opline->extended_value, typename);
-                if (opline->extended_value == ZEND_FETCH_STATIC_MEMBER) {
+                GET_FETCHTYPENAME((opline->extended_value & ~ZEND_FETCH_TYPE_MASK), typename);
+//                if (opline->extended_value == ZEND_FETCH_STATIC_MEMBER) {
+                if (opline->op2_type == IS_CONST) {
+                    snprintf(buf, sizeof(buf), "%s %s", typename, Z_STRVAL_P(opline->op2.zv));
+                } else {
+                    snprintf(buf, sizeof(buf), "%s", typename);
+                }
 #else
                 GET_FETCHTYPENAME(opline->op2.u.EA.type, typename);
                 if (opline->op2.u.EA.type == ZEND_FETCH_STATIC_MEMBER) {
-#endif
                     snprintf(buf, sizeof(buf), "%s $class%u", typename, VAR_NUM(OP2_VARR(opline)));
                 } else {
                     snprintf(buf, sizeof(buf), "%s", typename);
                 }
+#endif
             } else if ((op->ops & OP2_MASK) == OP2_INCLUDE) {
 #ifdef ZEND_ENGINE_2_4
                 if (opline->extended_value == ZEND_EVAL) {
@@ -653,7 +658,8 @@ PHP_FUNCTION(eaccelerator_dasm_file)
     MAKE_STD_ZVAL(functions);
     array_init(functions);
     while (fc != NULL) {
-        add_assoc_zval(functions, fc->htabkey, get_op_array((ea_op_array *)fc->fc TSRMLS_CC));
+        ea_op_array *func = (ea_op_array *) fc->fc;
+        add_assoc_zval(functions, func->function_name, get_op_array(func TSRMLS_CC));
         fc = fc->next;
     }
     add_assoc_zval(return_value, "functions", functions);

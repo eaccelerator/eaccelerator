@@ -48,6 +48,7 @@
 #define EXT_CLASS      0x00e00
 #define EXT_ASSIGN     0x00f00
 #define EXT_FE         0x01000
+#define EXT_FETCHTYPE  0x01100
 
 #define OP1_MASK       0x000f0
 #define OP1_UNUSED     0x000f0

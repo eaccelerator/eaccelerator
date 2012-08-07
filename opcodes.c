@@ -122,25 +122,51 @@ static const opcode_dsc opcodes[] = {
     OPDEF("FE_RESET",                  EXT_BIT    | OP1_STD    | OP2_OPLINE | RES_VAR), /* 77 */
     OPDEF("FE_FETCH",                  EXT_FE     | OP1_STD    | OP2_OPLINE | RES_TMP), /* 78 */
     OPDEF("EXIT",                      EXT_UNUSED | OP1_STD    | OP2_UNUSED | RES_UNUSED), /* 79 */
+#ifdef ZEND_ENGINE_2_4
+    OPDEF("FETCH_R",                   EXT_FETCHTYPE | OP1_STD | OP2_STD | RES_VAR),    /* 80 */
+#else
     OPDEF("FETCH_R",                   EXT_UNUSED | OP1_STD    | OP2_FETCH  | RES_VAR), /* 80 */
+#endif
     OPDEF("FETCH_DIM_R",               EXT_FETCH  | OP1_VAR    | OP2_STD    | RES_VAR), /* 81 */
     OPDEF("FETCH_OBJ_R",               EXT_UNUSED | OP1_STD    | OP2_STD    | RES_VAR), /* 82 */
+#ifdef ZEND_ENGINE_2_4
+    OPDEF("FETCH_W",                   EXT_FETCHTYPE | OP1_STD | OP2_STD    | RES_VAR), /* 83 */
+#else
     OPDEF("FETCH_W",                   EXT_UNUSED | OP1_STD    | OP2_FETCH  | RES_VAR), /* 83 */
+#endif
     OPDEF("FETCH_DIM_W",               EXT_UNUSED | OP1_VAR    | OP2_STD    | RES_VAR), /* 84 */
     OPDEF("FETCH_OBJ_W",               EXT_UNUSED | OP1_STD    | OP2_STD    | RES_VAR), /* 85 */
+#ifdef ZEND_ENGINE_2_4
+    OPDEF("FETCH_RW",                  EXT_FETCHTYPE | OP1_STD | OP2_STD    | RES_VAR), /* 86 */
+#else
     OPDEF("FETCH_RW",                  EXT_UNUSED | OP1_STD    | OP2_FETCH  | RES_VAR), /* 86 */
+#endif
     OPDEF("FETCH_DIM_RW",              EXT_UNUSED | OP1_VAR    | OP2_STD    | RES_VAR), /* 87 */
     OPDEF("FETCH_OBJ_RW",              EXT_UNUSED | OP1_STD    | OP2_STD    | RES_VAR), /* 88 */
+#ifdef ZEND_ENGINE_2_4
+    OPDEF("FETCH_IS",                  EXT_FETCHTYPE | OP1_STD | OP2_STD    | RES_VAR), /* 89 */
+#else
     OPDEF("FETCH_IS",                  EXT_UNUSED | OP1_STD    | OP2_FETCH  | RES_VAR), /* 89 */
+#endif
     OPDEF("FETCH_DIM_IS",              EXT_UNUSED | OP1_VAR    | OP2_STD    | RES_VAR), /* 90 */
     OPDEF("FETCH_OBJ_IS",              EXT_UNUSED | OP1_STD    | OP2_STD    | RES_VAR), /* 91 */
+#ifdef ZEND_ENGINE_2_4
+    /* TODO: extended_value also contains EXT_FETCHTYPE info in the form of a bitmask 
+             this whole thing needs a serious overhaul... */
+    OPDEF("FETCH_FUNC_ARG",            EXT_ARG    | OP1_STD    | OP2_STD    | RES_VAR), /* 92 */
+#else
     OPDEF("FETCH_FUNC_ARG",            EXT_ARG    | OP1_STD    | OP2_FETCH  | RES_VAR), /* 92 */
+#endif
     OPDEF("FETCH_DIM_FUNC_ARG",        EXT_ARG    | OP1_VAR    | OP2_STD    | RES_VAR), /* 93 */
     OPDEF("FETCH_OBJ_FUNC_ARG",        EXT_ARG    | OP1_STD    | OP2_STD    | RES_VAR), /* 94 */
+#ifdef ZEND_ENGINE_2_4
+    OPDEF("FETCH_UNSET",               EXT_FETCHTYPE | OP1_STD | OP2_STD    | RES_VAR), /* 95 */
+#else
     OPDEF("FETCH_UNSET",               EXT_UNUSED | OP1_STD    | OP2_FETCH  | RES_VAR), /* 95 */
+#endif
     OPDEF("FETCH_DIM_UNSET",           EXT_UNUSED | OP1_VAR    | OP2_STD    | RES_VAR), /* 96 */
     OPDEF("FETCH_OBJ_UNSET",           EXT_UNUSED | OP1_STD    | OP2_STD    | RES_VAR), /* 97 */
-    OPDEF("FETCH_DIM_TMP_VAR",         EXT_UNUSED | OP1_STD    | OP2_STD    | RES_VAR), /* 98 */
+    OPDEF("FETCH_DIM_TMP_VAR",         EXT_FETCH  | OP1_STD    | OP2_STD    | RES_VAR), /* 98 */
     OPDEF("FETCH_CONSTANT",            EXT_UNUSED | OP1_UCLASS | OP2_STD    | RES_TMP), /* 99 */
 #ifdef ZEND_ENGINE_2_3
     OPDEF("GOTO",                      EXT_STD    | OP1_JMPADDR | OP2_STD    | RES_UNUSED), /* 100 */
@@ -164,7 +190,11 @@ static const opcode_dsc opcodes[] = {
 #endif
     OPDEF("INIT_METHOD_CALL",          EXT_UNUSED | OP1_STD    | OP2_STD    | RES_VAR), /* 112 */
     OPDEF("INIT_STATIC_METHOD_CALL",   EXT_UNUSED | OP1_UCLASS | OP2_STD    | RES_UNUSED), /* 113 */
+#ifdef ZEND_ENGINE_2_4
+    OPDEF("ISSET_ISEMPTY_VAR",         EXT_ISSET  | OP1_STD    | OP2_STD    | RES_TMP), /* 114 */
+#else
     OPDEF("ISSET_ISEMPTY_VAR",         EXT_ISSET  | OP1_STD    | OP2_FETCH  | RES_TMP), /* 114 */
+#endif
     OPDEF("ISSET_ISEMPTY_DIM_OBJ",     EXT_ISSET  | OP1_STD    | OP2_STD    | RES_TMP), /* 115 */
 
     OPDEF("UNDEF-116",                 EXT_UNUSED | OP1_UNUSED | OP2_UNUSED | RES_UNUSED), /* 116 */
