@@ -1,3 +1,12 @@
+2012-08-08  Hans Rakers <hans at rakers.org>
+
+	* Fixed a longstanding issue regarding exceptions in the optimizer.
+	  The optimizer removed try/catch blocks resulting in exceptions not
+	  being caught.
+
+	  This also solves Drupal 7 installation issues when using eAccelerator
+	  (tested with Drupal 7.15 and PHP 5.4.5)
+
 2012-08-06  Hans Rakers <hans at rakers.org>
 
 	* Fixed memory leaks in restore_hash() and the optimizer

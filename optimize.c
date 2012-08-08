@@ -46,17 +46,15 @@ struct _BBlink;
 
 typedef struct _BB {
     zend_op*        start;
-    int             len;
-    int             used;
-    /*
-     * HOESH: To protect merging. Primary
-     * it abblies to try & catch blocks.
-     * ZEND_ENGINE_2 specific, but can take place
-     */
-    int             protect_merge;
+    unsigned int    len;
+    zend_bool       used;
+    zend_bool       protect_merge;
+
     struct _BB*     jmp_1;
     struct _BB*     jmp_2;
     struct _BB*     jmp_ext;
+    struct _BB*     jmp_tc;
+
     struct _BB*     follow;
     struct _BBlink* pred;  // Gonna be a chain of BBs
     struct _BB*     next;
@@ -73,7 +71,7 @@ static void dump_bb(BB* bb, zend_op_array *op_array)
     BB* p = bb;
     BBlink *q;
     DBG(ea_debug_printf, (EA_DEBUG, "=== CFG FOR %s:%s ===\n", op_array->filename, op_array->function_name));
-    while (p != NULL) {
+    while (p) {
         DBG(ea_debug_printf, (EA_DEBUG, "  bb%u start=%u len=%d used=%d\n",
                               (unsigned int)(p-bb),
                               (unsigned int)(p->start-op_array->opcodes),
@@ -100,6 +98,13 @@ static void dump_bb(BB* bb, zend_op_array *op_array)
                                   p->jmp_ext->len,
                                   p->jmp_ext->used));
         }
+        if (p->jmp_tc) {
+            DBG(ea_debug_printf, (EA_DEBUG, "    jmp_tc bb%u start=%u  len=%d used=%d\n",
+                                  (unsigned int)(p->jmp_tc-bb),
+                                  (unsigned int)(p->jmp_tc->start-op_array->opcodes),
+                                  p->jmp_tc->len,
+                                  p->jmp_tc->used));
+        }
         if (p->follow) {
             DBG(ea_debug_printf, (EA_DEBUG, "    follow bb%u start=%u  len=%d used=%d\n",
                                   (unsigned int)(p->follow-bb),
@@ -123,6 +128,9 @@ static void dump_bb(BB* bb, zend_op_array *op_array)
             if (q->bb->jmp_ext == p) {
                 DBG(ea_debug_printf, (EA_DEBUG, "jmp_ext "));
             }
+            if (q->bb->jmp_tc == p) {
+                DBG(ea_debug_printf, (EA_DEBUG, "jmp_tc "));
+            }
             if (q->bb->follow == p) {
                 DBG(ea_debug_printf, (EA_DEBUG, "follow "));
             }
@@ -132,47 +140,6 @@ static void dump_bb(BB* bb, zend_op_array *op_array)
         p = p->next;
     }
     DBG(ea_debug_printf, (EA_DEBUG, "=== END OF CFG ===========================\n"));
-}
-
-static void dump_array(int nb,void *pos,char type)
-{
-    int j;
-
-    switch(type) {
-    case 'i': {
-        int *ptr=pos;
-        for (j=0; j<nb; j++) {
-            zend_printf("%d:%6d ",j,*ptr);
-            ptr++;
-        }
-    }
-    break;
-    case 'x': {
-        int *ptr=pos;
-        for (j=0; j<nb; j++) {
-            zend_printf("%d:%x ",j,*ptr);
-            ptr++;
-        }
-    }
-    break;
-    case 'c': {
-        unsigned char *ptr=pos;
-        for (j=0; j<nb; j++) {
-            /*       if (*ptr>=32 && *ptr<128) zend_printf("%d:%c",j,*ptr);
-                   else if (*ptr>=128) zend_printf("%d:%2x",j,*ptr);
-                   else if (*ptr<16) zend_printf("%d:&%1x",j,*ptr);
-                   else zend_printf("%d:$%1x",j,(*ptr)-16); */
-            zend_printf("%d:%1x ",j,*ptr);
-            ptr++;
-        }
-    }
-    break;
-    default:
-        for (j=0; j<nb; j++) {
-            zend_printf("# ");
-        }
-    }
-    zend_printf("<br>\n");
 }
 #endif
 
@@ -209,7 +176,7 @@ static void compute_live_var(BB* bb, zend_op_array* op_array, char* global)
 #else
         def = do_alloca(op_array->T * sizeof(char));
 #endif
-        while (p != NULL) {
+        while (p) {
             zend_op* op = p->start;
             zend_op* end = op + p->len;
             memset(def, 0, op_array->T * sizeof(char));
@@ -266,7 +233,7 @@ static void compute_live_var(BB* bb, zend_op_array* op_array, char* global)
     used = do_alloca(op_array->T * sizeof(char));
 #endif
     p = bb;
-    while (p != NULL) {
+    while (p) {
         zend_op* op = p->start;
         zend_op* end = op + p->len;
         memset(used, 0, op_array->T * sizeof(char));
@@ -442,6 +409,10 @@ static void mark_used_bb(BB* bb)
         mark_used_bb(bb->jmp_ext);
         BB_ADD_PRED(bb->jmp_ext, bb);
     }
+    if (bb->jmp_tc != NULL) {
+        mark_used_bb(bb->jmp_tc);
+        BB_ADD_PRED(bb->jmp_tc, bb);
+    }
     if (bb->follow != NULL) {
         mark_used_bb(bb->follow);
         BB_ADD_PRED(bb->follow, bb);
@@ -463,6 +434,9 @@ static void mark_used_bb2(BB* bb)
     if (bb->jmp_ext != NULL) {
         mark_used_bb2(bb->jmp_ext);
     }
+    if (bb->jmp_tc != NULL) {
+        mark_used_bb2(bb->jmp_tc);
+    }
     if (bb->follow != NULL) {
         mark_used_bb2(bb->follow);
     }
@@ -470,7 +444,7 @@ static void mark_used_bb2(BB* bb)
 
 static void rm_bb(BB* bb)
 {
-    if (bb->used == 0) {
+    if (!bb->used) {
         return;
     }
     bb->used = 0;
@@ -482,6 +456,9 @@ static void rm_bb(BB* bb)
     }
     if (bb->jmp_ext != NULL) {
         BB_DEL_PRED(bb->jmp_ext, bb);
+    }
+    if (bb->jmp_tc != NULL) {
+        BB_DEL_PRED(bb->jmp_tc, bb);
     }
     if (bb->follow != NULL) {
         BB_DEL_PRED(bb->follow, bb);
@@ -558,7 +535,7 @@ static void optimize_jmp(BB* bb, zend_op_array* op_array)
 
         /* JMP optimization */
         p = bb;
-        while (p != NULL) {
+        while (p) {
             while (p->next != NULL && (!p->next->used || p->next->pred == NULL)) {
                 del_bb(p->next);
                 p->next = p->next->next;
@@ -2980,27 +2957,28 @@ static int build_cfg(zend_op_array *op_array, BB* bb)
     int len = op_array->last;
     int line_num;
     BB* p;
-    int remove_brk_cont_array = 1;
+    zend_bool remove_brk_cont_array = 1;
+    zend_uint innermost_catch;
 
-    /* HOESH: Just to use later... */
-    zend_uint innermost_ketchup;
-
-    /* HOESH: Mark try & catch blocks */
+    /* Mark try/catch blocks */
     if (op_array->last_try_catch > 0) {
         int i;
         zend_try_catch_element* tc_element = op_array->try_catch_array;
-        for (i=0; i<op_array->last_try_catch; i++, tc_element++) {
+
+        for (i = 0; i < op_array->last_try_catch; i++, tc_element++) {
             bb[tc_element->try_op].start = &op_array->opcodes[tc_element->try_op];
             bb[tc_element->try_op].protect_merge = 1;
 
             bb[tc_element->catch_op].start = &op_array->opcodes[tc_element->catch_op];
             bb[tc_element->catch_op].protect_merge = 1;
+            
+            bb[tc_element->try_op].jmp_tc = &bb[tc_element->catch_op];
         }
     }
 
     /* Find Starts of Basic Blocks */
     bb[0].start = op;
-    for (line_num=0; line_num < len; op++,line_num++) {
+    for (line_num = 0; line_num < len; op++,line_num++) {
         const opcode_dsc* dsc = get_opcode_dsc(op->opcode);
         if (dsc != NULL) {
 #ifndef ZEND_ENGINE_2_3
@@ -3087,6 +3065,7 @@ static int build_cfg(zend_op_array *op_array, BB* bb)
 #endif
                 zend_uint offset = OP1_OPLINE_NUM(op);
                 zend_brk_cont_element *jmp_to;
+
                 do {
                     if (offset < 0 || offset >= op_array->last_brk_cont) {
                         goto brk_failed;
@@ -3099,6 +3078,7 @@ static int build_cfg(zend_op_array *op_array, BB* bb)
                     }
                     offset = jmp_to->parent;
                 } while (--level > 0);
+
                 op->opcode = ZEND_JMP;
                 OP1_OPLINE_NUM(op) = jmp_to->brk;
                 OP2_TYPE(op) = IS_UNUSED;
@@ -3123,18 +3103,20 @@ brk_failed:
 #endif
                 zend_uint offset = OP1_OPLINE_NUM(op);
                 zend_brk_cont_element *jmp_to;
+
                 do {
                     if (offset < 0 || offset >= op_array->last_brk_cont) {
                         goto cont_failed;
                     }
                     jmp_to = &op_array->brk_cont_array[offset];
-                    if (level>1 &&
+                    if (level > 1 &&
                             (op_array->opcodes[jmp_to->brk].opcode == ZEND_SWITCH_FREE ||
                              op_array->opcodes[jmp_to->brk].opcode == ZEND_FREE)) {
                         goto cont_failed;
                     }
                     offset = jmp_to->parent;
                 } while (--level > 0);
+
                 op->opcode = ZEND_JMP;
                 OP1_OPLINE_NUM(op) = jmp_to->cont;
                 OP2_TYPE(op) = IS_UNUSED;
@@ -3174,34 +3156,34 @@ cont_failed:
 
     /* Find Lengths of Basic Blocks and build CFG */
     p = bb;
-    for (line_num=1; line_num < len; line_num++) {
+    for (line_num = 1; line_num < len; line_num++) {
         /* Calculate innermost CATCH op */
-        innermost_ketchup = 0;
+        innermost_catch = 0;
         if (op_array->last_try_catch > 0) {
             int i;
             zend_try_catch_element* tc_element = op_array->try_catch_array;
-            for (i=0; i<op_array->last_try_catch; i++, tc_element++) {
+            for (i = 0; i < op_array->last_try_catch; i++, tc_element++) {
                 // silence compile warnings. Line_num can't be negative here so casting is safe.
-                if (tc_element->try_op <= (zend_uint)line_num-1 &&
-                        (zend_uint)line_num-1 < tc_element->catch_op &&
-                        (innermost_ketchup == 0 ||
-                         innermost_ketchup > tc_element->catch_op)
+                if (tc_element->try_op <= (zend_uint)line_num - 1 &&
+                        (zend_uint)line_num - 1 < tc_element->catch_op &&
+                        (innermost_catch == 0 ||
+                         innermost_catch > tc_element->catch_op)
                    ) {
-                    innermost_ketchup = tc_element->catch_op;
+                    innermost_catch = tc_element->catch_op;
                 }
             }
         }
         if (bb[line_num].start != NULL) {
             p->len  = bb[line_num].start - p->start;
             p->next = &bb[line_num];
-            op = &p->start[p->len-1];
+            op = &p->start[p->len - 1];
             switch (op->opcode) {
             case ZEND_JMP:
                 p->jmp_1 = &bb[OP1_OPLINE_NUM(op)];
 #  if (PHP_MAJOR_VERSION == 5 && PHP_MINOR_VERSION >= 2 && PHP_RELEASE_VERSION >= 1) || PHP_MAJOR_VERSION >= 6
                 /* php >= 5.2.1 introduces a ZEND_JMP before a ZEND_FETCH_CLASS and ZEND_CATCH
                    this leaves those blocks intact */
-                if ((op+1)->opcode == ZEND_FETCH_CLASS && (op+2)->opcode == ZEND_CATCH) { /* fix for #242 */
+                if ((op + 1)->opcode == ZEND_FETCH_CLASS && (op + 2)->opcode == ZEND_CATCH) { /* fix for #242 */
                     p->follow = &bb[line_num];
                 }
 #  endif
@@ -3243,7 +3225,7 @@ cont_failed:
                  * If no CATCH op toward, then glue it to the last opcode,
                  * that is HANDLE_EXCEPTION.
                  */
-                p->follow = (innermost_ketchup > 0) ? &bb[innermost_ketchup] : &bb[len-1];
+                p->follow = (innermost_catch > 0) ? &bb[innermost_catch] : &bb[len - 1];
                 break;
             case ZEND_DO_FCALL:
             case ZEND_DO_FCALL_BY_NAME:
@@ -3759,7 +3741,8 @@ void eaccelerator_optimize(zend_op_array *op_array)
     free_alloca(bb);
 #endif
 }
-#endif
+
+#endif /* #ifdef WITH_EACCELERATOR_OPTIMIZER */
 #endif /* #ifdef HAVE_EACCELERATOR */
 
 /*
