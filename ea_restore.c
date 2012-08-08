@@ -807,6 +807,9 @@ static void restore_class_methods(zend_class_entry * to TSRMLS_DC)
 static zend_class_entry *restore_class_entry(zend_class_entry * to, ea_class_entry * from TSRMLS_DC)
 {
     zend_class_entry *old;
+#ifdef ZEND_ENGINE_2_4
+    int i;
+#ifdef
 
     DBG(ea_debug_pad, (EA_DEBUG TSRMLS_CC));
     DBG(ea_debug_printf, (EA_DEBUG, "[%d] restore_class_entry: %s\n", getpid(), from->name ? from->name : "(top)"));
@@ -884,8 +887,6 @@ static zend_class_entry *restore_class_entry(zend_class_entry * to, ea_class_ent
     to->properties_info.pDestructor = properties_info_dtor;
 
 #ifdef ZEND_ENGINE_2_4
-    int i;
-
     to->default_properties_count = from->default_properties_count;
     if (from->default_properties_count) {
         to->default_properties_table = (zval **) emalloc((sizeof(zval*) * from->default_properties_count));
