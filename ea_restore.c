@@ -884,8 +884,9 @@ static zend_class_entry *restore_class_entry(zend_class_entry * to, ea_class_ent
     to->properties_info.pDestructor = properties_info_dtor;
 
 #ifdef ZEND_ENGINE_2_4
-    to->default_properties_count = from->default_properties_count;
     int i;
+
+    to->default_properties_count = from->default_properties_count;
     if (from->default_properties_count) {
         to->default_properties_table = (zval **) emalloc((sizeof(zval*) * from->default_properties_count));
         for (i = 0; i < from->default_properties_count; i++) {
