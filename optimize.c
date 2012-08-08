@@ -2775,12 +2775,14 @@ static void optimize_bb(BB* bb, zend_op_array* op_array, char* global, int pass 
                         if (y){
                             unsigned int use_classname = 0;
                             unsigned int nKeyLength = Z_STRLEN(OP1_CONST(x)) + 2;
+                            char *s;
+
                             if (y->opcode == ZEND_FETCH_CLASS &&
                                 OP2_TYPE(y) == IS_CONST && Z_TYPE(OP2_CONST(y)) == IS_STRING) {
                                 nKeyLength += Z_STRLEN(OP2_CONST(y));
                                 use_classname = 1;
                             }
-                            char *s = emalloc(nKeyLength);
+                            s = emalloc(nKeyLength);
                             op_copy.v = op;
                             memcpy(s, Z_STRVAL(OP1_CONST(x)), Z_STRLEN(OP1_CONST(x)));
                             s[Z_STRLEN(OP1_CONST(x))] = (char)FETCH_TYPE(x);
@@ -2805,12 +2807,14 @@ static void optimize_bb(BB* bb, zend_op_array* op_array, char* global, int pass 
                 if (y) {
                     unsigned int use_classname = 0;
                     unsigned int nKeyLength = Z_STRLEN(OP1_CONST(op)) + 2;
+                    char *s;
+
                     if (y->opcode == ZEND_FETCH_CLASS &&
                         OP2_TYPE(y) == IS_CONST && Z_TYPE(OP2_CONST(y)) == IS_STRING) {
                         nKeyLength += Z_STRLEN(OP2_CONST(y));
                         use_classname = 1;
                     }
-                    char *s = emalloc(nKeyLength);
+                    s = emalloc(nKeyLength);
                     memcpy(s, Z_STRVAL(OP1_CONST(op)), Z_STRLEN(OP1_CONST(op)));
                     s[Z_STRLEN(OP1_CONST(op))] = (char)FETCH_TYPE(op);
                     if (y->opcode == ZEND_FETCH_CLASS && use_classname) {

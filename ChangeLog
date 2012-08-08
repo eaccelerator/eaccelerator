@@ -6,6 +6,8 @@
 
 	  This also solves Drupal 7 installation issues when using eAccelerator
 	  (tested with Drupal 7.15 and PHP 5.4.5)
+	* Update Win32 VC project files
+	* Fixed several Win32 compilation issues, thanks @tengattack
 
 2012-08-06  Hans Rakers <hans at rakers.org>
 

@@ -1,4 +1,3 @@
-// $Id$
 // vim:ft=javascript
 
 ARG_ENABLE("eaccelerator", "Enable eaccelerator support", "no");
@@ -6,12 +5,12 @@ ARG_ENABLE("eaccelerator", "Enable eaccelerator support", "no");
 ARG_WITH("eaccelerator-crash-detection", "Include eaccelerator crash detection", "yes");
 ARG_WITH("eaccelerator-optimizer", "Include eaccelerator optimizer", "yes");
 ARG_WITH("eaccelerator-info", "Compile the eAccelerator information functions", "yes");
-ARG_WITH("eaccelerator-doc-comment-inclusion", "Strip doc-comments from internal php structures", "no");
+ARG_WITH("eaccelerator-doc-comment-inclusion", "Retain doc-comments in internal php structures", "yes");
 ARG_WITH("eaccelerator-disassembler", "Include disassembler", "no");
 ARG_WITH("eaccelerator-debug", "Enable the debug code so eaccelerator logs verbosely", "no");
 
 if (PHP_EACCELERATOR != "no") {
-	EXTENSION("eaccelerator", "eaccelerator.c optimize.c opcodes.c content.c mm.c session.c shm.c debug.c cache.c ea_restore.c ea_store.c ea_info.c ea_dasm.c", PHP_EACCELERATOR_SHARED);
+	EXTENSION("eaccelerator", "eaccelerator.c optimize.c opcodes.c fnmatch.c mm.c debug.c ea_restore.c ea_store.c ea_info.c ea_dasm.c", PHP_EACCELERATOR_SHARED);
 	AC_DEFINE("HAVE_EACCELERATOR", 1, "Define if you like to use eAccelerator");
 
 	if (PHP_EACCELERATOR_CRASH_DETECTION != "no") {

@@ -168,6 +168,7 @@ static size_t calc_op_array(zend_op_array * from TSRMLS_DC)
     }
     if (from->num_args > 0) {
         zend_uint i;
+
         ADDSIZE(size, from->num_args * sizeof(zend_arg_info));
         for (i = 0; i < from->num_args; i++) {
             if (from->arg_info[i].name) {
@@ -184,6 +185,7 @@ static size_t calc_op_array(zend_op_array * from TSRMLS_DC)
     if (from->scope != NULL) {
         // HOESH: the same problem?
         Bucket *q = CG(class_table)->pListHead;
+
         while (q != NULL) {
             if (*(zend_class_entry **) q->pData == from->scope) {
                 size += calc_string(q->arKey, q->nKeyLength TSRMLS_CC);
@@ -201,6 +203,7 @@ static size_t calc_op_array(zend_op_array * from TSRMLS_DC)
 
 #ifndef ZEND_ENGINE_2_4
         zend_op *opline, *end;
+
         opline = from->opcodes;
         end = opline + from->last;
         for (; opline < end; opline++) {
@@ -215,8 +218,9 @@ static size_t calc_op_array(zend_op_array * from TSRMLS_DC)
     }
 #ifdef ZEND_ENGINE_2_4
     if (from->literals != NULL) {
-        ADDSIZE(size, sizeof(zend_literal) * from->last_literal);
         zend_literal *l, *end;
+
+        ADDSIZE(size, sizeof(zend_literal) * from->last_literal);
 
         l = from->literals;
         end = l + from->last_literal;
@@ -237,6 +241,7 @@ static size_t calc_op_array(zend_op_array * from TSRMLS_DC)
     }
     if (from->vars != NULL) {
         int i;
+
         ADDSIZE(size, sizeof(zend_compiled_variable) * from->last_var);
         for (i = 0; i < from->last_var; i ++) {
             size += calc_string(from->vars[i].name, from->vars[i].name_len+1 TSRMLS_CC);
@@ -295,6 +300,7 @@ static size_t calc_class_entry(zend_class_entry * from TSRMLS_DC)
 #ifdef ZEND_ENGINE_2_4
     if (from->default_properties_count) {
         int i = 0;
+
         ADDSIZE(size, sizeof(zval *) * from->default_properties_count);
         for (i = 0; i < from->default_properties_count; i++) {
             if (from->default_properties_table[i]) {
@@ -304,6 +310,7 @@ static size_t calc_class_entry(zend_class_entry * from TSRMLS_DC)
     }
     if (from->default_static_members_count) {
         int i = 0;
+
         ADDSIZE(size, sizeof(zval *) * from->default_static_members_count);
         for (i = 0; i < from->default_static_members_count; i++) {
             if (from->default_static_members_table[i]) {
@@ -592,6 +599,7 @@ static ea_op_array *store_op_array(char **at, zend_op_array * from TSRMLS_DC)
     to->scope_name_len = 0;
     if (from->scope != NULL) {
         Bucket *q = CG(class_table)->pListHead;
+
         while (q != NULL) {
             if (*(zend_class_entry **) q->pData == from->scope) {
                 to->scope_name = (char*)store_string(at, q->arKey, q->nKeyLength TSRMLS_CC);
@@ -632,10 +640,10 @@ static ea_op_array *store_op_array(char **at, zend_op_array * from TSRMLS_DC)
 
 #ifdef ZEND_ENGINE_2_4
     if (from->literals != NULL) {
+        zend_literal *p, *q, *end;
+
         to->literals = (zend_literal *)ALLOCATE(at, sizeof(zend_literal) * from->last_literal);
         memcpy(to->literals, from->literals, sizeof(zend_literal) * from->last_literal);
-
-        zend_literal *p, *q, *end;
 
         q = from->literals;
         p = to->literals;
@@ -733,6 +741,7 @@ static ea_op_array *store_op_array(char **at, zend_op_array * from TSRMLS_DC)
 
     if (from->vars != NULL) {
         int i;
+
         to->last_var = from->last_var;
         to->vars = (zend_compiled_variable*)ALLOCATE(at, sizeof(zend_compiled_variable) * from->last_var);
         memcpy(to->vars, from->vars, sizeof(zend_compiled_variable) * from->last_var);
