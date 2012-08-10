@@ -1,3 +1,11 @@
+2012-08-10  Hans Rakers <hans at rakers.org>
+
+	* Small tweaks to the disassembler:
+	  - Display zval properly ignoring all non-relevant extra flags
+	    possible on zval type (>=php-5.3)
+	  - display op1 properly on FETCH_CONSTANT and
+	    INIT_STATIC_METHOD_CALL (>=php 5.4)
+
 2012-08-08  Hans Rakers <hans at rakers.org>
 
 	* Fixed a longstanding issue regarding exceptions in the optimizer.

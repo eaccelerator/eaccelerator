@@ -143,7 +143,12 @@ static char *get_zval(zval *v)
     char buf[512];
     size_t size;
 
+#ifndef ZEND_ENGINE_2_3
     switch (Z_TYPE_P(v) & ~IS_CONSTANT_INDEX) {
+#else
+    switch (Z_TYPE_P(v) & IS_CONSTANT_TYPE_MASK) {
+#endif
+
     case IS_NULL:
         str = emalloc(sizeof("null"));
         strncpy(str, "null", sizeof("null"));
