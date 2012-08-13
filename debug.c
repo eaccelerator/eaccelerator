@@ -348,4 +348,3 @@ void ea_debug_dump_zend_class_entry(zend_class_entry *ce)
  * vim>600: expandtab sw=4 ts=4 sts=4 fdm=marker
  * vim<600: expandtab sw=4 ts=4 sts=4
  */
- 
