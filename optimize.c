@@ -2172,7 +2172,7 @@ static void optimize_bb(BB* bb, zend_op_array* op_array, char* global, int pass 
                    IS_DEFINED(op->op1) &&
                    (DEFINED_OP(op->op1)->opcode == ZEND_CONCAT ||
                     DEFINED_OP(op->op1)->opcode == ZEND_ADD_STRING) &&
-                   OP1_TYPE(DEFINED_OP(op->op1)) == IS_CONST) {
+                   OP2_TYPE(DEFINED_OP(op->op1)) == IS_CONST) {
             size_t len;
             convert_to_string(&OP2_CONST(DEFINED_OP(op->op1)));
             len = Z_STRLEN(OP2_CONST(DEFINED_OP(op->op1))) + 1;
@@ -3414,7 +3414,6 @@ void reassign_registers(zend_op_array *op_array, BB* p, char *global)
         if (p->used && p->len > 0) {
             zend_op* start = p->start;
             zend_op* op    = start + p->len;
-            zend_op* op_data;
 
             for (i = 0; i < op_array->T; i++) {
                 if (!global[i]) {
@@ -3427,7 +3426,6 @@ void reassign_registers(zend_op_array *op_array, BB* p, char *global)
 
             while (start < op) {
                 --op;
-                op_data = NULL;
                 if (op->opcode == ZEND_DO_FCALL_BY_NAME && OP1_TYPE(op) == IS_CONST) {
 #ifndef ZEND_ENGINE_2_4
                     zval_dtor(&op->op1.u.constant);

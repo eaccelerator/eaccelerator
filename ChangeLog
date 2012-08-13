@@ -1,3 +1,8 @@
+2012-08-13  Hans Rakers <hans at rakers.org>
+
+	* Fixed CONCAT/ADD_STRING + ADD_CHAR optimizer bug
+	* Removed unused var in reassign_registers
+
 2012-08-10  Hans Rakers <hans at rakers.org>
 
 	* Small tweaks to the disassembler:
