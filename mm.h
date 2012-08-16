@@ -71,8 +71,6 @@ extern "C" {
 #define MM_PROT_WRITE 4
 #define MM_PROT_EXEC  8
 
-    int mm_protect(MM* mm, int mode);
-
 #define mm_create(A, B)        _mm_create(A, B)
 #define mm_set_attach(A, B)    _mm_set_attach(A, B)
 #define mm_attach(A, B)        _mm_attach(A, B)

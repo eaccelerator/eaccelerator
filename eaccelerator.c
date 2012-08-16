@@ -262,7 +262,6 @@ static int init_mm(TSRMLS_D)
     ea_mm_instance->removed = NULL;
     ea_mm_instance->cache_dir_uid = 0;
     ea_mm_instance->last_prune = time(NULL);	/* this time() call is harmless since this is init phase */
-    EACCELERATOR_PROTECT();
     return SUCCESS;
 }
 
@@ -742,13 +741,11 @@ static int eaccelerator_store(char* key, struct stat *buf, int nreloads,
         return 0;
     }
 
-    EACCELERATOR_UNPROTECT();
     EAG(mem) = eaccelerator_malloc(size);
     if (EAG(mem) == NULL) {
         EAG(mem) = eaccelerator_malloc2(size TSRMLS_CC);
     }
     if (!EAG(mem) && !ea_scripts_shm_only) {
-        EACCELERATOR_PROTECT();
         EAG(mem) = emalloc(size);
         use_shm = 0;
     }
@@ -772,7 +769,6 @@ static int eaccelerator_store(char* key, struct stat *buf, int nreloads,
                 hash_add_file(p TSRMLS_CC);
             }
             hash_add_mm(p);
-            EACCELERATOR_PROTECT();
             ret = 1;
             mm_check_mem(data);
         } else {
@@ -792,12 +788,10 @@ static zend_op_array* eaccelerator_restore(char *realname, struct stat *buf,
     zend_op_array *op_array = NULL;
 
     *nreloads = 1;
-    EACCELERATOR_UNPROTECT();
     p = hash_find_mm(realname, buf, nreloads, ((ea_shm_ttl > 0)?(compile_time + ea_shm_ttl):0) TSRMLS_CC);
     if (p == NULL && !ea_scripts_shm_only) {
         p = hash_find_file(realname, buf TSRMLS_CC);
     }
-    EACCELERATOR_PROTECT();
     if (p != NULL && p->op_array != NULL) {
         /* only restore file when open_basedir allows it */
         if (PG(open_basedir) && php_check_open_basedir(p->realfilename TSRMLS_CC)) {
@@ -1446,10 +1440,8 @@ PHP_MINFO_FUNCTION(eaccelerator)
                              (ea_mm_instance != NULL) && ea_mm_instance->check_mtime_enabled)?"true":"false");
     if (ea_mm_instance != NULL) {
         size_t available;
-        EACCELERATOR_UNPROTECT();
         available = mm_available(ea_mm_instance->mm);
         EACCELERATOR_LOCK_RD();
-        EACCELERATOR_PROTECT();
         format_size(s, ea_mm_instance->total, 1);
         php_info_print_table_row(2, "Memory Size", s);
         format_size(s, available, 1);
@@ -1460,9 +1452,7 @@ PHP_MINFO_FUNCTION(eaccelerator)
         php_info_print_table_row(2, "Cached Scripts", s);
         snprintf(s, 32, "%u", ea_mm_instance->rem_cnt);
         php_info_print_table_row(2, "Removed Scripts", s);
-        EACCELERATOR_UNPROTECT();
         EACCELERATOR_UNLOCK_RD();
-        EACCELERATOR_PROTECT();
     }
     php_info_print_table_end();
 
@@ -1545,7 +1535,6 @@ static void eaccelerator_clean_request(TSRMLS_D)
 {
     ea_used_entry  *p = (ea_used_entry*)EAG(used_entries);
     if (ea_mm_instance != NULL) {
-        EACCELERATOR_UNPROTECT();
         if (p != NULL) {
             EACCELERATOR_LOCK_RW();
             while (p != NULL) {
@@ -1573,7 +1562,6 @@ static void eaccelerator_clean_request(TSRMLS_D)
             }
             EACCELERATOR_UNLOCK_RW();
         }
-        EACCELERATOR_PROTECT();
         p = (ea_used_entry*)EAG(used_entries);
         while (p != NULL) {
             ea_used_entry* r = p;

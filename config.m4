@@ -311,7 +311,4 @@ dnl Determine the best type
     AC_MSG_ERROR([eaccelerator cannot determine semaphore type, which is required])
   fi
 
-  AC_CHECK_FUNC(mprotect,[
-      AC_DEFINE(HAVE_MPROTECT, 1, [Define if you have mprotect function])
-    ])
 fi

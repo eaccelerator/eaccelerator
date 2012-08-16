@@ -152,14 +152,6 @@ typedef intptr_t;
 #  define ZTS_UNLOCK()
 #endif
 
-#if defined(EACCELERATOR_PROTECT_SHM)
-#  define EACCELERATOR_PROTECT()    do {mm_protect(ea_mm_instance->mm, MM_PROT_READ);} while(0)
-#  define EACCELERATOR_UNPROTECT()  do {mm_protect(ea_mm_instance->mm, MM_PROT_READ|MM_PROT_WRITE);} while(0)
-#else
-#  define EACCELERATOR_PROTECT()
-#  define EACCELERATOR_UNPROTECT()
-#endif
-
 #define EACCELERATOR_LOCK_RW()    do {ZTS_LOCK(); mm_lock(ea_mm_instance->mm, MM_LOCK_RW);} while(0)
 #define EACCELERATOR_LOCK_RD()    do {ZTS_LOCK(); mm_lock(ea_mm_instance->mm, MM_LOCK_RD);} while(0)
 #define EACCELERATOR_UNLOCK()     do {mm_unlock(ea_mm_instance->mm); ZTS_UNLOCK();} while(0)

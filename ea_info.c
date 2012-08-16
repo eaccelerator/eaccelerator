@@ -197,13 +197,11 @@ PHP_FUNCTION(eaccelerator_check_mtime)
     }
 
     if (isAdminAllowed(TSRMLS_C)) {
-        EACCELERATOR_UNPROTECT();
         if (enable) {
             ea_mm_instance->check_mtime_enabled = 1;
         } else {
             ea_mm_instance->check_mtime_enabled = 0;
         }
-        EACCELERATOR_PROTECT();
     } else {
         zend_error(E_WARNING, NOT_ADMIN_WARNING);
     }
@@ -227,13 +225,11 @@ PHP_FUNCTION(eaccelerator_optimizer)
     }
 
     if (isAdminAllowed(TSRMLS_C)) {
-        EACCELERATOR_UNPROTECT();
         if (enable) {
             ea_mm_instance->optimizer_enabled = 1;
         } else {
             ea_mm_instance->optimizer_enabled = 0;
         }
-        EACCELERATOR_PROTECT();
     } else {
         zend_error(E_WARNING, NOT_ADMIN_WARNING);
     }
@@ -257,13 +253,11 @@ PHP_FUNCTION(eaccelerator_caching)
     }
 
     if (isAdminAllowed(TSRMLS_C)) {
-        EACCELERATOR_UNPROTECT();
         if (enable) {
             ea_mm_instance->enabled = 1;
         } else {
             ea_mm_instance->enabled = 0;
         }
-        EACCELERATOR_PROTECT();
     } else {
         zend_error(E_WARNING, NOT_ADMIN_WARNING);
     }
@@ -287,7 +281,6 @@ PHP_FUNCTION(eaccelerator_clear)
         RETURN_NULL();
     }
 
-    EACCELERATOR_UNPROTECT ();
     EACCELERATOR_LOCK_RW ();
     for (i = 0; i < EA_HASH_SIZE; i++) {
         p = ea_mm_instance->hash[i];
@@ -307,7 +300,6 @@ PHP_FUNCTION(eaccelerator_clear)
         ea_mm_instance->hash[i] = NULL;
     }
     EACCELERATOR_UNLOCK_RW ();
-    EACCELERATOR_PROTECT ();
 
     if(!ea_scripts_shm_only) {
         clear_filecache(EAG(cache_dir));
@@ -328,7 +320,6 @@ PHP_FUNCTION(eaccelerator_purge)
 
     if (ea_mm_instance != NULL) {
         ea_cache_entry *p, *q;
-        EACCELERATOR_UNPROTECT();
         EACCELERATOR_LOCK_RW();
         p = ea_mm_instance->removed;
         ea_mm_instance->rem_cnt = 0;
@@ -339,7 +330,6 @@ PHP_FUNCTION(eaccelerator_purge)
             p = q;
         }
         EACCELERATOR_UNLOCK_RW();
-        EACCELERATOR_PROTECT();
     }
     RETURN_NULL();
 }

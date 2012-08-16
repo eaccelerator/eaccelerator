@@ -72,7 +72,7 @@
 #endif
 #define MM_PATTERN  0xdeadbeef
 
-#if defined(MM_SHM_MMAP_FILE) || defined(MM_SHM_MMAP_ZERO) || defined(MM_SHM_MMAP_ANON) || defined(MM_SHM_MMAP_POSIX) || defined(HAVE_MPROTECT)
+#if defined(MM_SHM_MMAP_FILE) || defined(MM_SHM_MMAP_ZERO) || defined(MM_SHM_MMAP_ANON) || defined(MM_SHM_MMAP_POSIX)
 #  include <sys/mman.h>
 #endif
 #if defined(MM_SHM_IPC) || defined(MM_SEM_IPC)
@@ -1423,27 +1423,6 @@ const char* mm_shm_type()
 const char* mm_sem_type()
 {
     return MM_SEM_TYPE;
-}
-
-int mm_protect(MM* mm, int mode)
-{
-#ifdef HAVE_MPROTECT
-    int pmode = 0;
-    if (mode & MM_PROT_NONE) {
-        pmode |= PROT_NONE;
-    }
-    if (mode & MM_PROT_READ) {
-        pmode |= PROT_READ;
-    }
-    if (mode & MM_PROT_WRITE) {
-        pmode |= PROT_WRITE;
-    }
-    if (mode & MM_PROT_EXEC) {
-        pmode |= PROT_EXEC;
-    }
-    return (mprotect(mm, mm->size, pmode) == 0);
-#endif
-    return 0;
 }
 
 #if defined(MM_CHECK) && !(defined(MM_TEST_SHM) || defined(MM_TEST_SEM))

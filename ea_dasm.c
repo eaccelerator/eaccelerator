@@ -598,9 +598,7 @@ static ea_cache_entry *get_cache_entry(const char *file)
     ea_cache_entry *result = NULL;
 
     if (file != NULL) {
-        EACCELERATOR_UNPROTECT();
         EACCELERATOR_LOCK_RD();
-        EACCELERATOR_PROTECT();
         for (slot = 0; slot < EA_HASH_SIZE; slot++) {
             p = ea_mm_instance->hash[slot];
             while (p != NULL) {
@@ -610,9 +608,7 @@ static ea_cache_entry *get_cache_entry(const char *file)
                 p = p->next;
             }
         }
-        EACCELERATOR_UNPROTECT();
         EACCELERATOR_UNLOCK_RD();
-        EACCELERATOR_PROTECT();
     }
     return result;
 }
