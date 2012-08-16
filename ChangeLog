@@ -2,6 +2,11 @@
 
 	* Remove current memory protection implementation. This code has
 	  been dead for a while now
+	* Re-enabled some EQUAL/NOT_EQUAL optimisations in the optimizer
+	* Removed duplicate macro CONSTANT() and rewrote all its occurances
+	  to OPx_CONST
+	* Removed old code related to BRK/CONT handling
+	* Some cosmetic fixes to optimize.c
 
 2012-08-13  Hans Rakers <hans at rakers.org>
 

@@ -592,11 +592,7 @@ jmp_znz:
                     } else if (OP1_TYPE(op) == IS_CONST) {
                         /* JMPZNZ  0,L1,L2  =>  JMP L1
                         */
-#ifdef ZEND_ENGINE_2_4
-                        if (!zend_is_true(&CONSTANT(op->op1.constant))) {
-#else
-                        if (!zend_is_true(&op->op1.u.constant)) {
-#endif
+                        if (!zend_is_true(&OP1_CONST(op))) {
                             op->opcode = ZEND_JMP;
                             op->extended_value = 0;
                             OP1_TYPE(op) = IS_UNUSED;
@@ -766,11 +762,7 @@ jmp_z:
                     } else if (OP1_TYPE(op) == IS_CONST) {
                         /* JMPZ  0,L1  =>  JMP L1
                         */
-#ifdef ZEND_ENGINE_2_4
-                        if (!zend_is_true(&CONSTANT(op->op1.constant))) {
-#else
-                        if (!zend_is_true(&op->op1.u.constant)) {
-#endif
+                        if (!zend_is_true(&OP1_CONST(op))) {
                             op->opcode = ZEND_JMP;
                             OP1_TYPE(op) = IS_UNUSED;
                             OP2_TYPE(op) = IS_UNUSED;
@@ -864,11 +856,7 @@ jmp_nz:
                     } else if (OP1_TYPE(op) == IS_CONST) {
                         /* JMPNZ  1,L1  =>  JMP L1
                         */
-#ifdef ZEND_ENGINE_2_4
-                        if (zend_is_true(&CONSTANT(op->op1.constant))) {
-#else
-                        if (zend_is_true(&op->op1.u.constant)) {
-#endif
+                        if (zend_is_true(&OP1_CONST(op))) {
                             op->opcode = ZEND_JMP;
                             OP1_TYPE(op) = IS_UNUSED;
                             OP2_TYPE(op) = IS_UNUSED;
@@ -1385,15 +1373,9 @@ jmp_2:
                             BB_DEL_PRED(p->jmp_1, p);
                             RM_BB(p->jmp_1);
                             memcpy(op, p->jmp_1->start, sizeof(zend_op));
-#ifdef ZEND_ENGINE_2_4
                             if (OP1_TYPE(op) == IS_CONST) {
-                                zval_copy_ctor(&CONSTANT(op->op1.constant));
+                                zval_copy_ctor(&OP1_CONST(op));
                             }
-#else
-                            if (OP1_TYPE(op) == IS_CONST) {
-                                zval_copy_ctor(&op->op1.u.constant);
-                            }
-#endif
                             p->jmp_1 = NULL;
                             ok = 0;
                         }
@@ -1548,101 +1530,8 @@ static int opt_result_is_numeric(zend_op* op, zend_op_array* op_array)
            grep "proto int" *| awk '{ print $5}'|sed -r 's/^(.+)\((.*)/\1/'|sort -u
            + some function aliases and other frequently used funcs
         */
-#ifdef ZEND_ENGINE_2_4
         if (OP1_TYPE(op) == IS_CONST &&
-                Z_TYPE(CONSTANT(op->op1.constant)) == IS_STRING &&
-                (strcmp(Z_STRVAL(CONSTANT(op->op1.constant)),"abs") == 0 ||
-                 strcmp(Z_STRVAL(CONSTANT(op->op1.constant)),"array_push") == 0 ||
-                 strcmp(Z_STRVAL(CONSTANT(op->op1.constant)),"array_unshift") == 0 ||
-                 strcmp(Z_STRVAL(CONSTANT(op->op1.constant)),"assert") == 0 ||
-                 strcmp(Z_STRVAL(CONSTANT(op->op1.constant)),"bindec") == 0 ||
-                 strcmp(Z_STRVAL(CONSTANT(op->op1.constant)),"connection_aborted") == 0 ||
-                 strcmp(Z_STRVAL(CONSTANT(op->op1.constant)),"connection_status") == 0 ||
-                 strcmp(Z_STRVAL(CONSTANT(op->op1.constant)),"count") == 0 ||
-                 strcmp(Z_STRVAL(CONSTANT(op->op1.constant)),"dl") == 0 ||
-                 strcmp(Z_STRVAL(CONSTANT(op->op1.constant)),"extract") == 0 ||
-                 strcmp(Z_STRVAL(CONSTANT(op->op1.constant)),"ezmlm_hash") == 0 ||
-                 strcmp(Z_STRVAL(CONSTANT(op->op1.constant)),"file_put_contents") == 0 ||
-                 strcmp(Z_STRVAL(CONSTANT(op->op1.constant)),"fileatime") == 0 ||
-                 strcmp(Z_STRVAL(CONSTANT(op->op1.constant)),"filectime") == 0 ||
-                 strcmp(Z_STRVAL(CONSTANT(op->op1.constant)),"filegroup") == 0 ||
-                 strcmp(Z_STRVAL(CONSTANT(op->op1.constant)),"fileinode") == 0 ||
-                 strcmp(Z_STRVAL(CONSTANT(op->op1.constant)),"filemtime") == 0 ||
-                 strcmp(Z_STRVAL(CONSTANT(op->op1.constant)),"fileowner") == 0 ||
-                 strcmp(Z_STRVAL(CONSTANT(op->op1.constant)),"fileperms") == 0 ||
-                 strcmp(Z_STRVAL(CONSTANT(op->op1.constant)),"filesize") == 0 ||
-                 strcmp(Z_STRVAL(CONSTANT(op->op1.constant)),"fpassthru") == 0 ||
-                 strcmp(Z_STRVAL(CONSTANT(op->op1.constant)),"fprintf") == 0 ||
-                 strcmp(Z_STRVAL(CONSTANT(op->op1.constant)),"fputcsv") == 0 ||
-                 strcmp(Z_STRVAL(CONSTANT(op->op1.constant)),"fseek") == 0 ||
-                 strcmp(Z_STRVAL(CONSTANT(op->op1.constant)),"ftell") == 0 ||
-                 strcmp(Z_STRVAL(CONSTANT(op->op1.constant)),"ftok") == 0 ||
-                 strcmp(Z_STRVAL(CONSTANT(op->op1.constant)),"fwrite") == 0 ||
-                 strcmp(Z_STRVAL(CONSTANT(op->op1.constant)),"get_magic_quotes_gpc") == 0 ||
-                 strcmp(Z_STRVAL(CONSTANT(op->op1.constant)),"get_magic_quotes_runtime") == 0 ||
-                 strcmp(Z_STRVAL(CONSTANT(op->op1.constant)),"getlastmod") == 0 ||
-                 strcmp(Z_STRVAL(CONSTANT(op->op1.constant)),"getmygid") == 0 ||
-                 strcmp(Z_STRVAL(CONSTANT(op->op1.constant)),"getmyinode") == 0 ||
-                 strcmp(Z_STRVAL(CONSTANT(op->op1.constant)),"getmypid") == 0 ||
-                 strcmp(Z_STRVAL(CONSTANT(op->op1.constant)),"getmyuid") == 0 ||
-                 strcmp(Z_STRVAL(CONSTANT(op->op1.constant)),"getprotobyname") == 0 ||
-                 strcmp(Z_STRVAL(CONSTANT(op->op1.constant)),"getrandmax") == 0 ||
-                 strcmp(Z_STRVAL(CONSTANT(op->op1.constant)),"getservbyname") == 0 ||
-                 strcmp(Z_STRVAL(CONSTANT(op->op1.constant)),"hexdec") == 0 ||
-                 strcmp(Z_STRVAL(CONSTANT(op->op1.constant)),"ignore_user_abort") == 0 ||
-                 strcmp(Z_STRVAL(CONSTANT(op->op1.constant)),"intval") == 0 ||
-                 strcmp(Z_STRVAL(CONSTANT(op->op1.constant)),"ip2long") == 0 ||
-                 strcmp(Z_STRVAL(CONSTANT(op->op1.constant)),"levenshtein") == 0 ||
-                 strcmp(Z_STRVAL(CONSTANT(op->op1.constant)),"link") == 0 ||
-                 strcmp(Z_STRVAL(CONSTANT(op->op1.constant)),"linkinfo") == 0 ||
-                 strcmp(Z_STRVAL(CONSTANT(op->op1.constant)),"mail") == 0 ||
-                 strcmp(Z_STRVAL(CONSTANT(op->op1.constant)),"memory_get_peak_usage") == 0 ||
-                 strcmp(Z_STRVAL(CONSTANT(op->op1.constant)),"memory_get_usage") == 0 ||
-                 strcmp(Z_STRVAL(CONSTANT(op->op1.constant)),"mt_getrandmax") == 0 ||
-                 strcmp(Z_STRVAL(CONSTANT(op->op1.constant)),"mt_rand") == 0 ||
-                 strcmp(Z_STRVAL(CONSTANT(op->op1.constant)),"octdec") == 0 ||
-                 strcmp(Z_STRVAL(CONSTANT(op->op1.constant)),"ord") == 0 ||
-                 strcmp(Z_STRVAL(CONSTANT(op->op1.constant)),"pclose") == 0 ||
-                 strcmp(Z_STRVAL(CONSTANT(op->op1.constant)),"printf") == 0 ||
-                 strcmp(Z_STRVAL(CONSTANT(op->op1.constant)),"proc_close") == 0 ||
-                 strcmp(Z_STRVAL(CONSTANT(op->op1.constant)),"rand") == 0 ||
-                 strcmp(Z_STRVAL(CONSTANT(op->op1.constant)),"readfile") == 0 ||
-                 strcmp(Z_STRVAL(CONSTANT(op->op1.constant)),"similar_text") == 0 ||
-                 strcmp(Z_STRVAL(CONSTANT(op->op1.constant)),"strcasecmp") == 0 ||
-                 strcmp(Z_STRVAL(CONSTANT(op->op1.constant)),"strcoll") == 0 ||
-                 strcmp(Z_STRVAL(CONSTANT(op->op1.constant)),"strcmp") == 0 ||
-                 strcmp(Z_STRVAL(CONSTANT(op->op1.constant)),"strcspn") == 0 ||
-                 strcmp(Z_STRVAL(CONSTANT(op->op1.constant)),"stream_select") == 0 ||
-                 strcmp(Z_STRVAL(CONSTANT(op->op1.constant)),"stream_set_write_buffer") == 0 ||
-                 strcmp(Z_STRVAL(CONSTANT(op->op1.constant)),"stream_socket_enable_crypto") == 0 ||
-                 strcmp(Z_STRVAL(CONSTANT(op->op1.constant)),"stream_socket_shutdown") == 0 ||
-                 strcmp(Z_STRVAL(CONSTANT(op->op1.constant)),"stripos") == 0 ||
-                 strcmp(Z_STRVAL(CONSTANT(op->op1.constant)),"strlen") == 0 ||
-                 strcmp(Z_STRVAL(CONSTANT(op->op1.constant)),"strnatcasecmp") == 0 ||
-                 strcmp(Z_STRVAL(CONSTANT(op->op1.constant)),"strnatcmp") == 0 ||
-                 strcmp(Z_STRVAL(CONSTANT(op->op1.constant)),"strncmp") == 0 ||
-                 strcmp(Z_STRVAL(CONSTANT(op->op1.constant)),"strpos") == 0 ||
-                 strcmp(Z_STRVAL(CONSTANT(op->op1.constant)),"strripos") == 0 ||
-                 strcmp(Z_STRVAL(CONSTANT(op->op1.constant)),"strrpos") == 0 ||
-                 strcmp(Z_STRVAL(CONSTANT(op->op1.constant)),"strspn") == 0 ||
-                 strcmp(Z_STRVAL(CONSTANT(op->op1.constant)),"substr_compare") == 0 ||
-                 strcmp(Z_STRVAL(CONSTANT(op->op1.constant)),"substr_count") == 0 ||
-                 strcmp(Z_STRVAL(CONSTANT(op->op1.constant)),"symlink") == 0 ||
-                 strcmp(Z_STRVAL(CONSTANT(op->op1.constant)),"system") == 0 ||
-                 strcmp(Z_STRVAL(CONSTANT(op->op1.constant)),"umask") == 0 ||
-                 strcmp(Z_STRVAL(CONSTANT(op->op1.constant)),"version_compare") == 0 ||
-                 strcmp(Z_STRVAL(CONSTANT(op->op1.constant)),"vfprintf") == 0 ||
-                 strcmp(Z_STRVAL(CONSTANT(op->op1.constant)),"vprintf") == 0 ||
-                 strcmp(Z_STRVAL(CONSTANT(op->op1.constant)),"fputs") == 0 ||		/* func alias of fwrite */
-                 strcmp(Z_STRVAL(CONSTANT(op->op1.constant)),"set_file_buffer") == 0 ||	/* func alias of stream_set_write_buffer */
-                 strcmp(Z_STRVAL(CONSTANT(op->op1.constant)),"sizeof") == 0 ||		/* func alias of count */
-                 strcmp(Z_STRVAL(CONSTANT(op->op1.constant)),"ereg") == 0 ||
-                 strcmp(Z_STRVAL(CONSTANT(op->op1.constant)),"eregi") == 0)) {
-            return 1;
-        }
-#else
-        if (OP1_TYPE(op) == IS_CONST &&
-                OP1_CONST_TYPE(op) == IS_STRING &&
+                Z_TYPE(OP1_CONST(op)) == IS_STRING &&
                 (strcmp(Z_STRVAL(OP1_CONST(op)),"abs") == 0 ||
                  strcmp(Z_STRVAL(OP1_CONST(op)),"array_push") == 0 ||
                  strcmp(Z_STRVAL(OP1_CONST(op)),"array_unshift") == 0 ||
@@ -1705,6 +1594,8 @@ static int opt_result_is_numeric(zend_op* op, zend_op_array* op_array)
                  strcmp(Z_STRVAL(OP1_CONST(op)),"strcmp") == 0 ||
                  strcmp(Z_STRVAL(OP1_CONST(op)),"strcspn") == 0 ||
                  strcmp(Z_STRVAL(OP1_CONST(op)),"stream_select") == 0 ||
+                 strcmp(Z_STRVAL(OP1_CONST(op)),"stream_set_chunk_size") == 0 ||
+                 strcmp(Z_STRVAL(OP1_CONST(op)),"stream_set_read_buffer") == 0 ||
                  strcmp(Z_STRVAL(OP1_CONST(op)),"stream_set_write_buffer") == 0 ||
                  strcmp(Z_STRVAL(OP1_CONST(op)),"stream_socket_enable_crypto") == 0 ||
                  strcmp(Z_STRVAL(OP1_CONST(op)),"stream_socket_shutdown") == 0 ||
@@ -1732,7 +1623,6 @@ static int opt_result_is_numeric(zend_op* op, zend_op_array* op_array)
                  strcmp(Z_STRVAL(OP1_CONST(op)),"eregi") == 0)) {
             return 1;
         }
-#endif
         return 0;
 
     default:
@@ -1805,8 +1695,6 @@ static void optimize_bb(BB* bb, zend_op_array* op_array, char* global, int pass 
             SET_TO_NOP(x);
         }
 
-/* TODO PHP 5.4 */
-#ifndef ZEND_ENGINE_2_4
         if (op->opcode == ZEND_IS_EQUAL) {
             if (OP1_TYPE(op) == IS_CONST &&
                     (Z_TYPE(OP1_CONST(op)) == IS_BOOL &&
@@ -1884,7 +1772,6 @@ static void optimize_bb(BB* bb, zend_op_array* op_array, char* global, int pass 
                 OP2_TYPE(op) = IS_UNUSED;
             }
         }
-#endif
 
         /* Eliminate ZEND_ECHO's with empty strings (as in echo '') */
         if (op->opcode == ZEND_ECHO && OP1_TYPE(op) == IS_CONST &&
@@ -3029,19 +2916,19 @@ static int build_cfg(zend_op_array *op_array, BB* bb)
         case ZEND_RETURN_BY_REF:
 #endif
         case ZEND_EXIT:
-            bb[line_num+1].start = op+1;
+            bb[line_num+1].start = op + 1;
             break;
 #ifdef ZEND_GOTO
         case ZEND_GOTO:
 #endif
         case ZEND_JMP:
             bb[OP1_OPLINE_NUM(op)].start = &op_array->opcodes[OP1_OPLINE_NUM(op)];
-            bb[line_num+1].start = op+1;
+            bb[line_num + 1].start = op + 1;
             break;
         case ZEND_JMPZNZ:
             bb[op->extended_value].start = &op_array->opcodes[op->extended_value];
             bb[OP2_OPLINE_NUM(op)].start = &op_array->opcodes[OP2_OPLINE_NUM(op)];
-            bb[line_num+1].start = op+1;
+            bb[line_num + 1].start = op + 1;
             break;
         case ZEND_JMPZ:
         case ZEND_JMPNZ:
@@ -3053,33 +2940,23 @@ static int build_cfg(zend_op_array *op_array, BB* bb)
         case ZEND_NEW:
         case ZEND_FE_RESET:
         case ZEND_FE_FETCH:
-            bb[line_num+1].start = op+1;
+            bb[line_num + 1].start = op + 1;
             bb[OP2_OPLINE_NUM(op)].start = &op_array->opcodes[OP2_OPLINE_NUM(op)];
             break;
         case ZEND_BRK:
             /* Replace BRK by JMP */
             if (OP1_OPLINE_NUM(op) == -1) {
             }
-#ifdef ZEND_ENGINE_2_4
-            else if (OP2_TYPE(op) == IS_CONST && Z_TYPE(CONSTANT(op->op2.constant)) == IS_LONG) {
-                int level = Z_LVAL(CONSTANT(op->op2.constant));
-#else
-            else if (OP2_TYPE(op) == IS_CONST && op->op2.u.constant.type == IS_LONG) {
-                int level  = Z_LVAL(OP2_CONST(op));
-#endif
+            else if (OP2_TYPE(op) == IS_CONST && Z_TYPE(OP2_CONST(op)) == IS_LONG) {
+                int level = Z_LVAL(OP2_CONST(op));
                 zend_uint offset = OP1_OPLINE_NUM(op);
                 zend_brk_cont_element *jmp_to;
 
                 do {
-                    if (offset < 0 || offset >= op_array->last_brk_cont) {
+                    if (offset == -1) {
                         goto brk_failed;
                     }
                     jmp_to = &op_array->brk_cont_array[offset];
-                    if (level>1 &&
-                            (op_array->opcodes[jmp_to->brk].opcode == ZEND_SWITCH_FREE ||
-                             op_array->opcodes[jmp_to->brk].opcode == ZEND_FREE)) {
-                        goto brk_failed;
-                    }
                     offset = jmp_to->parent;
                 } while (--level > 0);
 
@@ -3092,32 +2969,22 @@ static int build_cfg(zend_op_array *op_array, BB* bb)
 brk_failed:
                 remove_brk_cont_array = 0;
             }
-            bb[line_num+1].start = op+1;
+            bb[line_num + 1].start = op + 1;
             break;
         case ZEND_CONT:
             /* Replace CONT by JMP */
             if (OP1_OPLINE_NUM(op) == -1) {
             }
-#ifdef ZEND_ENGINE_2_4
-            else if (OP2_TYPE(op) == IS_CONST && Z_TYPE(CONSTANT(op->op2.constant)) == IS_LONG) {
-                int level  = Z_LVAL(CONSTANT(op->op2.constant));
-#else
-            else if (OP2_TYPE(op) == IS_CONST && op->op2.u.constant.type == IS_LONG) {
+            else if (OP2_TYPE(op) == IS_CONST && Z_TYPE(OP2_CONST(op)) == IS_LONG) {
                 int level  = Z_LVAL(OP2_CONST(op));
-#endif
                 zend_uint offset = OP1_OPLINE_NUM(op);
                 zend_brk_cont_element *jmp_to;
 
                 do {
-                    if (offset < 0 || offset >= op_array->last_brk_cont) {
+                    if (offset == -1) {
                         goto cont_failed;
                     }
                     jmp_to = &op_array->brk_cont_array[offset];
-                    if (level > 1 &&
-                            (op_array->opcodes[jmp_to->brk].opcode == ZEND_SWITCH_FREE ||
-                             op_array->opcodes[jmp_to->brk].opcode == ZEND_FREE)) {
-                        goto cont_failed;
-                    }
                     offset = jmp_to->parent;
                 } while (--level > 0);
 
@@ -3130,21 +2997,21 @@ brk_failed:
 cont_failed:
                 remove_brk_cont_array = 0;
             }
-            bb[line_num+1].start = op+1;
+            bb[line_num + 1].start = op + 1;
             break;
         case ZEND_CATCH:
             bb[op->extended_value].start = &op_array->opcodes[op->extended_value];
-            bb[line_num+1].start = op+1;
+            bb[line_num + 1].start = op + 1;
             break;
         case ZEND_THROW:
             if (OP2_OPLINE_NUM(op) != -1) {
                 bb[OP2_OPLINE_NUM(op)].start = &op_array->opcodes[OP2_OPLINE_NUM(op)];
             }
-            bb[line_num+1].start = op+1;
+            bb[line_num + 1].start = op + 1;
             break;
         case ZEND_DO_FCALL:
         case ZEND_DO_FCALL_BY_NAME:
-            bb[line_num+1].start = op+1;
+            bb[line_num + 1].start = op + 1;
             break;
         case ZEND_UNSET_VAR:
         case ZEND_UNSET_DIM:
@@ -3302,21 +3169,21 @@ static void emit_cfg(zend_op_array *op_array, BB* bb)
         if (p->used && p->len > 0) {
 #ifdef ZEND_ENGINE_2_4
             if (p->jmp_1 != NULL) {
-                p->start[p->len-1].op1.opline_num = p->jmp_1->start - start;
+                p->start[p->len - 1].op1.opline_num = p->jmp_1->start - start;
             }
             if (p->jmp_2 != NULL) {
-                p->start[p->len-1].op2.opline_num = p->jmp_2->start - start;
+                p->start[p->len - 1].op2.opline_num = p->jmp_2->start - start;
             }
 #else
             if (p->jmp_1 != NULL) {
-                p->start[p->len-1].op1.u.opline_num = p->jmp_1->start - start;
+                p->start[p->len - 1].op1.u.opline_num = p->jmp_1->start - start;
             }
             if (p->jmp_2 != NULL) {
-                p->start[p->len-1].op2.u.opline_num = p->jmp_2->start - start;
+                p->start[p->len - 1].op2.u.opline_num = p->jmp_2->start - start;
             }
 #endif
             if (p->jmp_ext != NULL) {
-                p->start[p->len-1].extended_value = p->jmp_ext->start - start;
+                p->start[p->len - 1].extended_value = p->jmp_ext->start - start;
             }
         }
         p = p->next;
@@ -3325,11 +3192,11 @@ static void emit_cfg(zend_op_array *op_array, BB* bb)
     /*
      * HOESH: Reassign try & catch blocks
      */
-    if (op_array->last_try_catch>0) {
+    if (op_array->last_try_catch > 0) {
         int i;
         int last_try_catch = op_array->last_try_catch;
         zend_try_catch_element* old_tc_element = op_array->try_catch_array;
-        for (i=0; i<op_array->last_try_catch; i++, old_tc_element++) {
+        for (i = 0; i < op_array->last_try_catch; i++, old_tc_element++) {
             if (bb[old_tc_element->try_op].used &&
                     bb[old_tc_element->catch_op].used) {
                 old_tc_element->try_op = bb[old_tc_element->try_op].start - start;
@@ -3347,7 +3214,7 @@ static void emit_cfg(zend_op_array *op_array, BB* bb)
                 zend_try_catch_element* new_tc_element = emalloc(sizeof(zend_try_catch_element)*last_try_catch);
                 new_tc_array = new_tc_element;
                 old_tc_element = op_array->try_catch_array;
-                for (i=0; i<op_array->last_try_catch; i++, old_tc_element++) {
+                for (i = 0; i < op_array->last_try_catch; i++, old_tc_element++) {
                     if (old_tc_element->try_op != old_tc_element->catch_op) {
                         new_tc_element->try_op = old_tc_element->try_op;
                         new_tc_element->catch_op = old_tc_element->catch_op;
@@ -3654,14 +3521,14 @@ void eaccelerator_optimize(zend_op_array *op_array)
 
     /* Allocate memory for CFG */
 #ifdef ZEND_ENGINE_2_3
-    bb = do_alloca(sizeof(BB)*(op_array->last+1), use_heap);
+    bb = do_alloca(sizeof(BB)*(op_array->last + 1), use_heap);
 #else
-    bb = do_alloca(sizeof(BB)*(op_array->last+1));
+    bb = do_alloca(sizeof(BB)*(op_array->last + 1));
 #endif
     if (bb == NULL) {
         return;
     }
-    memset(bb, 0, sizeof(BB)*(op_array->last+1));
+    memset(bb, 0, sizeof(BB)*(op_array->last + 1));
 
     /* Find All Basic Blocks and build CFG */
     if (build_cfg(op_array, bb)) {
@@ -3675,7 +3542,7 @@ void eaccelerator_optimize(zend_op_array *op_array)
         }
         /* TODO free bb here */
 
-        for (i=0; i<2; i++) {
+        for (i = 0; i < 2; i++) {
             /* Determine used blocks and its predecessors */
             mark_used_bb(bb);
 

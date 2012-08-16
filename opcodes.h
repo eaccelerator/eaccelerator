@@ -108,9 +108,6 @@
 #define RES_JMP_ADDR(op) (op)->result.jmp_addr
 
 
-/*#define OP1_CONST(op) (*(op)->op1.zv)
-#define OP2_CONST(op) (*(op)->op2.zv)
-#define RES_CONST(op) (*(op)->result.zv)*/
 #define OP1_CONST(op) op_array->literals[(op)->op1.constant].constant
 #define OP2_CONST(op) op_array->literals[(op)->op2.constant].constant
 #define RES_CONST(op) op_array->literals[(op)->result.constant].constant
@@ -120,8 +117,6 @@
 #define RES_CONST_TYPE(op) RES_CONST((op)).type
 
 #define RES_USED(op) (op)->result_type
-
-#define CONSTANT(op) op_array->literals[op].constant
 
 #else
 
