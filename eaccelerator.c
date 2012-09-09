@@ -1523,7 +1523,7 @@ ZEND_INI_ENTRY1("eaccelerator.shm_prune_period", "0", PHP_INI_SYSTEM, eaccelerat
 ZEND_INI_ENTRY1("eaccelerator.debug",           "1", PHP_INI_SYSTEM, eaccelerator_OnUpdateLong, &ea_debug)
 STD_PHP_INI_ENTRY("eaccelerator.log_file",      "", PHP_INI_SYSTEM|PHP_INI_PERDIR, OnUpdateString, ea_log_file, zend_eaccelerator_globals, eaccelerator_globals)
 STD_PHP_INI_ENTRY("eaccelerator.check_mtime",     "1", PHP_INI_SYSTEM, OnUpdateBool, check_mtime_enabled, zend_eaccelerator_globals, eaccelerator_globals)
-ZEND_INI_ENTRY1("eaccelerator.shm_only",        "0", PHP_INI_SYSTEM, eaccelerator_OnUpdateBool, &ea_scripts_shm_only)
+ZEND_INI_ENTRY1("eaccelerator.shm_only",        "0", PHP_INI_SYSTEM|PHP_INI_PERDIR, eaccelerator_OnUpdateBool, &ea_scripts_shm_only)
 #ifdef WITH_EACCELERATOR_INFO
 STD_PHP_INI_ENTRY("eaccelerator.allowed_admin_path",       "", PHP_INI_SYSTEM, OnUpdateString, allowed_admin_path, zend_eaccelerator_globals, eaccelerator_globals)
 #endif
