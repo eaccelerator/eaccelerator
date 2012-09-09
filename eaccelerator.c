@@ -1521,13 +1521,13 @@ ZEND_INI_ENTRY1("eaccelerator.shm_size",        "0", PHP_INI_SYSTEM, eaccelerato
 ZEND_INI_ENTRY1("eaccelerator.shm_ttl",         "0", PHP_INI_SYSTEM, eaccelerator_OnUpdateLong, &ea_shm_ttl)
 ZEND_INI_ENTRY1("eaccelerator.shm_prune_period", "0", PHP_INI_SYSTEM, eaccelerator_OnUpdateLong, &ea_shm_prune_period)
 ZEND_INI_ENTRY1("eaccelerator.debug",           "1", PHP_INI_SYSTEM, eaccelerator_OnUpdateLong, &ea_debug)
-STD_PHP_INI_ENTRY("eaccelerator.log_file",      "", PHP_INI_SYSTEM, OnUpdateString, ea_log_file, zend_eaccelerator_globals, eaccelerator_globals)
+STD_PHP_INI_ENTRY("eaccelerator.log_file",      "", PHP_INI_SYSTEM|PHP_INI_PERDIR, OnUpdateString, ea_log_file, zend_eaccelerator_globals, eaccelerator_globals)
 STD_PHP_INI_ENTRY("eaccelerator.check_mtime",     "1", PHP_INI_SYSTEM, OnUpdateBool, check_mtime_enabled, zend_eaccelerator_globals, eaccelerator_globals)
 ZEND_INI_ENTRY1("eaccelerator.shm_only",        "0", PHP_INI_SYSTEM, eaccelerator_OnUpdateBool, &ea_scripts_shm_only)
 #ifdef WITH_EACCELERATOR_INFO
 STD_PHP_INI_ENTRY("eaccelerator.allowed_admin_path",       "", PHP_INI_SYSTEM, OnUpdateString, allowed_admin_path, zend_eaccelerator_globals, eaccelerator_globals)
 #endif
-STD_PHP_INI_ENTRY("eaccelerator.cache_dir",      "/tmp/eaccelerator", PHP_INI_SYSTEM, OnUpdateString, cache_dir, zend_eaccelerator_globals, eaccelerator_globals)
+STD_PHP_INI_ENTRY("eaccelerator.cache_dir",      "/tmp/eaccelerator", PHP_INI_SYSTEM|PHP_INI_PERDIR, OnUpdateString, cache_dir, zend_eaccelerator_globals, eaccelerator_globals)
 PHP_INI_ENTRY("eaccelerator.filter",             "",  PHP_INI_ALL, eaccelerator_filter)
 PHP_INI_END()
 
@@ -1766,17 +1766,12 @@ static void check_cache_dir(const char *cache_path)
     int status = stat(cache_path, &buffer);
 
     if (status == 0) {
-        // check permissions
-        if (buffer.st_mode != 777) {
-            status = chmod(cache_path, 0777);
-            if (status < 0) {
-                ea_debug_error(
-                    "eAccelerator: Unable to change cache directory %s permissions\n",
-                    cache_path);
-            }
-        }
+        // probaly created by us (so with 777)
+        // or by sysadmin, which know what we need
     } else {
         // create the cache directory if possible
+        // use 777 to allow other user to create subdir
+        // which seems acceptable under /tmp (default value)
         status = mkdir(cache_path, 0777);
         if (status < 0) {
             ea_debug_error("eAccelerator: Unable to create cache directory %s\n", cache_path);
