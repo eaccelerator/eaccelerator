@@ -41,6 +41,7 @@
 #include "ea_restore.h"
 #include "ea_info.h"
 #include "ea_dasm.h"
+#include "ea_preload.h"
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -2013,6 +2014,7 @@ zend_function_entry eaccelerator_functions[] = {
 #ifdef WITH_EACCELERATOR_DISASSEMBLER
     PHP_FE(eaccelerator_dasm_file, NULL)
 #endif
+    PHP_FE(eaccelerator_preload_file, NULL)
     {
         NULL, NULL, NULL, 0U, 0U
     }
