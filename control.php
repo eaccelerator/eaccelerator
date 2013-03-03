@@ -145,11 +145,11 @@ function pageselstr ($pg, $pgs) {
     if ($pgs < 1) $pgstr .= '-';
     for ($i = 1; $i <= $pgs; $i++) {
         if (in_array($i, $sp)) {
-            if ($i - $lp <= 2 && $i > 2 && !in_array($i-1, $sp)) $pgstr .= '<a href="'.$_SERVER['PHP_SELF'].'?'.qstring_update(array('pg' => $i-2)).'">'.($i-1).'</a> ';
+            if ($i - $lp <= 2 && $i > 2 && !in_array($i-1, $sp)) $pgstr .= '<a href="'.$_SERVER['SCRIPT_NAME'].'?'.qstring_update(array('pg' => $i-2)).'">'.($i-1).'</a> ';
             if ($i - $lp > 2) $pgstr .= '..';
             if ($i == $pg) $pgstr .= ' ['.$i.'] ';
             else {
-                $pgstr .= ' <a href="'.$_SERVER['PHP_SELF'].'?'.qstring_update(array('pg' => $i-1)).'">'.$i.'</a> ';
+                $pgstr .= ' <a href="'.$_SERVER['SCRIPT_NAME'].'?'.qstring_update(array('pg' => $i-1)).'">'.$i.'</a> ';
             }
             $lp = $i;
         }
@@ -172,7 +172,7 @@ function qstring_update ($arr) {
 function colheadstr ($nme, $id) {
     $cursrt = isset($_GET['ordby']) ? $_GET['ordby'] : 0;
     $srtdir = isset($_GET['dir']) ? $_GET['dir'] : "";
-    return '<a href="'.$_SERVER['PHP_SELF'].'?'.qstring_update(array('ordby' => $id, 'dir' => ($cursrt == $id)?1-$srtdir:0)).'">'.$nme.'&nbsp;'.(($cursrt == $id)?'<img src="'.$_SERVER['PHP_SELF'].'?img='.(($srtdir)?'dnarr':'uparr').'" width="13" height="16" border="0" alt="'.(($srtdir)?'v':'^').'"/>':'');
+    return '<a href="'.$_SERVER['SCRIPT_NAME'].'?'.qstring_update(array('ordby' => $id, 'dir' => ($cursrt == $id)?1-$srtdir:0)).'">'.$nme.'&nbsp;'.(($cursrt == $id)?'<img src="'.$_SERVER['SCRIPT_NAME'].'?img='.(($srtdir)?'dnarr':'uparr').'" width="13" height="16" border="0" alt="'.(($srtdir)?'v':'^').'"/>':'');
 }
 
 // Array sorting callback function
@@ -260,7 +260,7 @@ $info = eaccelerator_info();
         else if (i.className == "menuitem") i.className = "menuitem_hov";
       }
       function gosec(i) {
-        document.location = "<?php echo $_SERVER['PHP_SELF']?>?sec="+i;
+        document.location = "<?php echo $_SERVER['SCRIPT_NAME']?>?sec="+i;
       }
     </script>
     
@@ -273,7 +273,7 @@ $info = eaccelerator_info();
 $items = array(0 => 'Status', 1 => 'Script Cache');
 
 foreach ($items as $i => $item) {
-    echo '<span class="menuitem'.(($sec == $i)?'_sel':'').'" onmouseover="menusel(this)" onmouseout="menusel(this)" onclick="gosec('.$i.')">'.(($sec != $i)?'<a href="'.$_SERVER['PHP_SELF'].'?sec='.$i.'">'.$item.'</a>':$item).'</span>';
+    echo '<span class="menuitem'.(($sec == $i)?'_sel':'').'" onmouseover="menusel(this)" onmouseout="menusel(this)" onclick="gosec('.$i.')">'.(($sec != $i)?'<a href="'.$_SERVER['SCRIPT_NAME'].'?sec='.$i.'">'.$item.'</a>':$item).'</span>';
 }  
 ?>
 </div>
@@ -303,7 +303,7 @@ switch ($sec) {
 <table>
 <tr><td>
 
-<form action="<?php echo $_SERVER['PHP_SELF']?>?sec=0" method="post">
+<form action="<?php echo $_SERVER['SCRIPT_NAME']?>?sec=0" method="post">
 <table>
 <tr>
     <td class="h" colspan="2">Usage statistics</td>
@@ -371,7 +371,7 @@ switch ($sec) {
 
 <br/><br/>
 
-<form action="<?php echo $_SERVER['PHP_SELF']?>?sec=0" method="post">
+<form action="<?php echo $_SERVER['SCRIPT_NAME']?>?sec=0" method="post">
 <table>
 <tr>
     <td class="h" colspan="2">Maintenance</td>
@@ -446,7 +446,7 @@ switch ($sec) {
     <td class="h" colspan="2">Search</td>
 </tr>
 <tr>
-    <form action="<?php echo $_SERVER['PHP_SELF']?>" method="get"><input type="hidden" name="sec" value="1"/>
+    <form action="<?php echo $_SERVER['SCRIPT_NAME']?>" method="get"><input type="hidden" name="sec" value="1"/>
     <td class="el">Match filename:</td> 
     <td class="fl"><input type="text" name="str" size="40" value="<?php echo isset($_GET['str']) ? $_GET['str'] : '' ?>"/>&nbsp;<input type="submit" value=" Find "/></td>
     </form>
