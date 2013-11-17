@@ -1765,7 +1765,7 @@ static void check_cache_dir(const char *cache_path)
 
     if (status == 0) {
         // check permissions
-        if (buffer.st_mode != 0777) {
+        if (buffer.st_mode != 040777) {
             status = chmod(cache_path, 0777);
             if (status < 0) {
                 ea_debug_error(
