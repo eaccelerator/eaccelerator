@@ -1,3 +1,8 @@
+2013-12-05  Todd Christensen <tchristensen at bykd.com>
+
+	* Avoid invalid opcode 153/1/8 by not setting op2 to unused for
+          ZEND_DECLARE_LAMBDA_FUNCTION.
+
 2012-08-16  Hans Rakers <hans at rakers.org>
 
 	* Remove current memory protection implementation. This code has
