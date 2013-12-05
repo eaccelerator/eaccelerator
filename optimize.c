@@ -2889,7 +2889,14 @@ static int build_cfg(zend_op_array *op_array, BB* bb)
             if ((dsc->ops & OP2_MASK) == OP2_CLASS) {
                 OP2_TYPE(op) = IS_VAR;
             } else if ((dsc->ops & OP2_MASK) == OP2_UNUSED) {
+#ifdef ZEND_DECLARE_LAMBDA_FUNCTION
+                /* The opcode handler expects very specific op types here.  */
+                if (op->opcode != ZEND_DECLARE_LAMBDA_FUNCTION) {
+                    OP2_TYPE(op) = IS_UNUSED;
+                }
+#else
                 OP2_TYPE(op) = IS_UNUSED;
+#endif
             }
 #ifndef ZEND_ENGINE_2_4
             else if ((dsc->ops & OP2_MASK) == OP2_FETCH &&
