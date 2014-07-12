@@ -63,7 +63,9 @@
 
 #include "php.h"
 #include "php_ini.h"
-#include "php_logos.h"
+#if PHP_VERSION_ID < 50500
+   #include "php_logos.h"
+#endif
 #include "main/fopen_wrappers.h"
 #include "ext/standard/info.h"
 #include "ext/standard/php_incomplete_class.h"
@@ -2268,10 +2270,12 @@ ZEND_DLEXPORT int eaccelerator_zend_startup(zend_extension *extension)
             p = p->next;
         }
     }
-
-    php_register_info_logo(EACCELERATOR_VERSION_GUID, "text/plain", (unsigned char*)EACCELERATOR_VERSION_STRING, sizeof(EACCELERATOR_VERSION_STRING));
-    php_register_info_logo(EACCELERATOR_LOGO_GUID,    "image/gif",  (unsigned char*)eaccelerator_logo, sizeof(eaccelerator_logo));
-
+    
+   #if PHP_VERSION_ID < 50500
+      php_register_info_logo(EACCELERATOR_VERSION_GUID, "text/plain", (unsigned char*)EACCELERATOR_VERSION_STRING, sizeof(EACCELERATOR_VERSION_STRING));
+      php_register_info_logo(EACCELERATOR_LOGO_GUID,    "image/gif",  (unsigned char*)eaccelerator_logo, sizeof(eaccelerator_logo));
+   #endif
+   
     return SUCCESS;
 }
 
@@ -2286,7 +2290,7 @@ ZEND_DLEXPORT zend_extension zend_extension_entry = {
     EACCELERATOR_VERSION,
     "eAccelerator",
     "http://eaccelerator.net",
-    "Copyright (c) 2004-2012 eAccelerator",
+    "Copyright (c) 2004-2014 eAccelerator",
     eaccelerator_zend_startup,
     NULL,
     NULL,   /* void (*activate)() */
@@ -2315,7 +2319,7 @@ static zend_extension eaccelerator_extension_entry = {
     EACCELERATOR_VERSION,
     "eAccelerator",
     "http://eaccelerator.net",
-    "Copyright (c) 2004-2012 eAccelerator",
+    "Copyright (c) 2004-2014 eAccelerator",
     eaccelerator_zend_startup,
     NULL,
     NULL,   /* void (*activate)() */
