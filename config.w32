@@ -3,21 +3,17 @@
 ARG_ENABLE("eaccelerator", "Enable eaccelerator support", "no");
 
 ARG_WITH("eaccelerator-crash-detection", "Include eaccelerator crash detection", "yes");
-ARG_WITH("eaccelerator-optimizer", "Include eaccelerator optimizer", "yes");
 ARG_WITH("eaccelerator-info", "Compile the eAccelerator information functions", "yes");
 ARG_WITH("eaccelerator-doc-comment-inclusion", "Retain doc-comments in internal php structures", "yes");
 ARG_WITH("eaccelerator-disassembler", "Include disassembler", "no");
 ARG_WITH("eaccelerator-debug", "Enable the debug code so eaccelerator logs verbosely", "no");
 
 if (PHP_EACCELERATOR != "no") {
-	EXTENSION("eaccelerator", "eaccelerator.c optimize.c opcodes.c fnmatch.c mm.c debug.c ea_restore.c ea_store.c ea_info.c ea_dasm.c", PHP_EACCELERATOR_SHARED);
+	EXTENSION("eaccelerator", "eaccelerator.c opcodes.c fnmatch.c mm.c debug.c ea_restore.c ea_store.c ea_info.c ea_dasm.c", PHP_EACCELERATOR_SHARED);
 	AC_DEFINE("HAVE_EACCELERATOR", 1, "Define if you like to use eAccelerator");
 
 	if (PHP_EACCELERATOR_CRASH_DETECTION != "no") {
 		AC_DEFINE("WITH_EACCELERATOR_CRASH_DETECTION", 1, "Define if you like to release eAccelerator resources on PHP crash");
-	}
-	if (PHP_EACCELERATOR_OPTIMIZER != "no") {
-		AC_DEFINE("WITH_EACCELERATOR_OPTIMIZER", 1, "Define if you like to use peephole opcode optimization");
 	}
 	if (PHP_EACCELERATOR_INFO != "no") {
 		AC_DEFINE("WITH_EACCELERATOR_INFO", 1, "Define if you want the information functions");

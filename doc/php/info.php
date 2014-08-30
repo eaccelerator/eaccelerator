@@ -23,15 +23,6 @@
 function eaccelerator_caching(boolean $flag) {};
 
 /**
- * Enable/disable the optimizer
- * You are only allowed to use this function in scripts that are in the
- * eaccelerator.admin_allowed_path
- *
- * @param boolean true to enable and false to disable eAccelerator the optimizer
- */
-function eaccelerator_optimizer(boolean $flag) {};
-
-/**
  * Clean the cache
  * Remove all expired scripts and data from shared memory and disk cache. You 
  * are only allowed to use this function in scripts that are in the 

@@ -3,10 +3,9 @@ eAccelerator for PHP
 
 What is eAccelerator?
 ----------------------
-eAccelerator is a free open source PHP accelerator and optimizer for PHP. It
-increases the performance of PHP scripts by caching them in compiled state,
-so the overhead of compiling  is  almost completely eliminated. It also
-optimizes the scripts to speed up execution.
+eAccelerator is a free open source PHP accelerator for PHP. It increases
+the performance of PHP scripts by caching them in compiled state, so the
+overhead of compiling is almost completely eliminated.
 
 eAccelerator typically reduces server load and increases the speed of your
 PHP code by 1-10 times.
@@ -64,7 +63,7 @@ Step 1. Compiling eAccelerator
   $PHP_PREFIX/bin/phpize
   
   ./configure \
-  --enable-shared \
+  --enable-eaccelerator=shared \
   --with-php-config=$PHP_PREFIX/bin/php-config
   
   make
@@ -90,7 +89,6 @@ To install as Zend extension:
   eaccelerator.shm_size="16"
   eaccelerator.cache_dir="/tmp/eaccelerator"
   eaccelerator.enable="1"
-  eaccelerator.optimizer="1"
   eaccelerator.check_mtime="1"
   eaccelerator.debug="0"
   eaccelerator.filter=""
@@ -107,7 +105,6 @@ To install as PHP extension:
   eaccelerator.shm_size="16"
   eaccelerator.cache_dir="/tmp/eaccelerator"
   eaccelerator.enable="1"
-  eaccelerator.optimizer="1"
   eaccelerator.check_mtime="1"
   eaccelerator.debug="0"
   eaccelerator.filter=""
@@ -137,11 +134,6 @@ eaccelerator.cache_dir
 eaccelerator.enable
     Enables or disables eAccelerator. Should be "1" for enabling  or  "0"  for
     disabling. Default value is "1".
-
-eaccelerator.optimizer
-    Enables or disables internal peephole optimizer which may  speed  up  code
-    execution. Should be "1" for enabling or "0" for disabling. Default  value
-    is "1".
 
 eaccelerator.debug
     Enables or disables debug logging. Should be "1" for enabling or  "0"  for

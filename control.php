@@ -287,9 +287,6 @@ switch ($sec) {
         if (isset($_POST['cachingoff'])) eaccelerator_caching(false);
         if (isset($_POST['cachingon'])) eaccelerator_caching(true);
 
-        if (isset($_POST['optoff']) && function_exists('eaccelerator_optimizer')) eaccelerator_optimizer(false);
-        if (isset($_POST['opton']) && function_exists('eaccelerator_optimizer')) eaccelerator_optimizer(true);
-
         if (isset($_POST['mtimeoff'])) eaccelerator_check_mtime(false);
         if (isset($_POST['mtimeon'])) eaccelerator_check_mtime(true);
 
@@ -311,10 +308,6 @@ switch ($sec) {
 <tr>
     <td class="er">Caching enabled</td> 
     <td class="fl"><?php echo $info['cache'] ? '<span style="color:green"><b>yes</b></span>&nbsp;&nbsp;&nbsp;<input type="submit" name="cachingoff" value=" Disable "/>':'<span style="color:red"><b>no</b></span>&nbsp;&nbsp;&nbsp;<input type="submit" name="cachingon" value=" Enable "/>' ?></td>
-</tr>
-<tr>
-    <td class="er">Optimizer enabled</td>
-    <td class="fl"><?php echo $info['optimizer'] ? '<span style="color:green"><b>yes</b></span>&nbsp;&nbsp;&nbsp;<input type="submit" name="optoff" value=" Disable "/>':'<span style="color:red"><b>no</b></span>&nbsp;&nbsp;&nbsp;<input type="submit" name="opton" value=" Enable "/>' ?></td>
 </tr>
 <tr>
     <td class="er">Check mtime enabled</td>

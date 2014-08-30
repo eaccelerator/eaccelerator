@@ -31,9 +31,6 @@
 #ifdef WITH_EACCELERATOR_INFO
 
 PHP_FUNCTION(eaccelerator_caching);
-#ifdef WITH_EACCELERATOR_OPTIMIZER
-PHP_FUNCTION(eaccelerator_optimizer);
-#endif
 PHP_FUNCTION(eaccelerator_check_mtime);
 PHP_FUNCTION(eaccelerator_clear);
 PHP_FUNCTION(eaccelerator_clean);
