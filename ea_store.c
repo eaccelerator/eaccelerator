@@ -20,7 +20,7 @@
    | Foundation, Inc., 59 Temple Place - Suite 330, Boston,               |
    | MA  02111-1307, USA.                                                 |
    |                                                                      |
-   | A copy is availble at http://www.gnu.org/copyleft/gpl.txt            |
+   | A copy is available at http://www.gnu.org/copyleft/gpl.txt           |
    +----------------------------------------------------------------------+
    $Id: ea_store.c 418 2010-06-03 11:13:47Z hans $
 */

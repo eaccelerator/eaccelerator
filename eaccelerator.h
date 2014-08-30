@@ -20,7 +20,7 @@
    | Foundation, Inc., 59 Temple Place - Suite 330, Boston,               |
    | MA  02111-1307, USA.                                                 |
    |                                                                      |
-   | A copy is availble at http://www.gnu.org/copyleft/gpl.txt            |
+   | A copy is available at http://www.gnu.org/copyleft/gpl.txt           |
    +----------------------------------------------------------------------+
    $Id: eaccelerator.h 423 2010-07-11 21:03:25Z bart $
 */

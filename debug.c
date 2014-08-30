@@ -20,7 +20,7 @@
    | Foundation, Inc., 59 Temple Place - Suite 330, Boston,               |
    | MA  02111-1307, USA.                                                 |
    |                                                                      |
-   | A copy is availble at http://www.gnu.org/copyleft/gpl.txt            |
+   | A copy is available at http://www.gnu.org/copyleft/gpl.txt           |
    +----------------------------------------------------------------------+
    $Id: debug.c 375 2010-01-19 15:49:13Z bart $
 */
