@@ -1650,7 +1650,6 @@ static void eaccelerator_init_globals(zend_eaccelerator_globals *eag)
     eag->enabled = 1;
     eag->cache_dir = NULL;
     eag->check_mtime_enabled = 1;
-    eag->compiler = 0;
     eag->ea_log_file = '\000';
     eag->in_request = 0;
     eag->allowed_admin_path= NULL;
