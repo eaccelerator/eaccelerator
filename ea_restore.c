@@ -639,6 +639,10 @@ zend_op_array *restore_op_array(zend_op_array * to, ea_op_array * from TSRMLS_DC
     to->T = from->T;
     to->brk_cont_array = from->brk_cont_array;
     to->last_brk_cont = from->last_brk_cont;
+#ifdef ZEND_ENGINE_2_5
+    to->nested_calls = from->nested_calls;
+    to->used_stack = from->used_stack;
+#endif
 
 #ifndef ZEND_ENGINE_2_4
     to->current_brk_cont = -1;

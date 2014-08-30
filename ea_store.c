@@ -157,6 +157,9 @@ size_t calc_zval(zval *zv TSRMLS_DC)
 static size_t calc_op_array(zend_op_array * from TSRMLS_DC)
 {
     size_t size = 0;
+#ifndef ZEND_ENGINE_2_4
+    zend_op *opline, *end;
+#endif
 
     if (from->type == ZEND_INTERNAL_FUNCTION) {
         ADDSIZE(size, sizeof(zend_internal_function));
@@ -202,8 +205,6 @@ static size_t calc_op_array(zend_op_array * from TSRMLS_DC)
         ADDSIZE(size, from->last * sizeof(zend_op));
 
 #ifndef ZEND_ENGINE_2_4
-        zend_op *opline, *end;
-
         opline = from->opcodes;
         end = opline + from->last;
         for (; opline < end; opline++) {
@@ -636,6 +637,10 @@ static ea_op_array *store_op_array(char **at, zend_op_array * from TSRMLS_DC)
     to->early_binding = from->early_binding;
 #else
     to->uses_this = from->uses_this;
+#endif
+#ifdef ZEND_ENGINE_2_5
+    to->nested_calls = from->nested_calls;
+    to->used_stack = from->used_stack;
 #endif
 
 #ifdef ZEND_ENGINE_2_4

@@ -359,7 +359,11 @@ PHP_FUNCTION (eaccelerator_info)
     add_assoc_string(return_value, "version", EACCELERATOR_VERSION, 1);
     add_assoc_string(return_value, "shm_type", shm, 1);
     add_assoc_string(return_value, "sem_type", sem, 1);
+
+#ifndef ZEND_ENGINE_2_5
     add_assoc_string(return_value, "logo", EACCELERATOR_LOGO_GUID, 1);
+#endif
+
     add_assoc_bool(return_value, "cache", (EAG (enabled)
                                            && (ea_mm_instance != NULL)
                                            && ea_mm_instance->enabled) ? 1 : 0);

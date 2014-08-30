@@ -57,6 +57,10 @@
 #   define ZEND_ENGINE_2_4
 #endif
 
+#if PHP_MAJOR_VERSION == 5 && PHP_MINOR_VERSION >= 5
+#   define ZEND_ENGINE_2_5
+#endif
+
 /* fixes compile errors on php5.1 */
 #ifdef STR_EMPTY_ALLOC
 #	define empty_string STR_EMPTY_ALLOC()
@@ -226,6 +230,10 @@ typedef struct _eaccelerator_op_array {
     zend_compiled_variable *vars;
     int last_var;
     zend_uint T;
+#ifdef ZEND_ENGINE_2_5
+    zend_uint nested_calls;
+    zend_uint used_stack;
+#endif
     zend_brk_cont_element *brk_cont_array;
     int last_brk_cont;
     zend_try_catch_element *try_catch_array;

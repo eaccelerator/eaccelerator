@@ -1,3 +1,7 @@
+2014-08-30  NewEraCracker <neweracracker at gmail.com>
+
+	* Add experimental compatibility with PHP 5.5
+
 2012-08-16  Hans Rakers <hans at rakers.org>
 
 	* Remove current memory protection implementation. This code has

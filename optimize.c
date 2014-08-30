@@ -1836,13 +1836,21 @@ static void optimize_bb(BB* bb, zend_op_array* op_array, char* global, int pass 
                     op->opcode == ZEND_BOOL_NOT) &&
                    OP1_TYPE(op) == IS_CONST &&
                    RES_TYPE(op) == IS_TMP_VAR) {
+#ifdef ZEND_ENGINE_2_3
+            int (*unary_op)(zval *result, zval *op1 TSRMLS_DC) =
+#else
             int (*unary_op)(zval *result, zval *op1) =
+#endif
                 unary_op = get_unary_op(op->opcode);
             if (unary_op != NULL) {
                 int old = EG(error_reporting);
                 zval res;
                 EG(error_reporting) = 0;
+#ifdef ZEND_ENGINE_2_3
+                if (unary_op(&res, &OP1_CONST(op) TSRMLS_CC) != FAILURE) {				
+#else
                 if (unary_op(&res, &OP1_CONST(op)) != FAILURE) {
+#endif
 #ifndef ZEND_ENGINE_2_4
                     zval_dtor(&OP1_CONST(op));
                     /* TODO check */
@@ -3499,6 +3507,42 @@ void eaccelerator_optimize(zend_op_array *op_array)
     if (!EAG(compiler) || op_array->type != ZEND_USER_FUNCTION) {
         return;
     }
+
+#ifdef ZEND_ENGINE_2_5
+    /* @TODO : Certain PHP 5.5 features are not supported */
+    if (op_array->has_finally_block || (op_array->fn_flags & ZEND_ACC_GENERATOR)) {
+        return;
+    }
+
+    /* @TODO : Opcodes added or changed in PHP 5.5 are not supported */
+    {
+        zend_op* op = op_array->opcodes;
+        zend_op* end = op + op_array->last;
+
+        while (op < end) {
+            /* Opcodes added in PHP 5.5 */
+            if (op->opcode == ZEND_DISCARD_EXCEPTION
+                    || op->opcode == ZEND_YIELD
+                    || op->opcode == ZEND_GENERATOR_RETURN
+                    || op->opcode == ZEND_FAST_CALL
+                    || op->opcode == ZEND_FAST_RET) {
+                return;
+            }
+            /* Opcodes with behaviour changes (See PHP 5.5 UPGRADING.INTERNALS) */
+            if (op->opcode == ZEND_INIT_METHOD_CALL
+                    || op->opcode == ZEND_INIT_STATIC_METHOD_CALL
+                    || op->opcode == ZEND_INIT_FCALL_BY_NAME
+                    || op->opcode == ZEND_INIT_NS_FCALL_BY_NAME
+                    || op->opcode == ZEND_NEW
+                    || op->opcode == ZEND_DO_FCALL
+                    || op->opcode == ZEND_DO_FCALL_BY_NAME) {
+                return;
+            }
+            /* Don't forget to increment */
+            op++;
+        }
+    }
+#endif
 
 #ifdef ZEND_ENGINE_2_3
     /* We run pass_two() here to let the Zend engine resolve ZEND_GOTO labels

@@ -47,9 +47,11 @@
 #ifdef ZEND_WIN32
 #  include "fnmatch.h"
 #  include "win32/time.h"
+#  include <direct.h>
 #  include <time.h>
 #  include <sys/utime.h>
 #else
+#  include <unistd.h>
 #  include <fnmatch.h>
 #  include <sys/file.h>
 #  include <sys/time.h>
@@ -61,9 +63,17 @@
 #  define O_BINARY 0
 #endif
 
+#ifndef S_ISDIR
+#define S_ISDIR(mode) ((mode) & _S_IFDIR)
+#endif
+
 #include "php.h"
 #include "php_ini.h"
+
+#ifndef ZEND_ENGINE_2_5
 #include "php_logos.h"
+#endif
+
 #include "main/fopen_wrappers.h"
 #include "ext/standard/info.h"
 #include "ext/standard/php_incomplete_class.h"
@@ -257,7 +267,12 @@ static int init_mm(TSRMLS_D)
     ea_mm_instance->hash_cnt = 0;
     ea_mm_instance->rem_cnt  = 0;
     ea_mm_instance->enabled = 1;
+#if 0
     ea_mm_instance->optimizer_enabled = 1;
+#else
+    /* @TODO : The optimizer innumerous bugs must be fixed, in meantime completely disable it. */
+    ea_mm_instance->optimizer_enabled = 0;
+#endif
     ea_mm_instance->check_mtime_enabled = 1;
     ea_mm_instance->removed = NULL;
     ea_mm_instance->cache_dir_uid = 0;
@@ -1767,7 +1782,7 @@ static void check_cache_dir(const char *cache_path)
 
     if (status == 0) {
         // check permissions
-        if (buffer.st_mode != 777) {
+        if (buffer.st_mode != 0777) {
             status = chmod(cache_path, 0777);
             if (status < 0) {
                 ea_debug_error(
@@ -2269,8 +2284,10 @@ ZEND_DLEXPORT int eaccelerator_zend_startup(zend_extension *extension)
         }
     }
 
+#ifndef ZEND_ENGINE_2_5
     php_register_info_logo(EACCELERATOR_VERSION_GUID, "text/plain", (unsigned char*)EACCELERATOR_VERSION_STRING, sizeof(EACCELERATOR_VERSION_STRING));
     php_register_info_logo(EACCELERATOR_LOGO_GUID,    "image/gif",  (unsigned char*)eaccelerator_logo, sizeof(eaccelerator_logo));
+#endif
 
     return SUCCESS;
 }

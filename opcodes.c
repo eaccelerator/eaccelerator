@@ -90,7 +90,7 @@ static const opcode_dsc opcodes[] = {
     OPDEF("SWITCH_FREE",               EXT_BIT    | OP1_STD    | OP2_UNUSED | RES_UNUSED), /* 49 */
     OPDEF("BRK",                       EXT_UNUSED | OP1_BRK    | OP2_STD    | RES_UNUSED), /* 50 */
     OPDEF("CONT",                      EXT_UNUSED | OP1_CONT   | OP2_STD    | RES_UNUSED), /* 51 */
-    OPDEF("BOOL",                      EXT_UNUSED | OPS_STD    | OP2_UNUSED | RES_TMP), /* 52 */
+    OPDEF("BOOL",                      EXT_UNUSED | OP1_STD    | OP2_UNUSED | RES_TMP), /* 52 */
     OPDEF("INIT_STRING",               EXT_UNUSED | OP1_UNUSED | OP2_UNUSED | RES_TMP), /* 53 */
     OPDEF("ADD_CHAR",                  EXT_UNUSED | OP1_STD    | OP2_STD    | RES_TMP), /* 54 */
     OPDEF("ADD_STRING",                EXT_UNUSED | OP1_STD    | OP2_STD    | RES_TMP), /* 55 */
@@ -98,8 +98,8 @@ static const opcode_dsc opcodes[] = {
     OPDEF("BEGIN_SILENCE",             EXT_UNUSED | OP1_UNUSED | OP2_UNUSED | RES_TMP), /* 57 */
     OPDEF("END_SILENCE",               EXT_UNUSED | OP1_TMP    | OP2_UNUSED | RES_UNUSED), /* 58 */
     OPDEF("INIT_FCALL_BY_NAME",        EXT_INIT_FCALL | OP1_STD | OP2_STD   | RES_UNUSED), /* 59 */
-    OPDEF("DO_FCALL",                  EXT_FCALL  | OP1_STD    | OP2_UNUSED | RES_VAR), /* 60 */
-    OPDEF("DO_FCALL_BY_NAME",          EXT_FCALL  | OP1_STD    | OP2_UNUSED | RES_VAR), /* 61 */
+    OPDEF("DO_FCALL",                  EXT_FCALL  | OP1_STD    | OP2_OPLINE | RES_VAR), /* 60 */
+    OPDEF("DO_FCALL_BY_NAME",          EXT_FCALL  | OP1_STD    | OP2_OPLINE | RES_VAR), /* 61 */
     OPDEF("RETURN",                    EXT_UNUSED | OP1_STD    | OP2_UNUSED | RES_UNUSED), /* 62 */
     OPDEF("RECV",                      EXT_UNUSED | OP1_ARG    | OP2_UNUSED | RES_VAR), /* 63 */
     OPDEF("RECV_INIT",                 EXT_UNUSED | OP1_ARG    | OP2_STD    | RES_VAR), /* 64 */
@@ -108,7 +108,7 @@ static const opcode_dsc opcodes[] = {
     OPDEF("SEND_REF",                  EXT_SEND   | OP1_VAR    | OP2_ARG    | RES_UNUSED), /* 67 */
     OPDEF("NEW",                       EXT_UNUSED | OP1_CLASS  | OP2_UNUSED | RES_VAR), /* 68 */
 #ifdef ZEND_ENGINE_2_3
-    OPDEF("INIT_NS_FCALL_BY_NAME",     EXT_STD    | OP1_STD    | OP1_STD    | RES_UNUSED), /* 69 */
+    OPDEF("INIT_NS_FCALL_BY_NAME",     EXT_STD    | OP1_STD    | OP2_STD    | RES_UNUSED), /* 69 */
 #else
     OPDEF("JMP_NO_CTOR",               EXT_UNUSED | OP1_STD    | OP2_OPLINE | RES_UNUSED), /* 69 */
 #endif
@@ -116,7 +116,11 @@ static const opcode_dsc opcodes[] = {
     OPDEF("INIT_ARRAY",                EXT_BIT    | OP1_STD    | OP2_STD    | RES_TMP), /* 71 */
     OPDEF("ADD_ARRAY_ELEMENT",         EXT_BIT    | OP1_STD    | OP2_STD    | RES_TMP), /* 72 */
     OPDEF("INCLUDE_OR_EVAL",           EXT_UNUSED | OP1_STD    | OP2_INCLUDE| RES_VAR), /* 73 */
+#ifdef ZEND_ENGINE_2_4
+    OPDEF("UNSET_VAR",                 EXT_FETCHTYPE | OP1_STD | OP2_STD    | RES_UNUSED), /* 74 */
+#else
     OPDEF("UNSET_VAR",                 EXT_UNUSED | OP1_STD    | OP2_FETCH  | RES_UNUSED), /* 74 */
+#endif
     OPDEF("UNSET_DIM",                 EXT_STD    | OP1_STD    | OP2_STD    | RES_UNUSED), /* 75 */
     OPDEF("UNSET_OBJ",                 EXT_STD    | OP1_STD    | OP2_STD    | RES_UNUSED), /* 76 */
     OPDEF("FE_RESET",                  EXT_BIT    | OP1_STD    | OP2_OPLINE | RES_VAR), /* 77 */
@@ -167,7 +171,7 @@ static const opcode_dsc opcodes[] = {
     OPDEF("FETCH_DIM_UNSET",           EXT_UNUSED | OP1_VAR    | OP2_STD    | RES_VAR), /* 96 */
     OPDEF("FETCH_OBJ_UNSET",           EXT_UNUSED | OP1_STD    | OP2_STD    | RES_VAR), /* 97 */
     OPDEF("FETCH_DIM_TMP_VAR",         EXT_FETCH  | OP1_STD    | OP2_STD    | RES_VAR), /* 98 */
-#ifdef ZEND_ENGINE_2_4
+#ifdef ZEND_ENGINE_2_3
     OPDEF("FETCH_CONSTANT",            EXT_UNUSED | OP1_STD    | OP2_STD    | RES_TMP), /* 99 */
 #else
     OPDEF("FETCH_CONSTANT",            EXT_UNUSED | OP1_UCLASS | OP2_STD    | RES_TMP), /* 99 */
@@ -175,7 +179,7 @@ static const opcode_dsc opcodes[] = {
 #ifdef ZEND_ENGINE_2_3
     OPDEF("GOTO",                      EXT_STD    | OP1_JMPADDR | OP2_STD    | RES_UNUSED), /* 100 */
 #else
-    OPDEF("UNDEF-100",                 EXT_UNUSED | OP1_UNUSED | OP2_UNUSED | RES_UNUSED), /* 100 */
+    OPDEF("DECLARE_FUNCTION_OR_CLASS", EXT_DECLARE | OP1_STD   | OP2_STD    | RES_UNUSED), /* 100 */
 #endif
     OPDEF("EXT_STMT",                  EXT_STD    | OP1_STD    | OP2_STD    | RES_STD), /* 101 */
     OPDEF("EXT_FCALL_BEGIN",           EXT_STD    | OP1_STD    | OP2_STD    | RES_STD), /* 102 */
@@ -183,17 +187,23 @@ static const opcode_dsc opcodes[] = {
     OPDEF("EXT_NOP",                   EXT_UNUSED | OP1_UNUSED | OP2_UNUSED | RES_UNUSED), /* 104 */
     OPDEF("TICKS",                     EXT_UNUSED | OP1_STD    | OP2_UNUSED | RES_UNUSED), /* 105 */
     OPDEF("SEND_VAR_NO_REF",           EXT_SEND_NOREF| OP1_VAR | OP2_ARG    | RES_UNUSED),  /* 106 */
+#ifdef ZEND_ENGINE_2_4
+    OPDEF("CATCH",                     EXT_OPLINE | OP1_STD    | OP2_STD    | RES_UNUSED), /* 107 */
+#else
     OPDEF("CATCH",                     EXT_OPLINE | OP1_CLASS  | OP2_STD    | RES_UNUSED), /* 107 */
+#endif
     OPDEF("THROW",                     EXT_UNUSED | OP1_STD    | OP2_OPLINE | RES_UNUSED), /* 108 */
     OPDEF("FETCH_CLASS",               EXT_FCLASS | OP1_STD    | OP2_STD    | RES_CLASS), /* 109 */
     OPDEF("CLONE",                     EXT_UNUSED | OP1_STD    | OP2_UNUSED | RES_VAR), /* 110 */
+
 #ifdef ZEND_ENGINE_2_4
     OPDEF("RETURN_BY_REF",             EXT_STD    | OP1_STD    | OP2_UNUSED | RES_UNUSED), /* 111 */
 #else
-    OPDEF("UNDEF-111",                 EXT_UNUSED | OP1_UNUSED | OP2_UNUSED | RES_UNUSED), /* 111 */
+    OPDEF("INIT_CTOR_CALL",            EXT_UNUSED | OP1_STD    | OP2_UNUSED | RES_UNUSED), /* 111 */
 #endif
+
     OPDEF("INIT_METHOD_CALL",          EXT_UNUSED | OP1_STD    | OP2_STD    | RES_VAR), /* 112 */
-#ifdef ZEND_ENGINE_2_4
+#ifdef ZEND_ENGINE_2_3
     OPDEF("INIT_STATIC_METHOD_CALL",   EXT_UNUSED | OP1_STD    | OP2_STD    | RES_UNUSED), /* 113 */
 #else
     OPDEF("INIT_STATIC_METHOD_CALL",   EXT_UNUSED | OP1_UCLASS | OP2_STD    | RES_UNUSED), /* 113 */
@@ -205,22 +215,22 @@ static const opcode_dsc opcodes[] = {
 #endif
     OPDEF("ISSET_ISEMPTY_DIM_OBJ",     EXT_ISSET  | OP1_STD    | OP2_STD    | RES_TMP), /* 115 */
 
-    OPDEF("UNDEF-116",                 EXT_UNUSED | OP1_UNUSED | OP2_UNUSED | RES_UNUSED), /* 116 */
-    OPDEF("UNDEF-117",                 EXT_UNUSED | OP1_UNUSED | OP2_UNUSED | RES_UNUSED), /* 117 */
-    OPDEF("UNDEF-118",                 EXT_UNUSED | OP1_UNUSED | OP2_UNUSED | RES_UNUSED), /* 118 */
-    OPDEF("UNDEF-119",                 EXT_UNUSED | OP1_UNUSED | OP2_UNUSED | RES_UNUSED), /* 119 */
-    OPDEF("UNDEF-120",                 EXT_UNUSED | OP1_UNUSED | OP2_UNUSED | RES_UNUSED), /* 120 */
-    OPDEF("UNDEF-121",                 EXT_UNUSED | OP1_UNUSED | OP2_UNUSED | RES_UNUSED), /* 121 */
-    OPDEF("UNDEF-122",                 EXT_UNUSED | OP1_UNUSED | OP2_UNUSED | RES_UNUSED), /* 122 */
-    OPDEF("UNDEF-123",                 EXT_UNUSED | OP1_UNUSED | OP2_UNUSED | RES_UNUSED), /* 123 */
-    OPDEF("UNDEF-124",                 EXT_UNUSED | OP1_UNUSED | OP2_UNUSED | RES_UNUSED), /* 124 */
-    OPDEF("UNDEF-125",                 EXT_UNUSED | OP1_UNUSED | OP2_UNUSED | RES_UNUSED), /* 125 */
-    OPDEF("UNDEF-126",                 EXT_UNUSED | OP1_UNUSED | OP2_UNUSED | RES_UNUSED), /* 126 */
-    OPDEF("UNDEF-127",                 EXT_UNUSED | OP1_UNUSED | OP2_UNUSED | RES_UNUSED), /* 127 */
-    OPDEF("UNDEF-128",                 EXT_UNUSED | OP1_UNUSED | OP2_UNUSED | RES_UNUSED), /* 128 */
-    OPDEF("UNDEF-129",                 EXT_UNUSED | OP1_UNUSED | OP2_UNUSED | RES_UNUSED), /* 129 */
-    OPDEF("UNDEF-130",                 EXT_UNUSED | OP1_UNUSED | OP2_UNUSED | RES_UNUSED), /* 130 */
-    OPDEF("UNDEF-131",                 EXT_UNUSED | OP1_UNUSED | OP2_UNUSED | RES_UNUSED), /* 131 */
+    OPDEF("IMPORT_FUNCTION",           EXT_UNUSED | OP1_CLASS  | OP2_STD    | RES_UNUSED), /* 116 */
+    OPDEF("IMPORT_CLASS",              EXT_UNUSED | OP1_CLASS  | OP2_STD    | RES_UNUSED), /* 117 */
+    OPDEF("IMPORT_CONST",              EXT_UNUSED | OP1_CLASS  | OP2_STD    | RES_UNUSED), /* 118 */
+    OPDEF("OP_119",                    EXT_STD    | OP1_STD    | OP2_STD    | RES_STD),    /* 119 */
+    OPDEF("OP_120",                    EXT_STD    | OP1_STD    | OP2_STD    | RES_STD),    /* 120 */
+    OPDEF("ASSIGN_ADD_OBJ",            EXT_UNUSED | OP1_STD    | OP2_STD    | RES_VAR),    /* 121 */
+    OPDEF("ASSIGN_SUB_OBJ",            EXT_UNUSED | OP1_STD    | OP2_STD    | RES_VAR),    /* 122 */
+    OPDEF("ASSIGN_MUL_OBJ",            EXT_UNUSED | OP1_STD    | OP2_STD    | RES_VAR),    /* 123 */
+    OPDEF("ASSIGN_DIV_OBJ",            EXT_UNUSED | OP1_STD    | OP2_STD    | RES_VAR),    /* 124 */
+    OPDEF("ASSIGN_MOD_OBJ",            EXT_UNUSED | OP1_STD    | OP2_STD    | RES_VAR),    /* 125 */
+    OPDEF("ASSIGN_SL_OBJ",             EXT_UNUSED | OP1_STD    | OP2_STD    | RES_VAR),    /* 126 */
+    OPDEF("ASSIGN_SR_OBJ",             EXT_UNUSED | OP1_STD    | OP2_STD    | RES_VAR),    /* 127 */
+    OPDEF("ASSIGN_CONCAT_OBJ",         EXT_UNUSED | OP1_STD    | OP2_STD    | RES_VAR),    /* 128 */
+    OPDEF("ASSIGN_BW_OR_OBJ",          EXT_UNUSED | OP1_STD    | OP2_STD    | RES_VAR),    /* 129 */
+    OPDEF("ASSIGN_BW_AND_OBJ",         EXT_UNUSED | OP1_STD    | OP2_STD    | RES_VAR),    /* 130 */
+    OPDEF("ASSIGN_BW_XOR_OBJ",         EXT_UNUSED | OP1_STD    | OP2_STD    | RES_VAR),    /* 131 */
 
     OPDEF("PRE_INC_OBJ",               EXT_UNUSED | OP1_STD    | OP2_STD    | RES_VAR), /* 132 */
     OPDEF("PRE_DEC_OBJ",               EXT_UNUSED | OP1_STD    | OP2_STD    | RES_VAR), /* 133 */
@@ -246,7 +256,7 @@ static const opcode_dsc opcodes[] = {
 #ifdef ZEND_ENGINE_2_3
     OPDEF("DECLARE_INHERITED_CLASS_DELAYED",         EXT_CLASS | OP1_STD  | OP2_STD    | RES_OPLINE), /* 145 */
 #else
-    OPDEF("UNDEF-145",                 EXT_UNUSED | OP1_UNUSED | OP2_UNUSED | RES_UNUSED), /* 145 */
+    OPDEF("VERIFY_INSTANCEOF",         EXT_UNUSED | OP1_CLASS  | OP2_STD    | RES_UNUSED), /* 145 */
 #endif
     OPDEF("VERIFY_ABSTRACT_CLASS",     EXT_UNUSED | OP1_CLASS  | OP2_UNUSED | RES_UNUSED), /* 146 */
     OPDEF("ASSIGN_DIM",                EXT_UNUSED | OP1_STD    | OP2_STD    | RES_VAR),   /* 147 */
@@ -257,7 +267,7 @@ static const opcode_dsc opcodes[] = {
     ,
     OPDEF("UNDEF-151",                EXT_UNUSED | OP1_UNUSED | OP2_UNUSED | RES_UNUSED), /* 151 */
     OPDEF("JMP_SET",                  EXT_UNUSED | OP1_STD    | OP2_JMPADDR| RES_TMP),    /* 152 */
-    OPDEF("DECLARE_LAMBDA_FUNCTION",  EXT_UNUSED | OP1_STD    | OP2_UNUSED | RES_UNUSED)  /* 153 */
+    OPDEF("DECLARE_LAMBDA_FUNCTION",  EXT_UNUSED | OP1_STD    | OP2_STD    | RES_TMP)     /* 153 */
 # endif
 #ifdef ZEND_ENGINE_2_4
     ,
@@ -266,6 +276,14 @@ static const opcode_dsc opcodes[] = {
     OPDEF("SEPARATE",                 EXT_UNUSED | OP1_STD    | OP2_STD    | RES_STD),    /* 156 */
     OPDEF("QM_ASSIGN_VAR",            EXT_UNUSED | OP1_STD    | OP2_UNUSED | RES_TMP),    /* 157 */
     OPDEF("JMP_SET_VAR",              EXT_UNUSED | OP1_STD    | OP2_STD    | RES_TMP)     /* 158 */
+#endif
+#ifdef ZEND_ENGINE_2_5
+    ,
+    OPDEF("DISCARD_EXCEPTION",        EXT_UNUSED | OP1_UNUSED  | OP2_UNUSED | RES_UNUSED), /* 159 */
+    OPDEF("YIELD",                    EXT_UNUSED | OP1_STD     | OP2_STD    | RES_UNUSED), /* 160 */
+    OPDEF("GENERATOR_RETURN",         EXT_UNUSED | OP1_STD     | OP2_UNUSED | RES_UNUSED), /* 161 */
+    OPDEF("FAST_CALL",                EXT_UNUSED | OP1_JMPADDR | OP2_UNUSED | RES_UNUSED), /* 162 */
+    OPDEF("FAST_RET",                 EXT_UNUSED | OP1_UNUSED  | OP2_UNUSED | RES_UNUSED)  /* 163 */
 #endif
 };
 
