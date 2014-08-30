@@ -3,6 +3,7 @@
 	* Add experimental compatibility with PHP 5.5
 	* Remove optimize implementation. This code has been dead for a while now
 	  and it's a complicated thing that breaks in some unexpected places
+	* Update Win32 VC project files
 
 2012-08-16  Hans Rakers <hans at rakers.org>
 

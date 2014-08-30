@@ -52,7 +52,7 @@
 				Optimization="2"
 				InlineFunctionExpansion="1"
 				AdditionalIncludeDirectories="../../..,../../../zend,../../../TSRM,../../../main,../../"
-				PreprocessorDefinitions="NDEBUG;ZEND_DEBUG=0;WIN32;_WINDOWS;_USRDLL;HAVE_EACCELERATOR;COMPILE_DL_EACCELERATOR;ZEND_WIN32;PHP_WIN32;WITH_EACCELERATOR_CRASH_DETECTION;WITH_EACCELERATOR_OPTIMIZER;WITH_EACCELERATOR_INFO;WITH_EACCELERATOR_DOC_COMMENT_INCLUSION"
+				PreprocessorDefinitions="NDEBUG;ZEND_DEBUG=0;WIN32;_WINDOWS;_USRDLL;HAVE_EACCELERATOR;COMPILE_DL_EACCELERATOR;ZEND_WIN32;PHP_WIN32;WITH_EACCELERATOR_CRASH_DETECTION;WITH_EACCELERATOR_INFO;WITH_EACCELERATOR_DOC_COMMENT_INCLUSION"
 				StringPooling="true"
 				RuntimeLibrary="2"
 				EnableFunctionLevelLinking="true"
@@ -146,7 +146,7 @@
 				Optimization="2"
 				InlineFunctionExpansion="1"
 				AdditionalIncludeDirectories="../../..,../../../zend,../../../TSRM,../../../main,../../"
-				PreprocessorDefinitions="NDEBUG;ZEND_DEBUG=0;WIN32;_WINDOWS;_USRDLL;ZTS;HAVE_EACCELERATOR;COMPILE_DL_EACCELERATOR;ZEND_WIN32;PHP_WIN32;WITH_EACCELERATOR_CRASH_DETECTION;WITH_EACCELERATOR_OPTIMIZER;WITH_EACCELERATOR_INFO;WITH_EACCELERATOR_DOC_COMMENT_INCLUSION"
+				PreprocessorDefinitions="NDEBUG;ZEND_DEBUG=0;WIN32;_WINDOWS;_USRDLL;ZTS;HAVE_EACCELERATOR;COMPILE_DL_EACCELERATOR;ZEND_WIN32;PHP_WIN32;WITH_EACCELERATOR_CRASH_DETECTION;WITH_EACCELERATOR_INFO;WITH_EACCELERATOR_DOC_COMMENT_INCLUSION"
 				StringPooling="true"
 				RuntimeLibrary="2"
 				EnableFunctionLevelLinking="true"
@@ -239,7 +239,7 @@
 				AdditionalOptions="/D &quot;_CRT_SECURE_NO_DEPRECATE&quot; /D &quot;_CRT_NONSTDC_NO_DEPRECATE&quot;&#x0D;&#x0A;"
 				Optimization="0"
 				AdditionalIncludeDirectories="../../..,../../../zend,../../../TSRM,../../../main,../../"
-				PreprocessorDefinitions="_DEBUG;ZEND_DEBUG=1;DEBUG;WIN32;_WINDOWS;_USRDLL;HAVE_EACCELERATOR;COMPILE_DL_EACCELERATOR;ZEND_WIN32;PHP_WIN32;ZTS=1;WITH_EACCELERATOR_CRASH_DETECTION;WITH_EACCELERATOR_OPTIMIZER;WITH_EACCELERATOR_INFO;WITH_EACCELERATOR_DOC_COMMENT_INCLUSION;WITH_EACCELERATOR_DEBUG"
+				PreprocessorDefinitions="_DEBUG;ZEND_DEBUG=1;DEBUG;WIN32;_WINDOWS;_USRDLL;HAVE_EACCELERATOR;COMPILE_DL_EACCELERATOR;ZEND_WIN32;PHP_WIN32;ZTS=1;WITH_EACCELERATOR_CRASH_DETECTION;WITH_EACCELERATOR_INFO;WITH_EACCELERATOR_DOC_COMMENT_INCLUSION;WITH_EACCELERATOR_DEBUG"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="1"
@@ -556,37 +556,6 @@
 			</File>
 			<File
 				RelativePath="..\opcodes.c"
-				>
-				<FileConfiguration
-					Name="Release-NTS|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-					/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath="..\optimize.c"
 				>
 				<FileConfiguration
 					Name="Release-NTS|Win32"
