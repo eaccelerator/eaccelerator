@@ -35,12 +35,3 @@ Debug PHP5 and Release PHP5 are used for PHP5.  For our example, we will compile
 7) Go to Build > Build eAccelerator.dll to build the eaccelerator extension.
 
 The .dll file will be created in sub-directories according to profile selection.  Our example will place the compiled .dll file in c:\php\ext\eaccelerator\win32\Release
-
-eLoader
-------------
-If you want to build the eLoader dll you need to set eLoader as the active project:
-	Project > Set Active Project > 2 eLoader
-Everything is the same as for eAccelerator. If have already done the steps above you have to start at step 6 but set eLoader instead of eAccelerator.
-
-WARNING: If you have build the eAccelerator project you have to do a Clean first else you'll get linker errors.
-	Build > Clean
