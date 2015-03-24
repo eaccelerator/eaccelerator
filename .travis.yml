@@ -1,0 +1,3 @@
+language: c++
+install: php5-dev
+script: export PHP_PREFIX="/usr"; $PHP_PREFIX/bin/phpize; ./configure \ --enable-shared \ --with-php-config=$PHP_PREFIX/bin/php-config; make;
