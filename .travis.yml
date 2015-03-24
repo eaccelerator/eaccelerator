@@ -1,3 +1,5 @@
 language: c++
-install: apt-get install -qq php5-dev
+before_install:
+  - sudo apt-get update -qq
+  - sudo apt-get install -qq php5-dev
 script: export PHP_PREFIX="/usr"; $PHP_PREFIX/bin/phpize; ./configure \ --enable-shared \ --with-php-config=$PHP_PREFIX/bin/php-config; make;
