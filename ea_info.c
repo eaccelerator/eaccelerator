@@ -121,22 +121,24 @@ static void clear_filecache(const char* dir)
     char path[MAXPATHLEN];
     size_t dirlen = strlen(dir);
 
-    if(dirlen >= (size_t)(MAXPATHLEN - sizeof("\\eaccelerator*") - 1)) {
+    if(dirlen >= (size_t)(MAXPATHLEN - sizeof("\\*") - 1)) {
         ea_debug_error("[%s] Could not open cachedir %s\n", EACCELERATOR_EXTENSION_NAME, dir);
         return;
     }
 
     memcpy(path, dir, dirlen);
-    strlcpy(path + dirlen++, "\\eaccelerator*", (size_t)(MAXPATHLEN - dirlen));
+    strlcpy(path + dirlen++, "\\*", (size_t)(MAXPATHLEN - dirlen));
 
     hFind = FindFirstFile(path, &wfd);
     if (hFind != INVALID_HANDLE_VALUE) {
         do {
             strlcpy(path + dirlen, wfd.cFileName, (size_t)(MAXPATHLEN - dirlen));
-            if (FILE_ATTRIBUTE_DIRECTORY & wfd.dwFileAttributes) {
+            if (wfd.cFileName[0] != '.' && (FILE_ATTRIBUTE_DIRECTORY & wfd.dwFileAttributes)) {
                 clear_filecache(path);
-            } else if (!DeleteFile(path)) {
-                ea_debug_error("[%s] Can't delete file %s: error %d\n", EACCELERATOR_EXTENSION_NAME, path, GetLastError());
+            } else if (strstr(wfd.cFileName, "eaccelerator") == wfd.cFileName) {
+                if (!DeleteFile(path)) {
+                    ea_debug_error("[%s] Can't delete file %s: error %d\n", EACCELERATOR_EXTENSION_NAME, path, GetLastError());
+                }
             }
         } while (FindNextFile(hFind, &wfd));
     }

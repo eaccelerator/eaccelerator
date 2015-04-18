@@ -350,7 +350,7 @@ size_t calc_size(char *key, zend_op_array * op_array, Bucket * f, Bucket * c TSR
         ADDSIZE(size, offsetof(ea_fc_entry, htabkey) + b->nKeyLength);
 
         x = b->arKey;
-        zend_hash_add(&EAG(strings), b->arKey, b->nKeyLength, &x, sizeof(char *), NULL);
+        zend_hash_add(&EAG(strings), b->arKey, b->nKeyLength, (void *) &x, sizeof(char *), NULL);
         b = b->pListNext;
     }
     b = f;
@@ -358,7 +358,7 @@ size_t calc_size(char *key, zend_op_array * op_array, Bucket * f, Bucket * c TSR
         ADDSIZE(size, offsetof(ea_fc_entry, htabkey) + b->nKeyLength);
 
         x = b->arKey;
-        zend_hash_add(&EAG(strings), b->arKey, b->nKeyLength, &x, sizeof(char *), NULL);
+        zend_hash_add(&EAG(strings), b->arKey, b->nKeyLength, (void *) &x, sizeof(char *), NULL);
         b = b->pListNext;
     }
     while (c != NULL) {
@@ -925,7 +925,6 @@ static int store_function_inheritance_check(Bucket * p, zend_class_entry * from_
 static ea_class_entry *store_class_entry(char **at, zend_class_entry * from TSRMLS_DC)
 {
     ea_class_entry *to;
-    unsigned int i;
 
     to = (ea_class_entry *)ALLOCATE(at, sizeof(ea_class_entry));
     memset(to, 0, sizeof(ea_class_entry));
@@ -956,12 +955,15 @@ static ea_class_entry *store_class_entry(char **at, zend_class_entry * from TSRM
      * Scan the interfaces looking for the first one which isn't 0
      * This is the first inherited interface and should not be counted in the stored object
      */
-    for (i = 0 ; i < from->num_interfaces ; i++) {
-        if (from->interfaces[i] != 0) {
-            break;
+    if (from->num_interfaces) {
+        unsigned int i;
+        for (i = 0 ; i < from->num_interfaces ; i++) {
+            if (from->interfaces[i] != 0) {
+                break;
+            }
         }
+        to->num_interfaces = i;
     }
-    to->num_interfaces = i;
 
     /*
      * hrak: no need to really store the interfaces since these get populated
@@ -1005,6 +1007,7 @@ static ea_class_entry *store_class_entry(char **at, zend_class_entry * from TSRM
 #ifdef ZEND_ENGINE_2_4
     to->default_properties_count = from->default_properties_count;
     if (from->default_properties_count) {
+        int i;
         to->default_properties_table = (zval **)ALLOCATE(at, (sizeof(zval*) * from->default_properties_count));
         for (i = 0; i < from->default_properties_count; i++) {
             if (from->default_properties_table[i]) {
@@ -1025,6 +1028,7 @@ static ea_class_entry *store_class_entry(char **at, zend_class_entry * from TSRM
 #ifdef ZEND_ENGINE_2_4
     to->default_static_members_count = from->default_static_members_count;
     if (from->default_static_members_count > 0) {
+        int i;
         to->default_static_members_table = (zval **)ALLOCATE(at, (sizeof(zval*) * from->default_static_members_count));
         for (i = 0; i < from->default_static_members_count; i++) {
             if (from->default_static_members_table[i]) {

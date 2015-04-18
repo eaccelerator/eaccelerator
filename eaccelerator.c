@@ -47,6 +47,7 @@
 #ifdef ZEND_WIN32
 #  include "fnmatch.h"
 #  include "win32/time.h"
+#  include <io.h>
 #  include <direct.h>
 #  include <time.h>
 #  include <sys/utime.h>
@@ -74,7 +75,11 @@
 #include "SAPI.h"
 
 #ifndef O_BINARY
-#  define O_BINARY 0
+#  ifdef _O_BINARY
+#    define O_BINARY _O_BINARY
+#  else
+#    define O_BINARY 0
+#  endif
 #endif
 
 #define MAX_DUP_STR_LEN 256
@@ -702,8 +707,13 @@ static int hash_add_file(ea_cache_entry *p TSRMLS_DC)
     }
 
     unlink(s);
+#ifndef ZEND_WIN32
     f = open(s, O_CREAT | O_WRONLY | O_EXCL | O_BINARY, S_IRUSR | S_IWUSR);
     if (f > 0) {
+#else
+    f = open(s, O_CREAT | O_WRONLY | O_EXCL | O_BINARY, _S_IREAD | _S_IWRITE);
+    if (f != -1) {
+#endif
         EACCELERATOR_FLOCK(f, LOCK_EX);
         init_header(&hdr);
         hdr.size  = p->size;
