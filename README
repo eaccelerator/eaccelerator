@@ -3,28 +3,28 @@ eAccelerator for PHP
 
 What is eAccelerator?
 ----------------------
-eAccelerator is a free open source PHP accelerator for PHP. It increases
-the performance of PHP scripts by caching them in compiled state, so the
-overhead of compiling is almost completely eliminated.
+eAccelerator is a free open source PHP accelerator for PHP. It  increases  the
+performance of PHP scripts by caching them in compiled state, so  the overhead
+of compiling is almost completely eliminated.
 
-eAccelerator typically reduces server load and increases the speed of your
-PHP code by 1-10 times.
+eAccelerator typically reduces server load and increases the speed of your PHP
+code by 1-10 times.
 
-eAccelerator is a fork of TurckMMCache 
+eAccelerator is a fork of TurckMMCache
 ( http://sourceforge.net/project/turckmm-cache/  by Dmitry Stogov )
 
 eAccelerator stores compiled PHP scripts in shared memory  and  executes  code
-directly from it. It creates  locks  only  for  short  time,  while  searching 
+directly from it. It creates  locks  only  for  short  time,  while  searching
 compiled PHP script in the cache, so one script can be executed simultaneously
 by several engines. Files that can't fit in shared memory are cached  on  disk
 only.
 
 eAccelerator is compatible with Zend Optimizer's loader. Zend  Optimizer  must
 be installed after eAccelerator in php.ini. If you don't use  scripts  encoded
-with  Zend  Encoder  we  do  not  recommend  to  install  Zend  Optimizer with 
+with  Zend  Encoder  we  do  not  recommend  to  install  Zend  Optimizer with
 eAccelerator.
 
-eAccelerator does not work in CGI mode but it does work in FastCGI mode with
+eAccelerator does not work in  CGI mode but it does work in  FastCGI mode with
 webservers like lighttpd or using php-fpm.
 
 
@@ -32,7 +32,7 @@ Download
 --------
 Latest eAccelerator versions can be downloaded at the sourceforge page:
 http://sourceforge.net/projects/eaccelerator/
-Development snapshots from cvs can be downloaded at 
+Development snapshots from cvs can be downloaded at
 http://snapshots.eaccelerator.net
 
 
@@ -44,7 +44,7 @@ Requirements
 Compatibility
 -------------
 eAccelerator works with php version 5.1 and higher.
-It is being used on Linux, FreeBSD, Mac OS X, Solaris and Windows 
+It is being used on Linux, FreeBSD, Mac OS X, Solaris and Windows
 with Apache 1.3 and 2, lighttpd, php-fpm and IIS.
 
 
@@ -59,13 +59,13 @@ Note(1): for Microsoft Windows installation, please refer to README.win32 file.
 Step 1. Compiling eAccelerator
 
   export PHP_PREFIX="/usr"
-  
+
   $PHP_PREFIX/bin/phpize
-  
+
   ./configure \
   --enable-eaccelerator=shared \
   --with-php-config=$PHP_PREFIX/bin/php-config
-  
+
   make
 
   You must specify the real prefix where PHP is installed in the "export"
@@ -148,7 +148,7 @@ eaccelerator.filter
     Determine which PHP files must be cached. You may specify  the  number  of
     patterns (for example "*.php *.phtml") which specifies to cache or not  to
     cache. If pattern starts with the character "!", it means to ignore  files
-    which are matched by the following pattern. Default value is "" that means 
+    which are matched by the following pattern. Default value is "" that means
     all PHP scripts will be cached.
 
 eaccelerator.shm_ttl
@@ -169,24 +169,24 @@ eaccelerator.shm_only
     disk and shared memory for caching.
 
 eaccelerator.allowed_admin_path
-    The script paths that are allowed to get admin information and do admin 
+    The script paths that are allowed to get admin information and do admin
     controls
 
 Control panel and disassembler
 ------------------------------
 
-If you want to use the control-panel you need to compile eAccelerator with 
+If you want to use the control-panel you need to compile eAccelerator with
     --with-eaccelerator-info which is the default value.
-You need to copy the control.php file to your webroot and set the path to it 
-in the php.ini or eaccelerator.ini in the eaccelerator.allowed_admin_path 
-directive. If you don't do this you wont be able to see much information and 
+You need to copy the control.php file to your webroot and set the path to it
+in the php.ini or eaccelerator.ini in the eaccelerator.allowed_admin_path
+directive. If you don't do this you wont be able to see much information and
 can't control eAccelerator.
-You can set the username and password needed to access the control-panel in 
+You can set the username and password needed to access the control-panel in
 the control.php file. By default the username is administrator and the password
 is eAccelerator.
 
-When you compile eAccelerator with --with-eaccelerator-disassembler you need 
-to place the dasm.php and PHP_Highlight.php file also in the same directory 
+When you compile eAccelerator with --with-eaccelerator-disassembler you need
+to place the dasm.php and PHP_Highlight.php file also in the same directory
 as the control.php file. The disassembler requires PHP to be compiled with
 tokenizer support (--enable-tokenizer).
 You can set the username and password needed to access the disassembler at the
