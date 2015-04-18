@@ -77,10 +77,6 @@
 #  define O_BINARY 0
 #endif
 
-#ifndef S_ISDIR
-#  define S_ISDIR(mode) ((mode) & _S_IFDIR)
-#endif
-
 #define MAX_DUP_STR_LEN 256
 
 /* Globals (different for each process/thread) */
