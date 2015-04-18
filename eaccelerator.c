@@ -59,14 +59,6 @@
 #endif
 #include <fcntl.h>
 
-#ifndef O_BINARY
-#  define O_BINARY 0
-#endif
-
-#ifndef S_ISDIR
-#define S_ISDIR(mode) ((mode) & _S_IFDIR)
-#endif
-
 #include "php.h"
 #include "php_ini.h"
 
@@ -80,6 +72,14 @@
 #include "ext/standard/md5.h"
 
 #include "SAPI.h"
+
+#ifndef O_BINARY
+#  define O_BINARY 0
+#endif
+
+#ifndef S_ISDIR
+#  define S_ISDIR(mode) ((mode) & _S_IFDIR)
+#endif
 
 #define MAX_DUP_STR_LEN 256
 
