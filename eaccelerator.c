@@ -133,7 +133,7 @@ static ea_cache_entry* hash_find_mm(const char  *key,
     ea_cache_entry *p, *q;
     int key_len = strlen(key);
 
-    hv = zend_get_hash_value((char *)key, strlen(key) + 1);
+    hv = zend_get_hash_value((char *)key, key_len + 1);
     slot = hv & EA_HASH_MAX;
 
     EACCELERATOR_LOCK_RW();
