@@ -96,7 +96,6 @@ zend_bool ea_scripts_shm_only = 0;
 eaccelerator_mm *ea_mm_instance = NULL;
 static int ea_is_zend_extension = 0;
 static int ea_is_extension      = 0;
-zend_extension* ZendOptimizer = NULL;
 
 static HashTable ea_global_function_table;
 static HashTable ea_global_class_table;
@@ -2191,11 +2190,6 @@ static int eaccelerator_last_startup(zend_extension *extension)
     eaccelerator_el->prev = NULL;
     zend_extensions.head->prev = eaccelerator_el;
     zend_extensions.head = eaccelerator_el;
-    if (ZendOptimizer) {
-        if ((ZendOptimizer = zend_get_extension("Zend Optimizer")) != NULL) {
-            ZendOptimizer->op_array_handler = NULL;
-        }
-    }
     return ret;
 }
 
@@ -2254,11 +2248,6 @@ ZEND_DLEXPORT int eaccelerator_zend_startup(zend_extension *extension)
                         zend_extensions.tail = p->prev;
                     }
                 }
-            } else if (strcmp(ext->name, "Zend Extension Manager") == 0 ||
-                       strcmp(ext->name, "Zend Optimizer") == 0) {
-                /* Disable ZendOptimizer Optimizations */
-                ZendOptimizer = ext;
-                ext->op_array_handler = NULL;
             }
             p = p->next;
         }

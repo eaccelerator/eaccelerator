@@ -44,7 +44,6 @@
 #  define MAGIC_MEMBER "__PHP_Incomplete_Class_Name"
 #endif
 
-extern zend_extension *ZendOptimizer;
 #if HARDENING_PATCH_HASH_PROTECT
 extern unsigned int zend_hash_canary;
 #endif
@@ -500,10 +499,8 @@ zend_op_array *restore_op_array(zend_op_array * to, ea_op_array * from TSRMLS_DC
             to = emalloc(sizeof(zend_op_array));
         }
         memset(to, 0, sizeof(zend_op_array));
-        if (ZendOptimizer) {
-            zend_llist_apply_with_argument(&zend_extensions,
-                                           (llist_apply_with_arg_func_t) call_op_array_ctor_handler, to TSRMLS_CC);
-        }
+        zend_llist_apply_with_argument(&zend_extensions,
+                                       (llist_apply_with_arg_func_t) call_op_array_ctor_handler, to TSRMLS_CC);
     }
     to->type = from->type;
     to->num_args = from->num_args;
