@@ -156,12 +156,12 @@ static char *get_zval(zval *v)
     case IS_LONG:
         snprintf(buf, sizeof(buf), "long(%ld)", Z_LVAL_P(v));
         str = emalloc(strlen(buf) + 1);
-            strlcpy(str, buf, sizeof(str));
+        strlcpy(str, buf, sizeof(str));
         break;
     case IS_DOUBLE:
         snprintf(buf, sizeof(buf), "double(%e)", Z_DVAL_P(v));
         str = emalloc(strlen(buf) + 1);
-            strlcpy(str, buf, sizeof(str));
+        strlcpy(str, buf, sizeof(str));
         break;
     case IS_STRING:
         size = Z_STRLEN_P(v) + 1 + sizeof("string('')");
@@ -171,23 +171,23 @@ static char *get_zval(zval *v)
     case IS_BOOL:
         if (Z_LVAL_P(v)) {
             str = emalloc(sizeof("bool(true)"));
-                strlcpy(str, "bool(true)", sizeof(str));
+            strlcpy(str, "bool(true)", sizeof(str));
         } else {
             str = emalloc(sizeof("bool(false)"));
-                strlcpy(str, "bool(false)", sizeof(str));
+            strlcpy(str, "bool(false)", sizeof(str));
         }
         break;
     case IS_ARRAY:
         str = emalloc(sizeof("array(?)"));
-            strlcpy(str, "array(?)", sizeof(str));
+        strlcpy(str, "array(?)", sizeof(str));
         break;
     case IS_OBJECT:
         str = emalloc(sizeof("object(?)"));
-            strlcpy(str, "object(?)", sizeof(str));
+        strlcpy(str, "object(?)", sizeof(str));
         break;
     case IS_RESOURCE:
         str = emalloc(sizeof("resource(?)"));
-            strlcpy(str, "resource(?)", sizeof(str));
+        strlcpy(str, "resource(?)", sizeof(str));
         break;
     case IS_CONSTANT:
         size = Z_STRLEN_P(v) + 1 + sizeof("constant('')");
@@ -196,12 +196,12 @@ static char *get_zval(zval *v)
         break;
     case IS_CONSTANT_ARRAY:
         str = emalloc(sizeof("constant_array(?)"));
-            strlcpy(str, "constant_array(?)", sizeof(str));
+        strlcpy(str, "constant_array(?)", sizeof(str));
         break;
     default:
         snprintf(buf, sizeof(buf), "unknown(type=%d)", Z_TYPE_P(v));
         str = emalloc(strlen(buf) + 1);
-            strlcpy(str, buf, sizeof(str));
+        strlcpy(str, buf, sizeof(str));
     }
     return str;
 }

@@ -127,7 +127,7 @@ static void clear_filecache(const char* dir)
     hFind = FindFirstFile(path, &wfd);
     if (hFind == INVALID_HANDLE_VALUE) {
         do {
-			strlcpy(path + dirlen, wfd.cFileName, sizeof(path));
+            strlcpy(path + dirlen, wfd.cFileName, sizeof(path));
             if (FILE_ATTRIBUTE_DIRECTORY & wfd.dwFileAttributes) {
                 clear_filecache(path);
             } else if (!DeleteFile(path)) {
