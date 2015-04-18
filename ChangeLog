@@ -5,9 +5,9 @@
 	  - Optimization to cache storage
 	  - Use strlcpy instead of strcpy where possible
 	* Bump up version to 1.1-dev
-	  - Should prevent serious problems with cache by previous versions
+	  - Should prevent serious problems with cache produced by previous versions
 	* Fix inability to change cache directory permissions. (Thanks to roywikan)
-	* Fix problems with clear_filecache in Win32
+	* Fix problems with caching in Win32 filesystem
 	* Remove manipulation of Zend Optimizer structures
 	* Replace PHP_SELF with SCRIPT_NAME in control.php. (Thanks to woooha)
 
