@@ -121,18 +121,18 @@ static void clear_filecache(const char* dir)
     char path[MAXPATHLEN];
     size_t dirlen = strlen(dir);
 
-    if(dirlen >= MAXPATHLEN - 1) {
+    if(dirlen >= (size_t)(MAXPATHLEN - sizeof("\\eaccelerator*") - 1)) {
         ea_debug_error("[%s] Could not open cachedir %s\n", EACCELERATOR_EXTENSION_NAME, dir);
         return;
     }
 
     memcpy(path, dir, dirlen);
-    strlcpy(path + dirlen++, "\\eaccelerator*", MAXPATHLEN - dirlen);
+    strlcpy(path + dirlen++, "\\eaccelerator*", (size_t)(MAXPATHLEN - dirlen));
 
     hFind = FindFirstFile(path, &wfd);
     if (hFind != INVALID_HANDLE_VALUE) {
         do {
-            strlcpy(path + dirlen, wfd.cFileName, MAXPATHLEN - dirlen);
+            strlcpy(path + dirlen, wfd.cFileName, (size_t)(MAXPATHLEN - dirlen));
             if (FILE_ATTRIBUTE_DIRECTORY & wfd.dwFileAttributes) {
                 clear_filecache(path);
             } else if (!DeleteFile(path)) {
