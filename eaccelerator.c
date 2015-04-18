@@ -405,13 +405,23 @@ int eaccelerator_md5(char* s, const char* prefix, const char* key TSRMLS_DC)
     PHP_MD5Update(&context, (unsigned char*)key, strlen(key));
     PHP_MD5Final(digest, &context);
     make_digest(md5str, digest);
+#ifndef ZEND_WIN32
     snprintf(s, MAXPATHLEN-1, "%s/%d/", EAG(cache_dir), ea_mm_instance->cache_dir_uid);
+#else
+    snprintf(s, MAXPATHLEN-1, "%s/", EAG(cache_dir));
+#endif
     n = strlen(s);
     for (i = 0; i < EACCELERATOR_HASH_LEVEL && n < MAXPATHLEN - 1; i++) {
         s[n++] = md5str[i];
         s[n++] = '/';
     }
-    s[n] = 0;
+    s[n] = '\0';
+
+    /* A safeguard against duplication of slashes */
+    if(s[n-1] == '/' && prefix[0] == '/') {
+        s[--n] = '\0';
+    }
+
     snprintf(&s[n], MAXPATHLEN-1-n, "%s%s", prefix, md5str);
     return 1;
 }
