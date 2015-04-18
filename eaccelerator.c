@@ -77,10 +77,6 @@
 #  define O_BINARY 0
 #endif
 
-#ifndef S_ISDIR
-#  define S_ISDIR(mode) ((mode) & _S_IFDIR)
-#endif
-
 #define MAX_DUP_STR_LEN 256
 
 /* Globals (different for each process/thread) */
@@ -131,15 +127,16 @@ static ea_cache_entry* hash_find_mm(const char  *key,
 {
     unsigned int hv, slot;
     ea_cache_entry *p, *q;
+    int key_len = strlen(key);
 
-    hv = zend_get_hash_value((char *)key, strlen(key));
+    hv = zend_get_hash_value((char *)key, key_len + 1);
     slot = hv & EA_HASH_MAX;
 
     EACCELERATOR_LOCK_RW();
     q = NULL;
     p = ea_mm_instance->hash[slot];
     while (p != NULL) {
-        if ((p->hv == hv) && (strcmp(p->realfilename, key) == 0)) {
+        if (p->hv == hv && p->realfilename_len == key_len && memcmp(p->realfilename, key, key_len) == 0) {
             if (EAG(check_mtime_enabled) && ea_mm_instance->check_mtime_enabled &&
                     (buf->st_mtime != p->mtime || buf->st_size != p->filesize)) {
                 /* key is invalid. Remove it. */
@@ -185,7 +182,7 @@ static void hash_add_mm(ea_cache_entry *x)
 {
     ea_cache_entry *p,*q;
     unsigned int slot;
-    x->hv = zend_get_hash_value(x->realfilename, strlen(x->realfilename));
+    x->hv = zend_get_hash_value(x->realfilename, x->realfilename_len + 1);
     slot = x->hv & EA_HASH_MAX;
 
     EACCELERATOR_LOCK_RW();
@@ -195,8 +192,7 @@ static void hash_add_mm(ea_cache_entry *x)
     q = x;
     p = x->next;
     while (p != NULL) {
-        if ((p->hv == x->hv) &&
-                (strcmp(p->realfilename, x->realfilename) == 0)) {
+        if (p->hv == x->hv && p->realfilename_len == x->realfilename_len && memcmp(p->realfilename, x->realfilename, p->realfilename_len) == 0) {
             q->next = p->next;
             ea_mm_instance->hash_cnt--;
             ea_mm_instance->hash[slot]->nreloads += p->nreloads;
@@ -817,14 +813,14 @@ static zend_op_array* eaccelerator_restore(char *realname, struct stat *buf,
             /* only restore the classes and functions when we restore this script
              * for the first time.
              */
-            if (!zend_hash_exists(&EAG(restored), p->realfilename, strlen(p->realfilename))) {
+            if (!zend_hash_exists(&EAG(restored), p->realfilename, p->realfilename_len + 1)) {
                 for (e = p->c_head; e!=NULL; e = e->next) {
                     restore_class(e TSRMLS_CC);
                 }
                 for (e = p->f_head; e!=NULL; e = e->next) {
                     restore_function(e TSRMLS_CC);
                 }
-                zend_hash_add(&EAG(restored), p->realfilename, strlen(p->realfilename), NULL, 0, NULL);
+                zend_hash_add(&EAG(restored), p->realfilename, p->realfilename_len + 1, NULL, 0, NULL);
             }
             EAG(mem) = p->realfilename;
         }
@@ -998,7 +994,7 @@ static int ea_get_realname(zend_file_handle *file_handle, char* realname TSRMLS_
     }
 
     if (file_handle->opened_path != NULL) {
-        strcpy(realname, file_handle->opened_path);
+        strlcpy(realname, file_handle->opened_path, MAXPATHLEN);
         return 1;
     }
 
@@ -1016,7 +1012,7 @@ static int ea_get_realname(zend_file_handle *file_handle, char* realname TSRMLS_
             return 0;
         }
 
-        strcpy(realname, temp_name);
+        strlcpy(realname, temp_name, MAXPATHLEN);
         efree(temp_name);
         return 1;
     }
@@ -1068,7 +1064,7 @@ static int eaccelerator_stat(zend_file_handle *file_handle,
             if (filename_len >= MAXPATHLEN) {
                 return 0;
             }
-            strcpy(realname, file_handle->filename);
+            strlcpy(realname, file_handle->filename, MAXPATHLEN);
             return (stat(phar_name, buf) == 0 && S_ISREG(buf->st_mode));
         }
 #endif
@@ -1344,7 +1340,9 @@ ZEND_DLEXPORT zend_op_array* eaccelerator_compile_file(zend_file_handle *file_ha
 #endif
     DBG(ea_debug_printf, (EA_DEBUG, "[%d] Leave COMPILE\n", getpid()));
 #ifdef ZEND_COMPILE_DELAYED_BINDING
-    zend_do_delayed_early_binding(t TSRMLS_CC);
+    if (t) {
+        zend_do_delayed_early_binding(t TSRMLS_CC);
+    }
 #endif
     return t;
 }

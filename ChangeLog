@@ -1,3 +1,16 @@
+2015-04-18  NewEraCracker <neweracracker at gmail.com>
+
+	* Commits authored by Antony Dovgal <tony at daylessday.org> merged:
+	  - Fix numerous typos
+	  - Optimization to cache storage
+	  - Use strlcpy instead of strcpy where possible
+	* Bump up version to 1.1-dev
+	  - Should prevent serious problems with cache by previous versions
+	* Fix inability to change cache directory permissions. (Thanks to roywikan)
+	* Fix problems with clear_filecache in Win32
+	* Remove manipulation of Zend Optimizer structures
+	* Replace PHP_SELF with SCRIPT_NAME in control.php. (Thanks to woooha)
+
 2014-08-30  NewEraCracker <neweracracker at gmail.com>
 
 	* Add experimental compatibility with PHP 5.5
@@ -247,7 +260,7 @@
 	* Stripped old opcodes from opcode.c and added new ones
 
 2009-07-14  Bart Vanbrabant <bart at vanbrabant.eu>
-	
+
 	* Fix two PHP 5.3 bugs
 	* Remove the optimizer
 	* Remove the user cache functions
@@ -263,920 +276,920 @@
 
 2008-06-20  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
-        * First stab at php 5.3 support. Only fixes the script cache.
-          phpMyAdmin seems to work with these changes.
-        * Fix user cache stuff
+	* First stab at php 5.3 support. Only fixes the script cache.
+	  phpMyAdmin seems to work with these changes.
+	* Fix user cache stuff
 
 2008-06-19  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
-        * Remove support for all php versions older than php 5.1
+	* Remove support for all php versions older than php 5.1
 
 2008-06-18  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
-	
-        * Add patch from ticket 232: removes an unlock that isn't
+
+	* Add patch from ticket 232: removes an unlock that isn't
 	  needed there.
 
 2008-02-12  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
-		
+
 	* Add new opcodes introduced in PHP 5.3
 
 2007-08-20  Hans Rakers <hans at react.nl>
 
-        * Changed crash handler error message format to Apache-style error log
-          format as suggested in ticket #217
-        * Fixed ticket #274
-        * Performance: eliminated a bunch of time() syscalls
-        * Performance: eliminated calls to eaccelerator_gc when not build with
-          either session, shm or user cache functionality (which are all off
-          by default)
-        * Disable eaccelerator_list_keys function when not build with either
-          session, shm or user cache functionality (which are all off by
-          default)
-        * Disable 'User Cache' tab in control panel when not build with either
-          session, shm or user cache functionality (which are all off by
-          default)
-        * Added a creation timestamp to each cache object (shm and disk)
-        * Added ttl and creation timestamp display to
-          eaccelerator_cached_scripts() / control.php
-        * Changed some counters in ea_cache_entry from signed to unsigned
-          int
-        * Renamed some mmCache remnants && fixed typos/language
+	* Changed crash handler error message format to Apache-style error log
+	  format as suggested in ticket #217
+	* Fixed ticket #274
+	* Performance: eliminated a bunch of time() syscalls
+	* Performance: eliminated calls to eaccelerator_gc when not build with
+	  either session, shm or user cache functionality (which are all off
+	  by default)
+	* Disable eaccelerator_list_keys function when not build with either
+	  session, shm or user cache functionality (which are all off by
+	  default)
+	* Disable 'User Cache' tab in control panel when not build with either
+	  session, shm or user cache functionality (which are all off by
+	  default)
+	* Added a creation timestamp to each cache object (shm and disk)
+	* Added ttl and creation timestamp display to
+	  eaccelerator_cached_scripts() / control.php
+	* Changed some counters in ea_cache_entry from signed to unsigned
+	  int
+	* Renamed some mmCache remnants && fixed typos/language
 
 2007-08-20  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
-        * Rewrite the calc_* funtions so they no longer uses the EAG(mem) global.
-        * Rewrite the fixup_* functions so they no longer use the EAG(mem) global.
-        * Rewrite store_* functions so they no longer use the EAG(mem) global.
-        * Add code that checks the shared memory chunks if needed to make sure
-          no data was written past the boundary. Change #undef MM_CHECK in mm.c
-          to #define MM_CHECK
+	* Rewrite the calc_* funtions so they no longer uses the EAG(mem) global.
+	* Rewrite the fixup_* functions so they no longer use the EAG(mem) global.
+	* Rewrite store_* functions so they no longer use the EAG(mem) global.
+	* Add code that checks the shared memory chunks if needed to make sure
+	  no data was written past the boundary. Change #undef MM_CHECK in mm.c
+	  to #define MM_CHECK
 
 2007-08-19  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
-        * Fix an E_NOTICE error in the control panel
-        * Improve storing of objects and fix bug #264
+	* Fix an E_NOTICE error in the control panel
+	* Improve storing of objects and fix bug #264
 
 2007-08-16  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
-        * Fix a typo in the config file. #269
+	* Fix a typo in the config file. #269
 
 2007-08-14  Hans Rakers <hans at react.nl>
 
-        * Optimizer fix for #242. PHP-5.2.1 introduces a ZEND_JMP before a
-          ZEND_FETCH_CLASS/ZEND_CATCH which the optimizer did not handle
-          correctly, resulting in uncaught exceptions. (Thanks to warwickshaw)
+	* Optimizer fix for #242. PHP-5.2.1 introduces a ZEND_JMP before a
+	  ZEND_FETCH_CLASS/ZEND_CATCH which the optimizer did not handle
+	  correctly, resulting in uncaught exceptions. (Thanks to warwickshaw)
 
 2007-05-09  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
-        * Use php_strtok_r instead of strtok_r (Thanks to Daan <daan at parse.nl>)
-        * Add fnmatch.c and fnmatch.h and use it on win32 (Thanks to Daan <daan at parse.nl>)
-        * Casting of var 'len' to (int) in decode_version() to get rid of an VC++ 6 warning (Thanks to Daan <daan at parse.nl>)
+	* Use php_strtok_r instead of strtok_r (Thanks to Daan <daan at parse.nl>)
+	* Add fnmatch.c and fnmatch.h and use it on win32 (Thanks to Daan <daan at parse.nl>)
+	* Casting of var 'len' to (int) in decode_version() to get rid of an VC++ 6 warning (Thanks to Daan <daan at parse.nl>)
 
 2007-04-21  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
-        * Add patch from Nathanael (eaccelerator@polymorpheus.com)
+	* Add patch from Nathanael (eaccelerator@polymorpheus.com)
 
 2007-03-07  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
-        * Apply the patch from #244 which causes heap corruption.
+	* Apply the patch from #244 which causes heap corruption.
 
 2007-02-15  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
-        * Kick out the old filter implementation and use one based on fnmatch,
-          this breaks windows support. The plan is to include a bsd licensed
-          fnmatch implementation when a platform doesn't provide fnmatch. 
-          (read: when windows is being used). Until some steps up to do this 
-          or we run into a machine with windows and VC windows support wil be 
-          b0rked.
-        * Move spinlock stuff into mm.c, no need for an extra file with extra
-          indirection.
+	* Kick out the old filter implementation and use one based on fnmatch,
+	  this breaks windows support. The plan is to include a bsd licensed
+	  fnmatch implementation when a platform doesn't provide fnmatch.
+	  (read: when windows is being used). Until some steps up to do this
+	  or we run into a machine with windows and VC windows support wil be
+	  b0rked.
+	* Move spinlock stuff into mm.c, no need for an extra file with extra
+	  indirection.
 
 2007-02-13  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
-        * Added a function to dump an eaccelerator class entry in debug.c
-        * Changed include order in mm.c because of eaccelerator.h include in debug.h 
-        * Fixed a nullpointer dereference in some special cases in ea_restore.c:509
-        * Always compile a ea_debug_error message in ea_restore.c
-        * Cleanup: Removed some commented out code, changed some debug statements,
-            reordered some conditional includes to reduce ifdef statements
-        * Check if those array indices are set before testing them in control.php
-        * Revert some changes form changeset @256 to fix bug #199
-        * Some more year updates
-        * Fix loading of cached scripts and data on disk
-        * Fixed a bug in the zend_class_entry dump debug routine
+	* Added a function to dump an eaccelerator class entry in debug.c
+	* Changed include order in mm.c because of eaccelerator.h include in debug.h
+	* Fixed a nullpointer dereference in some special cases in ea_restore.c:509
+	* Always compile a ea_debug_error message in ea_restore.c
+	* Cleanup: Removed some commented out code, changed some debug statements,
+	  reordered some conditional includes to reduce ifdef statements
+	* Check if those array indices are set before testing them in control.php
+	* Revert some changes form changeset @256 to fix bug #199
+	* Some more year updates
+	* Fix loading of cached scripts and data on disk
+	* Fixed a bug in the zend_class_entry dump debug routine
 
 2007-01-29  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
-        * Removed some obsolete code
+	* Removed some obsolete code
 
 2007-01-04  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
-        * Happy new-year
+	* Happy new-year
 
 2006-11-08  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
-        * Enable disassembler links again in the control panel
-        * Add some more isset for E_ALL error reporting
+	* Enable disassembler links again in the control panel
+	* Add some more isset for E_ALL error reporting
 
 2006-11-04  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
-        * It seems I'm longer able to do simple comparisons, this 
-          should fix #187 and is a real fix for #182
+	* It seems I'm longer able to do simple comparisons, this
+	  should fix #187 and is a real fix for #182
 
 2006-10-26  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
-        * Fix encoding and decoding of eA and php versions. Only three numbers
-          versions were encoded, this way file cache isn't removed when using
-          svn snapshots or rc releases.
-        * Fix a compile warning when using filename hashing instead of inode 
-          hashing.
-        * Optimize a part of the inode hashing function.
-        * Remove a conditional compile for very old php versions in the filename
-          hashing function.
-        * Included the new control center written by Thomas Love. It rocks!
+	* Fix encoding and decoding of eA and php versions. Only three numbers
+	  versions were encoded, this way file cache isn't removed when using
+	  svn snapshots or rc releases.
+	* Fix a compile warning when using filename hashing instead of inode
+	  hashing.
+	* Optimize a part of the inode hashing function.
+	* Remove a conditional compile for very old php versions in the filename
+	  hashing function.
+	* Included the new control center written by Thomas Love. It rocks!
 
 2006-10-19  Hans Rakers <hans at parse dot nl>
 
-        * Replaced short php opening tags in control.php
-        * Fixed typo in NEWS file
-        * Fix for ticket #170 (handling of multi-dim globals by the optimizer)
+	* Replaced short php opening tags in control.php
+	* Fixed typo in NEWS file
+	* Fix for ticket #170 (handling of multi-dim globals by the optimizer)
 
 2006-10-10  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
-        * Fix a bug in the ttl of the cache. see ticket #182
-        * Release version 0.9.5
+	* Fix a bug in the ttl of the cache. see ticket #182
+	* Release version 0.9.5
 
 2006-09-19  Hans Rakers <hans at parse dot nl>
 
-        * Get session config variables from local values instead of global
-          values. This enables altering of session-related settings like
-          gc_maxlifetime, entropy_file and entropy_length through ini_set().
-          This fixes ticket #166
+	* Get session config variables from local values instead of global
+	  values. This enables altering of session-related settings like
+	  gc_maxlifetime, entropy_file and entropy_length through ini_set().
+	  This fixes ticket #166
 
 2006-09-18  Hans Rakers <hans at parse dot nl>
 
-        * Fixed unbalanced ifdef in eaccelerator.h introduced in rev [269].
-          This fixes ticket #177
+	* Fixed unbalanced ifdef in eaccelerator.h introduced in rev [269].
+	  This fixes ticket #177
 
 2006-09-15  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
-        * Reverse changeset 205 (doc-comment exclusion) from Tom Regner 
-          <t.regner at librics.de>. 
-        * only put the function that has the same name as the class as contructor 
-          if there isn't a __construct function. This fixes ticket #172
-        * Don't free memory with efree that has been allocated from the eA shm cache.
-          This should fix A LOT of bugreports in Trac and on SF. It fixes #171 but 
-          I think also some other bugs.
+	* Reverse changeset 205 (doc-comment exclusion) from Tom Regner
+	  <t.regner at librics.de>.
+	* only put the function that has the same name as the class as contructor
+	  if there isn't a __construct function. This fixes ticket #172
+	* Don't free memory with efree that has been allocated from the eA shm cache.
+	  This should fix A LOT of bugreports in Trac and on SF. It fixes #171 but
+	  I think also some other bugs.
 
 2006-08-29  Hans Rakers <hans at parse dot nl>
 
-        * Skip disk cache creation and clean/clear actions when operating in
-          shm_only mode. This fixes ticket #165
+	* Skip disk cache creation and clean/clear actions when operating in
+	  shm_only mode. This fixes ticket #165
 
 2006-08-23  Hans Rakers <hans at parse dot nl>
 
-        * Fixes for tickets #157 and #164
+	* Fixes for tickets #157 and #164
 
 2006-08-06  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
-        * Fix stupid bug (#159)
-        * Handle returning null instead of array (#156)
+	* Fix stupid bug (#159)
+	* Handle returning null instead of array (#156)
 
 2006-08-03  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
-        * zend_do_inheritance can't be called with TSRMLS_CC when using 
-          php 4, this also means that eAccelerator won't work with threading!
-        * ea_info and ea_dasm: if eaccelerator_mm_instance is NULL, just return
-          null and don't do something.
+	* zend_do_inheritance can't be called with TSRMLS_CC when using
+	  php 4, this also means that eAccelerator won't work with threading!
+	* ea_info and ea_dasm: if eaccelerator_mm_instance is NULL, just return
+	  null and don't do something.
 
 2006-07-30  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
-        * Don't use our own hash function, the one from the ZE is extremely much
-          faster and provides a much better distribution.
-        * Don't compile the user cache code one no feature is being compiled.
-        * A big cleanup in struct naming
-        * Move some functions around to make more of them static, this reduces
-          the binary size and load times.
-        * Remove some leftovers from restoring encoded scripts which only create
-          overhead without the loader.
-        * Clean up the session handler, removed old code for php < 4.3. 
-        * Fixed detection of SysV IPC shared memory and made anonymous mmap 
-          the first selected type. This makes the behaviour of rc1 the 
-          default. anonymous mmap doens't have the problem of shmmax. SysVIPC is 
-          still available!
-        * Fixed some of the detection test in the configure script that probably
-          never worked.
+	* Don't use our own hash function, the one from the ZE is extremely much
+	  faster and provides a much better distribution.
+	* Don't compile the user cache code one no feature is being compiled.
+	* A big cleanup in struct naming
+	* Move some functions around to make more of them static, this reduces
+	  the binary size and load times.
+	* Remove some leftovers from restoring encoded scripts which only create
+	  overhead without the loader.
+	* Clean up the session handler, removed old code for php < 4.3.
+	* Fixed detection of SysV IPC shared memory and made anonymous mmap
+	  the first selected type. This makes the behaviour of rc1 the
+	  default. anonymous mmap doens't have the problem of shmmax. SysVIPC is
+	  still available!
+	* Fixed some of the detection test in the configure script that probably
+	  never worked.
 
 2006-07-29  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
-        * Use php realpath directly without wrapper, TSRM implements the realpath cache
+	* Use php realpath directly without wrapper, TSRM implements the realpath cache
 
 2006-07-28  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
-        * Restore the class entry of zend_property_info when using php 5.2, this fixes bug #151
+	* Restore the class entry of zend_property_info when using php 5.2, this fixes bug #151
 
 2006-07-27  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
-        * Branched 0.9.5, development for 0.9.6 will start in trunk
-        * Bumped up version to 0.9.6-dev
-        * Killing the very broken encoder. Once when eAccelerator is in full
-          shape an encoder may return.
-        * Some fixes to make eAccelerator compile with php 5.2, this fixes bug #150
-        * Restore __toString methods correctly with php 5.2
-        * Fix bug #145, objects are serialized when they are stored in shared memory.
-          Users don't have to do this in their code anymore.
-        * Wrong ifdef in compile fix for php 5.2
-        * Update config.w32, VC6 and VC2005 project files
-        * Fix debug build for win32, this fixes ticket #149
-        * Removed a debug statement and added return value in optimizer.c
+	* Branched 0.9.5, development for 0.9.6 will start in trunk
+	* Bumped up version to 0.9.6-dev
+	* Killing the very broken encoder. Once when eAccelerator is in full
+	  shape an encoder may return.
+	* Some fixes to make eAccelerator compile with php 5.2, this fixes bug #150
+	* Restore __toString methods correctly with php 5.2
+	* Fix bug #145, objects are serialized when they are stored in shared memory.
+	  Users don't have to do this in their code anymore.
+	* Wrong ifdef in compile fix for php 5.2
+	* Update config.w32, VC6 and VC2005 project files
+	* Fix debug build for win32, this fixes ticket #149
+	* Removed a debug statement and added return value in optimizer.c
 
 2006-07-25  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
-        * Fix restoring of opcode handler for php 5.0.5 when files are loaded
-          from disk cache. This fixes bug #147
-        * Some update in the release notes for the upcoming rc1
-        * Fix loader.c too so we don't get any linking errors. 
+	* Fix restoring of opcode handler for php 5.0.5 when files are loaded
+	  from disk cache. This fixes bug #147
+	* Some update in the release notes for the upcoming rc1
+	* Fix loader.c too so we don't get any linking errors.
 
 2006-07-24  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
-        * Make clean routine support dir hashing. Again, this should be tested
-          on win32!
-        * Use a define for the magic string in the eAccelerator file headers
-        * Bump up version to 0.9.5-rc1
-        * Put -O2 back on for -rc1
-        * Update the VC2005 project files
-        * Add a config.w32 file for static building of eAccelerator
+	* Make clean routine support dir hashing. Again, this should be tested
+	  on win32!
+	* Use a define for the magic string in the eAccelerator file headers
+	* Bump up version to 0.9.5-rc1
+	* Put -O2 back on for -rc1
+	* Update the VC2005 project files
+	* Add a config.w32 file for static building of eAccelerator
 
 2006-07-24  Hans Rakers <hans at parse dot nl>
-        * Fix for ticket #47 and #63, related to problems restoring empty
-          strings and empty string array keys from the disk cache.
+	* Fix for ticket #47 and #63, related to problems restoring empty
+	  strings and empty string array keys from the disk cache.
 
 2006-07-23  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
-        * Fix ticket #143, seems that PHP < 5 doesn't make the extension lower 
-          case.
+	* Fix ticket #143, seems that PHP < 5 doesn't make the extension lower
+	  case.
 
 2006-07-22  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
-        * Some zval macro's differ for php4 and 5, this fixes #146.
-        * Also rewrite clean code for cache files on win32 for directory 
-          hashing. This hasn't been tested on windows!!!
-        * Added a script to create a bugreport file with more information
-          about the userenvironment.
+	* Some zval macro's differ for php4 and 5, this fixes #146.
+	* Also rewrite clean code for cache files on win32 for directory
+	  hashing. This hasn't been tested on windows!!!
+	* Added a script to create a bugreport file with more information
+	  about the userenvironment.
 
 2006-07-19  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
-        * Use some more zval macro's to cleanup things a bit
-        * Removed the code from mm.c that tried to allocate more then one segment 
-          because it didn't work, this part needs a redesign of the mm code to 
-          allow this. It should allocate one to init the shared memory and add
-          the other to the free list.
+	* Use some more zval macro's to cleanup things a bit
+	* Removed the code from mm.c that tried to allocate more then one segment
+	  because it didn't work, this part needs a redesign of the mm code to
+	  allow this. It should allocate one to init the shared memory and add
+	  the other to the free list.
 
 2006-07-02  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
-        * Made some fixes to ea_info.c to make eA compile on windows again.
-          This should fix bug #116.
+	* Made some fixes to ea_info.c to make eA compile on windows again.
+	  This should fix bug #116.
 
 2006-06-30  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
-        * Cleaned up the checking for other incompatible extensions a 
-          bit. This should fix the use of IonCube with eAccelerator. I did 
-          some test loading IonCube in different ways and never got in to 
-          trouble. This fixes ticket #66.
+	* Cleaned up the checking for other incompatible extensions a
+	  bit. This should fix the use of IonCube with eAccelerator. I did
+	  some test loading IonCube in different ways and never got in to
+	  trouble. This fixes ticket #66.
 
 2006-06-30  Hans Rakers <hans at parse dot nl>
 
-        * Added ability to sort table columns by clicking on the table
-          headings in the control panel
-        * Quick & dirty fix for eaccelerator_clear to work with the new
-          cache dir hashing. This still needs to be done for win32.
+	* Added ability to sort table columns by clicking on the table
+	  headings in the control panel
+	* Quick & dirty fix for eaccelerator_clear to work with the new
+	  cache dir hashing. This still needs to be done for win32.
 
-          eaccelerator_clean still needs some fixing to work with the
-          dir hashing.
+	  eaccelerator_clean still needs some fixing to work with the
+	  dir hashing.
 
 2006-06-27  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
-        * Fixed ifdef for #108 to use only on windows
-        * Fix for bug #109, #31 and SF-1102070
-        * Cleaned-up RINIT a bit for hostname determining
-        * Included the fix from ticket #94 for zts
+	* Fixed ifdef for #108 to use only on windows
+	* Fix for bug #109, #31 and SF-1102070
+	* Cleaned-up RINIT a bit for hostname determining
+	* Included the fix from ticket #94 for zts
 
 2006-06-26  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
-        * Fix ticket #108
-        * Removed webui.[c|h] from the windows project files
+	* Fix ticket #108
+	* Removed webui.[c|h] from the windows project files
 
 2006-06-06  Hans Rakers <hans at parse dot nl>
 
-        * Fix for ticket #101 ('bailout' is used in zend_globals.h in a ZTS
-          build) as suggested by <ihanick at gmail dot com>
+	* Fix for ticket #101 ('bailout' is used in zend_globals.h in a ZTS
+	  build) as suggested by <ihanick at gmail dot com>
 
 2006-06-02  Hans Rakers <hans at parse dot nl>
 
-        * Removed two unused vars from the internal datastructures
-        * Fixed constructor inheritance. This fixes handling of implicit
-          constructors and solves ticket #89
+	* Removed two unused vars from the internal datastructures
+	* Fixed constructor inheritance. This fixes handling of implicit
+	  constructors and solves ticket #89
 
 2006-05-14  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
-        * Forgot to remove some debug messages for the filter bug.
+	* Forgot to remove some debug messages for the filter bug.
 
 2006-05-08  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
-        * Make the disassembler do openbasedir checks before showing a file, 
-          this fixes bug #59
-        * Changed the filter logic a bit, this fixes bug #72
+	* Make the disassembler do openbasedir checks before showing a file,
+	  this fixes bug #59
+	* Changed the filter logic a bit, this fixes bug #72
 
 2006-05-07  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
-        * Added directory hashing for md5 and inode based keys based on a patch
-          from <mattias at efterfesten.com>, default is 2 levels deep.
-        * Renamed some left over MM based names to EA.
-        * Increased default hash size for user and script to 512 for extra 
-          performance.
+	* Added directory hashing for md5 and inode based keys based on a patch
+	  from <mattias at efterfesten.com>, default is 2 levels deep.
+	* Renamed some left over MM based names to EA.
+	* Increased default hash size for user and script to 512 for extra
+	  performance.
 
 2006-05-04  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
-        * Don't store the doc_comments in op_array and class_entry. They are 
-          useless. this should reduce memory footprint.
-        * Included patch from Stadler from ticket #23. It adds a nice menu 
-          and code highlighting.
+	* Don't store the doc_comments in op_array and class_entry. They are
+	  useless. this should reduce memory footprint.
+	* Included patch from Stadler from ticket #23. It adds a nice menu
+	  and code highlighting.
 
 2006-04-13  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
-        * When content cache is used also compiled shared memory functions
+	* When content cache is used also compiled shared memory functions
 
 2006-04-11  Hans Rakers <hans at parse dot nl>
 
-        * Fix for 64-bit compilation warnings "cast to pointer from
-          integer of different size"
+	* Fix for 64-bit compilation warnings "cast to pointer from
+	  integer of different size"
 
 2006-04-11  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
-        * A lot of fixes to silence the compile warnings generated when compiling
-          with the default Fedora compiler options
-        * Removed FC compiled options from Makefile.in again, stupid me 
+	* A lot of fixes to silence the compile warnings generated when compiling
+	  with the default Fedora compiler options
+	* Removed FC compiled options from Makefile.in again, stupid me
 
 2006-04-11  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
-        * Silenced the unlock function for win32 until a windows developer can
-          take a look at it.
-        * Updated the README a little more for the new control panel
-        * Added release notes for beta2
-        * Bumped up version to 0.9.5-beta2
-        * Patch for dasm.php form Stadler, see #23
-        * Fixed typo in optimizer which broke compilation for PHP != 5.1
-        * Released beta2
+	* Silenced the unlock function for win32 until a windows developer can
+	  take a look at it.
+	* Updated the README a little more for the new control panel
+	* Added release notes for beta2
+	* Bumped up version to 0.9.5-beta2
+	* Patch for dasm.php form Stadler, see #23
+	* Fixed typo in optimizer which broke compilation for PHP != 5.1
+	* Released beta2
 
 2006-04-09  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
-        * Fixed some typos in dasm.php
-        * Added authentication to the disassembler
+	* Fixed some typos in dasm.php
+	* Added authentication to the disassembler
 
 2006-04-06  Hans Rakers <hans at parse dot nl>
 
-        * Fixed handling of interfaces. This fixes sf.net bug #1440575.
-          This fix also introduces some changes in the cached object structure
-          so remember to empty your disk caches if you have them. This is
-          always a good thing to do after upgrading btw :)
+	* Fixed handling of interfaces. This fixes sf.net bug #1440575.
+	  This fix also introduces some changes in the cached object structure
+	  so remember to empty your disk caches if you have them. This is
+	  always a good thing to do after upgrading btw :)
 
 2006-04-06  Hans Rakers <hans at parse dot nl>
 
-        * Reverted the change to the handling of ZEND_BRK made by me on
-          2006-03-17 since it wasn't working as it should. Since this
-          reintroduces sf.net bug #1442923 i added some code to prevent this
-          bug using a different approach, by restoring operand types changed
-          by build_cfg if build_cfg exits with exit code 0.
+	* Reverted the change to the handling of ZEND_BRK made by me on
+	  2006-03-17 since it wasn't working as it should. Since this
+	  reintroduces sf.net bug #1442923 i added some code to prevent this
+	  bug using a different approach, by restoring operand types changed
+	  by build_cfg if build_cfg exits with exit code 0.
 
-          Since php-5.1 some opcode handlers expect a strict set of operand
-          types, anything else results in 'Invalid opcode' errors. Since
-          build_cfg changes some operand types these changes need to be
-          reverted once the optimizer finishes. For now the only opcode to
-          which this all applies is ZEND_FETCH_CONSTANT, which expects
-          either a CONST or a UNUSED in op1 and a CONST in op2 (See
-          zend_vm_def.h)
+	  Since php-5.1 some opcode handlers expect a strict set of operand
+	  types, anything else results in 'Invalid opcode' errors. Since
+	  build_cfg changes some operand types these changes need to be
+	  reverted once the optimizer finishes. For now the only opcode to
+	  which this all applies is ZEND_FETCH_CONSTANT, which expects
+	  either a CONST or a UNUSED in op1 and a CONST in op2 (See
+	  zend_vm_def.h)
 
 2006-04-04  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
-        * Fixed some error introduced by fixing some win32 stuff :(
+	* Fixed some error introduced by fixing some win32 stuff :(
 
 2006-04-03  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
-        * Moved the FLOCK stuff to a place so it can be used by eLoader to
-        * Fixed quite some compile warnings on Win32
-        * Updated VC6 project files
+	* Moved the FLOCK stuff to a place so it can be used by eLoader to
+	* Fixed quite some compile warnings on Win32
+	* Updated VC6 project files
 
 2006-03-28  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
-        * Removed the constant that were registered in the debug code. They 
-          could only be used in php code and not in the config file. This 
-          handles bug #29
+	* Removed the constant that were registered in the debug code. They
+	  could only be used in php code and not in the config file. This
+	  handles bug #29
 
 2006-03-25  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
-        * Source code is now shown in dasm.php
-        * Added source-code lines to the returned opcode array in ea_dasm.c
+	* Source code is now shown in dasm.php
+	* Added source-code lines to the returned opcode array in ea_dasm.c
 
 2006-03-21  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
-        * Fixed bug #24
+	* Fixed bug #24
 
 2006-03-17  Hans Rakers <hans at parse dot nl>
 
-        * Fix for sf.net bug #1442839 (handling of ZEND_ASSIGN_OBJ by the
-          optimizer)
-        * Changed BRK handling to not bail out of the optimizer prematurely
-          on a multi-level break. This does need some more testing, but
-          should fix sf.net bug #1442923
-        * Removed some dead code in ea_store.c and excluded some debug code
-          from compilation in optimize.c
+	* Fix for sf.net bug #1442839 (handling of ZEND_ASSIGN_OBJ by the
+	  optimizer)
+	* Changed BRK handling to not bail out of the optimizer prematurely
+	  on a multi-level break. This does need some more testing, but
+	  should fix sf.net bug #1442923
+	* Removed some dead code in ea_store.c and excluded some debug code
+	  from compilation in optimize.c
 
 2006-03-09  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
-        * Included fcntl.h in ea_info.c, this should fix bug #13
+	* Included fcntl.h in ea_info.c, this should fix bug #13
 
 2006-03-07  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
-        * Set refcount to 1 before storing a zval in the usercache. This fixes
-          bug #4.
-        * Some formatting cleanups in cache.c
-        * In restore_zval the zval length could be something else then 0 when 
-          an empty string was set.
-        * Removed the shorttags in control.php and dasm.php to fix bug #8.
-        * Set the svn keywords property to some files.
-        * Moved some function defs from eaccelerator.h to the right files.
+	* Set refcount to 1 before storing a zval in the usercache. This fixes
+	  bug #4.
+	* Some formatting cleanups in cache.c
+	* In restore_zval the zval length could be something else then 0 when
+	  an empty string was set.
+	* Removed the shorttags in control.php and dasm.php to fix bug #8.
+	* Set the svn keywords property to some files.
+	* Moved some function defs from eaccelerator.h to the right files.
 
 2006-03-06  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
-        * Removed the old webui and made a new controlpanel and disassembler.
-        * Added php api documentation
+	* Removed the old webui and made a new controlpanel and disassembler.
+	* Added php api documentation
 
 2006-03-02  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
-        * Changed copyright dates to 2006
-        * Updated the eaccelerator url in some last files
-        * I removed all authors from specific files. Authors can be traced 
-          through mmcache and eaccelerator cvs. I did this because some 
-          names should be added to quite some source files while others have
-          added their own while contributing less then the once not mentoined.
-          All contributors are credited in the AUTHORS file and specific 
-          information can be found in the Changelog and cvs.
+	* Changed copyright dates to 2006
+	* Updated the eaccelerator url in some last files
+	* I removed all authors from specific files. Authors can be traced
+	  through mmcache and eaccelerator cvs. I did this because some
+	  names should be added to quite some source files while others have
+	  added their own while contributing less then the once not mentoined.
+	  All contributors are credited in the AUTHORS file and specific
+	  information can be found in the Changelog and cvs.
 
 2006-03-01  Hans Rakers <hans at parse dot nl>
 
-        * Bunch of Win32 fixes. It compiles cleanly now (tested with VC++ 6.0)
-        * Fix to the optimizer for bug #1439344
-        * Fix to ea_store.c for a build problem on RHEL3 reported on the forums at 
-          https://sourceforge.net/forum/message.php?msg_id=3596327
+	* Bunch of Win32 fixes. It compiles cleanly now (tested with VC++ 6.0)
+	* Fix to the optimizer for bug #1439344
+	* Fix to ea_store.c for a build problem on RHEL3 reported on the forums at
+	  https://sourceforge.net/forum/message.php?msg_id=3596327
 
 2006-02-28  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
-        * Changed the module entry url to eaccelerator.net and year
-        * Removed the crash function
-        * Disable the keys, session and content cache by default. These could 
-          result in a local DoS by cache poisioning
+	* Changed the module entry url to eaccelerator.net and year
+	* Removed the crash function
+	* Disable the keys, session and content cache by default. These could
+	  result in a local DoS by cache poisioning
 
 2006-02-24  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
-        * Release of eaccelerator 0.9.5-beta1
+	* Release of eaccelerator 0.9.5-beta1
 
 2006-02-24  Hans Rakers <hans at parse dot nl>
 
-        * Altered the way debug output is in/excluded by adding a macro that makes
-          sure calls to functions like ea_debug_printf don't get compiled in a
-          non-debug build. The macro approach was chosen to prevent swamping the
-          code with any more ifdef statements. This approach (as opposed to the
-          previous empty-function-if-no-debug-build) also makes sure debug function
-          arguments such as the tons of getpid()'s (which don't come cheap) don't
-          get compiled in and executed in a non-debug build.
+	* Altered the way debug output is in/excluded by adding a macro that makes
+	  sure calls to functions like ea_debug_printf don't get compiled in a
+	  non-debug build. The macro approach was chosen to prevent swamping the
+	  code with any more ifdef statements. This approach (as opposed to the
+	  previous empty-function-if-no-debug-build) also makes sure debug function
+	  arguments such as the tons of getpid()'s (which don't come cheap) don't
+	  get compiled in and executed in a non-debug build.
 
 2006-02-23  Hans Rakers <hans at parse dot nl>
 
-        * Don't increase parent refcount in restore_class_parent. This is wrong
-          and leads to trouble in the Zend shutdown phase (zend_destroy_class).
-          This most likely also fixes the REMOVE_POINTER_FROM_LIST segfault of
-          bug #1432758
+	* Don't increase parent refcount in restore_class_parent. This is wrong
+	  and leads to trouble in the Zend shutdown phase (zend_destroy_class).
+	  This most likely also fixes the REMOVE_POINTER_FROM_LIST segfault of
+	  bug #1432758
 
 2006-02-22  Hans Rakers <hans at parse dot nl>
 
-        * Workaround for "multiple definitions of symbol" thread-safe build
-          problem on OSX. This fixes bug #1407520
-        * Renamed mm_mutex to ea_mutex to avoid confusion with eA's memory
-          manager. This was probably a leftover of mmCache times.
+	* Workaround for "multiple definitions of symbol" thread-safe build
+	  problem on OSX. This fixes bug #1407520
+	* Renamed mm_mutex to ea_mutex to avoid confusion with eA's memory
+	  manager. This was probably a leftover of mmCache times.
 
 2006-02-21  Hans Rakers <hans at parse dot nl>
 
-        * Ditched the variadic macros. They were kinda useless now anyway since
-          they were only passing one arg. This should make the Win32 folks happy
-          since VC6 doesn't seem to support variadic macros (its a C99 thing)
-        * Removed some excessive debug output.
+	* Ditched the variadic macros. They were kinda useless now anyway since
+	  they were only passing one arg. This should make the Win32 folks happy
+	  since VC6 doesn't seem to support variadic macros (its a C99 thing)
+	* Removed some excessive debug output.
 
 2006-02-20  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
-        * Fixed bypassing open_basedir restriction when the file was already 
-          cached. This fixes bug #1427719
-        * Included patch #1435196 to fix the problem of duplicate keys that 
-          don't get removed.
+	* Fixed bypassing open_basedir restriction when the file was already
+	  cached. This fixes bug #1427719
+	* Included patch #1435196 to fix the problem of duplicate keys that
+	  don't get removed.
 
 2006-02-20  Hans Rakers <hans at parse dot nl>
 
-        * Fixed static_members handling for php-5.0. Broke this while
-          working on PHP-5.1 support. Lost in ifdef statements ;)
-        * Fixed ZE1 (<=PHP4) problem regarding parent class lookup during restore.
-          Parent classname wasn't lowercased before lookup in class_table. This
-          also fixes bug #1432758 (can't restore parent class "stdClass" of class xyz)
+	* Fixed static_members handling for php-5.0. Broke this while
+	  working on PHP-5.1 support. Lost in ifdef statements ;)
+	* Fixed ZE1 (<=PHP4) problem regarding parent class lookup during restore.
+	  Parent classname wasn't lowercased before lookup in class_table. This
+	  also fixes bug #1432758 (can't restore parent class "stdClass" of class xyz)
 
 2006-02-19  Hans Rakers <hans at parse dot nl>
 
-        * Restored PHP4 compatibility
-        * Fixed inheritance/prototype issue with abstract methods and classes during
-          restore. zend_do_inheritance handles these properly now.
+	* Restored PHP4 compatibility
+	* Fixed inheritance/prototype issue with abstract methods and classes during
+	  restore. zend_do_inheritance handles these properly now.
 
 2006-02-18  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
-        * Bumped up version to 0.9.5-dev
+	* Bumped up version to 0.9.5-dev
 
 2006-02-17  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
-        * Merged PHP_5_1 branch with HEAD
+	* Merged PHP_5_1 branch with HEAD
 
 2006-02-17  Hans Rakers <hans at parse dot nl>
 
-        * PHP_5_1: Some final fixes before merging to HEAD:
-          - Fixed bug #1410723 (handling of class constants by the optimizer)
-          - Fixed backwards compatibility with PHP < 5.1
-          This revision works pretty well in my testing environment, PHP-5.1 support
-          seems to be coming along quite well. Please test with your applications/
-          in your environment and report back with your experiences or possible problems!
+	* PHP_5_1: Some final fixes before merging to HEAD:
+	  - Fixed bug #1410723 (handling of class constants by the optimizer)
+	  - Fixed backwards compatibility with PHP < 5.1
+	  This revision works pretty well in my testing environment, PHP-5.1 support
+	  seems to be coming along quite well. Please test with your applications/
+	  in your environment and report back with your experiences or possible problems!
 
-2006-02-15 Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
+2006-02-15  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
-        * Released version 0.9.4
+	* Released version 0.9.4
 
 2006-02-15  Hans Rakers <hans at parse dot nl>
 
-        * PHP_5_1: Fixes for five failing tests found using the test suite created by Bart
-          Tests that failed where:
-          -ctor_dtor_inheritance (failed because __construct, __destruct and __clone were not properly set)
-          -destructor_and_exceptions (failed because inheritance of parent methods was broken, fixed by making sure ea_store doesn't store methods outside scope)
-          -inheritance_002 (failed because __construct, __destruct and __clone were not properly set)
-          -private_members (failed because __construct, __destruct and __clone were not properly set)
-          -type_hinting_003 (failed because array_type_hint introduced in zend_arg_info in PHP-5.1 was ignored)
+	* PHP_5_1: Fixes for five failing tests found using the test suite created by Bart
+	  Tests that failed where:
+	  -ctor_dtor_inheritance (failed because __construct, __destruct and __clone were not properly set)
+	  -destructor_and_exceptions (failed because inheritance of parent methods was broken, fixed by making sure ea_store doesn't store methods outside scope)
+	  -inheritance_002 (failed because __construct, __destruct and __clone were not properly set)
+	  -private_members (failed because __construct, __destruct and __clone were not properly set)
+	  -type_hinting_003 (failed because array_type_hint introduced in zend_arg_info in PHP-5.1 was ignored)
 
 2006-02-14  Bart Vanbrabant <bart.vanbrabant at zoeloelip dot be>
 
-        * PHP_5_1: Changed cflags to -O2 from -O3
+	* PHP_5_1: Changed cflags to -O2 from -O3
 
-2006-02-09 Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
+2006-02-09  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
-        * On failure of mm initialisation, return FAILURE
-          instead of disabling eAccelerator.
+	* On failure of mm initialisation, return FAILURE
+	  instead of disabling eAccelerator.
 
-2006-02-08 Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
+2006-02-08  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
-        * The owner of the a sysvipc mutex will now be changed on creation of
-          of the mutex. The user will be set to the uid set with 
-          --with-eaccelerator-userid. This way the semaphore doesn't need to
-          be public writable anymore.
-        * Moved some inactive contributors to the inactive list.
-        * Aplied patch #142200
-        * Fixed typo (patch #1409125)
-        * Fixed some typos and cleaned up the README file a bit more
-        * Fixed some typos in README.eLoader
-        * Updated NEWS and bumped up version to 0.9.4-rc2
-        * Released 0.9.4-rc2
+	* The owner of the a sysvipc mutex will now be changed on creation of
+	  of the mutex. The user will be set to the uid set with
+	  --with-eaccelerator-userid. This way the semaphore doesn't need to
+	  be public writable anymore.
+	* Moved some inactive contributors to the inactive list.
+	* Aplied patch #142200
+	* Fixed typo (patch #1409125)
+	* Fixed some typos and cleaned up the README file a bit more
+	* Fixed some typos in README.eLoader
+	* Updated NEWS and bumped up version to 0.9.4-rc2
+	* Released 0.9.4-rc2
 
 2006-02-07  Hans Rakers <hans at parse dot nl>
 
-        * PHP_5_1: Fix for problems with __autoload
-        * PHP_5_1: Fixed compile problems with thread-safe PHP
+	* PHP_5_1: Fix for problems with __autoload
+	* PHP_5_1: Fixed compile problems with thread-safe PHP
 
 2006-02-06  Hans Rakers <hans at parse dot nl>
 
-        * PHP_5_1: Quite some major changes, including but probably not limited to:
-          -Fixed numerous memory leaks
-          -Fixed the handling of empty string variables (as in ""), causing "String is not zero-terminated" warnings when PHP is compiled with --enable-debug
-          -More fixes to the handling of static properties (access checking/inheritance)
-          -Inheritance on restore is now handled by zend_do_inheritance
-          -Fixed handling of ZEND_OP_DATA and ZEND_INIT_METHOD_CALL by the optimizer
-          -Cosmetic fixes (spelling etc.)
+	* PHP_5_1: Quite some major changes, including but probably not limited to:
+	  -Fixed numerous memory leaks
+	  -Fixed the handling of empty string variables (as in ""), causing "String is not zero-terminated" warnings when PHP is compiled with --enable-debug
+	  -More fixes to the handling of static properties (access checking/inheritance)
+	  -Inheritance on restore is now handled by zend_do_inheritance
+	  -Fixed handling of ZEND_OP_DATA and ZEND_INIT_METHOD_CALL by the optimizer
+	  -Cosmetic fixes (spelling etc.)
 
 2006-01-16  Hans Rakers <hans at parse dot nl>
 
-        * PHP_5_1: Fix for bug #1401474 (and most likely some more php-5.1 related trouble)
-          static_members handling was incorrect.
+	* PHP_5_1: Fix for bug #1401474 (and most likely some more php-5.1 related trouble)
+	  static_members handling was incorrect.
 
 2006-01-12  Hans Rakers <hans at parse dot nl>
 
-        * First batch of PHP-5.1 related changes committed to the newly created
-          PHP_5_1 branch. This is a work in progress, so YMMV.
+	* First batch of PHP-5.1 related changes committed to the newly created
+	  PHP_5_1 branch. This is a work in progress, so YMMV.
 
-2006-01-10 Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
+2006-01-10  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
-        * Fix for bug #1366008
-        * Fix for bug #1238736, when a log file is set eA will lock it
-          before writing to it.
+	* Fix for bug #1366008
+	* Fix for bug #1238736, when a log file is set eA will lock it
+	  before writing to it.
 
-2005-11-22 Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
+2005-11-22  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
-        * Disabled the cache dir check, to much people complaining
-        * fixed eLoader
+	* Disabled the cache dir check, to much people complaining
+	* fixed eLoader
 
-2005-11-22 Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
+2005-11-22  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
-        * Some compile fixes from Chmouel Boudjnah
+	* Some compile fixes from Chmouel Boudjnah
 
-2005-11-20 Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
+2005-11-20  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
-        * check_cache_dir is only done when shm_only = 0
-        * Only eA is disabled when init of shared mem or cache check fails
-        * Released 0.9.4-rc1
+	* check_cache_dir is only done when shm_only = 0
+	* Only eA is disabled when init of shared mem or cache check fails
+	* Released 0.9.4-rc1
 
-2005-11-20 Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
+2005-11-20  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
-        * Removed executor hooks, they weren't used anyway.
-        * Check if eA has a valid cache directory.
-        * Make the init of php fail if the initialisation of the shared memory
-          or cache directory failes.
-        * set shared memory size in eaccelerator.ini to 0 so the default OS
-          size is used.
-        * README updates
-        * Updated version to 0.9.4-rc1
+	* Removed executor hooks, they weren't used anyway.
+	* Check if eA has a valid cache directory.
+	* Make the init of php fail if the initialisation of the shared memory
+	  or cache directory failes.
+	* set shared memory size in eaccelerator.ini to 0 so the default OS
+	  size is used.
+	* README updates
+	* Updated version to 0.9.4-rc1
 
-2005-11-17 Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
+2005-11-17  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
-        * Fixed optimizer bug with php 5.0.5
+	* Fixed optimizer bug with php 5.0.5
 
-2005-11-16 Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
+2005-11-16  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
-        * Patch for including files in same directory (#1259695) from Alexy
+	* Patch for including files in same directory (#1259695) from Alexy
 
-2005-11-15 Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
+2005-11-15  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
-        * Spinlock test now tests for i386 and x86_64. Because spinlocks where
-          never used on 64-bit and sysv ipc locking didn't work, there were a 
-          lot of problems.
+	* Spinlock test now tests for i386 and x86_64. Because spinlocks where
+	  never used on 64-bit and sysv ipc locking didn't work, there were a
+	  lot of problems.
 
-2005-10-20 Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
+2005-10-20  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
-        * The two error message added to see if a lock has failed made configure 
-          fail to compile the shared memory test.
+	* The two error message added to see if a lock has failed made configure
+	  fail to compile the shared memory test.
 
-2005-10-13 Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
+2005-10-13  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
-        * Fixed the php5 optimizer bug.
-        * Changed semaphore permissions to 0666 so sysvipc locks work. Working 
-          locks seem a bit more important than making the semaphore public. (#1295970)
-        * Added error messages when a lock can't be aquired or released.
+	* Fixed the php5 optimizer bug.
+	* Changed semaphore permissions to 0666 so sysvipc locks work. Working
+	  locks seem a bit more important than making the semaphore public. (#1295970)
+	* Added error messages when a lock can't be aquired or released.
 
-2005-08-03 Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
+2005-08-03  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
-        * Included some compile fixes. (Thanks Matt)
-        * Included patch from the hardened php guys to make eA work
-          with hardened php.
+	* Included some compile fixes. (Thanks Matt)
+	* Included patch from the hardened php guys to make eA work
+	  with hardened php.
 
-2005-07-11 Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
+2005-07-11  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
-        * ea_store.c and ea_restore.c functions clean up
-        * extraced restore_class_parent and restore_class_methods from
-          restore_class_entry to share code with loader.c
-        * extracted opcode handling in encode/decode_op_array into 
-          encode/decode_op to make code more readable
-        * make decode_class_entry use new functions in ea_restore.c
-        * readded line-number encoding
-        * bumped up encoder version to 4 until new loader is in place
+	* ea_store.c and ea_restore.c functions clean up
+	* extraced restore_class_parent and restore_class_methods from
+	  restore_class_entry to share code with loader.c
+	* extracted opcode handling in encode/decode_op_array into
+	  encode/decode_op to make code more readable
+	* make decode_class_entry use new functions in ea_restore.c
+	* readded line-number encoding
+	* bumped up encoder version to 4 until new loader is in place
 
-2005-07-10 Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
+2005-07-10  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
-        * Renamed some macros from MMC (mmcache) to EA (eg MMCG is now EAG)
-        * Added eA file header to mm.c, mm.h and x86-spinlocks.h
-        * Readded a hack to the loader to prevent zend2 segfaults
+	* Renamed some macros from MMC (mmcache) to EA (eg MMCG is now EAG)
+	* Added eA file header to mm.c, mm.h and x86-spinlocks.h
+	* Readded a hack to the loader to prevent zend2 segfaults
 
-2005-07-09 Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
+2005-07-09  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
-        * A compile fix for php4 (bug #1235017)
-        * Removed atexit code that only produced segfaults and didn't work
-          (Patch from Rob Foehl <rwf at loonybin.net>)
-        * Code clean up and compile fixes for VC.net + VC.net project files update
-          (Based on patch #1234919)
-        * Future check warning was done on uninitialised buf.
-        * Some code clean ups and updated VS6 project files.
+	* A compile fix for php4 (bug #1235017)
+	* Removed atexit code that only produced segfaults and didn't work
+	  (Patch from Rob Foehl <rwf at loonybin.net>)
+	* Code clean up and compile fixes for VC.net + VC.net project files update
+	  (Based on patch #1234919)
+	* Future check warning was done on uninitialised buf.
+	* Some code clean ups and updated VS6 project files.
 
-2005-07-07 Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
+2005-07-07  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
-        * Added get_zend_destroy_property_info function to ea_restore.h
-        * Code refactoring needed for the new encoder. Moved all store/calc
-          functions to ea_store.c and all restore/fixup functions to ea_restore.c
+	* Added get_zend_destroy_property_info function to ea_restore.h
+	* Code refactoring needed for the new encoder. Moved all store/calc
+	  functions to ea_store.c and all restore/fixup functions to ea_restore.c
 
-2005-07-06 Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
+2005-07-06  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
-        * A compile fix for zend engine 1.
-        * Documented namespace option
-        * New debug/log code. Make the code a lot cleaner and easier
-          for the user to debug eaccelerator.
+	* A compile fix for zend engine 1.
+	* Documented namespace option
+	* New debug/log code. Make the code a lot cleaner and easier
+	  for the user to debug eaccelerator.
 
-2005-06-27 Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
+2005-06-27  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
-        * Fixed a buffer overflow in eaccelerator.c and cache.c. A string longer
-          then 8 bytes was copied in a char array of length 8. This isn't a
-          security risk because the overflowed bytes were directly overwritten
-          by other values. This fixes bug 1228096 which was caused by the 
-          bufferoverflow detection in FC4. 
-          http://gcc.gnu.org/ml/gcc-patches/2004-09/msg02055.html
+	* Fixed a buffer overflow in eaccelerator.c and cache.c. A string longer
+	  then 8 bytes was copied in a char array of length 8. This isn't a
+	  security risk because the overflowed bytes were directly overwritten
+	  by other values. This fixes bug 1228096 which was caused by the
+	  bufferoverflow detection in FC4.
+	  http://gcc.gnu.org/ml/gcc-patches/2004-09/msg02055.html
 
-2005-06-24 Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
+2005-06-24  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
-        * The future check is removed because mtime are only checked on changes
-          so caching files from the future isn't a problem.
+	* The future check is removed because mtime are only checked on changes
+	  so caching files from the future isn't a problem.
 
-2005-06-23 Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
+2005-06-23  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
-        * Applied patch 1226111
-        * Added a warning message when php scripts have a modification time in
-          in the future and the debug is enabled.
+	* Applied patch 1226111
+	* Added a warning message when php scripts have a modification time in
+	  in the future and the debug is enabled.
 
-2005-06-20 Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
+2005-06-20  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
-        * Set the test value shared memory to 32mb instead of 64mb because the
-          test will fail on 2.6 kernels where 32mb is the default value. (#1203253)
-        * Reverted the patch for the gc_maxlifetime setting when using
-          user functions for the session handler. I can't find a way to
-          access the current value instead of the ini setting.
-          Using the session api is the preffered session handling way anyway.
+	* Set the test value shared memory to 32mb instead of 64mb because the
+	  test will fail on 2.6 kernels where 32mb is the default value. (#1203253)
+	* Reverted the patch for the gc_maxlifetime setting when using
+	  user functions for the session handler. I can't find a way to
+	  access the current value instead of the ini setting.
+	  Using the session api is the preffered session handling way anyway.
 
-2005-05-22 Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
+2005-05-22  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
-        * Bumped version to 0.9.4-dev
-        * Changed hash_mm prototype in eaccelerator.h to non-inline (Compaq c compiler)
-        * Fixes from patch 1206311 + some unused variable clean ups
+	* Bumped version to 0.9.4-dev
+	* Changed hash_mm prototype in eaccelerator.h to non-inline (Compaq c compiler)
+	* Fixes from patch 1206311 + some unused variable clean ups
 
-2005-05-18 Franck Tabary <franck34 at users.sourceforge.net>
+2005-05-18  Franck Tabary <franck34 at users.sourceforge.net>
 
-        * released eAccelerator 0.9.3 final
+	* released eAccelerator 0.9.3 final
 
-2005-05-16 Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
+2005-05-16  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
-        * Added --without-eaccelerator-use-inode configure switch to disable the use
-          of inode numbers for the hash keys (Feature request 1201159). The default
-          behaviour doesn't change.
-        * Fix for bug 1202296 based on patch 1202708
+	* Added --without-eaccelerator-use-inode configure switch to disable the use
+	  of inode numbers for the hash keys (Feature request 1201159). The default
+	  behaviour doesn't change.
+	* Fix for bug 1202296 based on patch 1202708
 
-2005-05-15 Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
+2005-05-15  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
-        * Compile fix for bug 1201564.
+	* Compile fix for bug 1201564.
 
-2005-05-14 Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
+2005-05-14  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
-        * The session lifetime patch only fixed the problem when using one type of session handler. It's now 
-          also fixed for the other type of session handler.
+	* The session lifetime patch only fixed the problem when using one type of session handler. It's now
+	  also fixed for the other type of session handler.
 
-2005-05-12 Franck Tabary <franck34 at users.sourceforge.net>
+2005-05-12  Franck Tabary <franck34 at users.sourceforge.net>
 
-        * released eAccelerator 0.9.3-rc2
+	* released eAccelerator 0.9.3-rc2
 
-2005-05-11 Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
+2005-05-11  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
-        * Fix for must constructor related problems with encoded scripts and php5. Also a fixes
-          memory leak in the loader. (Thanks larnot)
+	* Fix for must constructor related problems with encoded scripts and php5. Also a fixes
+	  memory leak in the loader. (Thanks larnot)
 
-2005-05-10 Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
-    
-        * Added some includes to satisfy VC.NET (thanks to dakalka, patch 1198522)
-        * This patch adds the right destructor for the propertiesinfo hashtable, but it doesn't fix bug 1179270
-        * Updated README.win32 with some extra information from Larnot
+2005-05-10  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
-2005-05-09 Franck Tabary <franck34 at users.sourceforge.net>
+	* Added some includes to satisfy VC.NET (thanks to dakalka, patch 1198522)
+	* This patch adds the right destructor for the propertiesinfo hashtable, but it doesn't fix bug 1179270
+	* Updated README.win32 with some extra information from Larnot
 
-        * released eAccelerator 0.9.3-rc1
+2005-05-09  Franck Tabary <franck34 at users.sourceforge.net>
 
-2005-05-09 Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
+	* released eAccelerator 0.9.3-rc1
 
-        * Fixes the segfault when loading encoded script with eloader and php5
-        * Commited README.win32 with instructions to compile eAccelerator on windows
-        * Add the destructor to properties info hashtable in restore_class_entry, fixes bug 1179270
+2005-05-09  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
-2005-05-06 Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
+	* Fixes the segfault when loading encoded script with eloader and php5
+	* Commited README.win32 with instructions to compile eAccelerator on windows
+	* Add the destructor to properties info hashtable in restore_class_entry, fixes bug 1179270
 
-        * Patch fixing eLoader compilation.
+2005-05-06  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
-2005-05-05 Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
+	* Patch fixing eLoader compilation.
 
-        * This patch fixes some stuff concerning configuration. With this patch 
-          some parts that are forgotten with the code split are fixed. 
-          They are also needed to compile eA with VC. The other stuff should make it possible 
-          to compile eA as a static module for php.
-        * Updated VC project files
+2005-05-05  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
+
+	* This patch fixes some stuff concerning configuration. With this patch
+	  some parts that are forgotten with the code split are fixed.
+	  They are also needed to compile eA with VC. The other stuff should make it possible
+	  to compile eA as a static module for php.
+	* Updated VC project files
 
 2005-05-02  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
-        * Patch fixing php 5 constructor problems. Fixes bugs 1179264, 1121757 and 1099693
-        * Added switch -w to encoder so you can encode file without the check for eloader. This is 
-          based on patch 1191147 with some fixes.
+	* Patch fixing php 5 constructor problems. Fixes bugs 1179264, 1121757 and 1099693
+	* Added switch -w to encoder so you can encode file without the check for eloader. This is
+	  based on patch 1191147 with some fixes.
 
 2005-04-26  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
-        * The first part of the code refactoring. In this part the monolitic 
-          eaccelerator.c file has been split up in more logical blocks.
-          - cache.c/cache.h contains the procedure for shm.c/session.c/content.c to add user_cache entries to the ea cache
-          - shm.c/shm.h contains the eaccelerator shared memory functions
-          - session.c/session.h contains the session related stuff
-          - webui.c/webui.h contains all stuff related to the webinterface and disassembler
-          - debug.c/debug.h contains some procedures to print debug information
-          - content.h contains the php content caching prototype instead of eaccelerator.h
-        * Added --without-eaccelerator-shared-memory and  --without-eaccelerator-webui configure switches
-        
-        Bugfixes included:
-        * Patch 1188510 eaccelerator_compile_file typos
-        * Patch 1189792 session life time patch
-        * Patch 1167069 HAS_ATTRIBUTE fix with FreeBSD 4.x
-        * Patch 1166707 loader patch for OOP functions in PHP5
-        * Patch 1173095 mm_alloc & mm_free clash with libirc
-        * Fix for 1178588, 1153030 and patch 1189852. Fixes the endless loop when reseting a non array.
-          The optimisation for that caused this is removed for zend engine 2 and 1 because 
-          php >= 4.3.11 is also affected, so this will be useless in some time.
+	* The first part of the code refactoring. In this part the monolitic
+	  eaccelerator.c file has been split up in more logical blocks.
+	  - cache.c/cache.h contains the procedure for shm.c/session.c/content.c to add user_cache entries to the ea cache
+	  - shm.c/shm.h contains the eaccelerator shared memory functions
+	  - session.c/session.h contains the session related stuff
+	  - webui.c/webui.h contains all stuff related to the webinterface and disassembler
+	  - debug.c/debug.h contains some procedures to print debug information
+	  - content.h contains the php content caching prototype instead of eaccelerator.h
+	* Added --without-eaccelerator-shared-memory and  --without-eaccelerator-webui configure switches
+
+	Bugfixes included:
+	* Patch 1188510 eaccelerator_compile_file typos
+	* Patch 1189792 session life time patch
+	* Patch 1167069 HAS_ATTRIBUTE fix with FreeBSD 4.x
+	* Patch 1166707 loader patch for OOP functions in PHP5
+	* Patch 1173095 mm_alloc & mm_free clash with libirc
+	* Fix for 1178588, 1153030 and patch 1189852. Fixes the endless loop when reseting a non array.
+	  The optimisation for that caused this is removed for zend engine 2 and 1 because
+	  php >= 4.3.11 is also affected, so this will be useless in some time.
 
 2005-01-14  Shin Seung Woo <segv74 at gmail.com>
 
-        * fixes 1099498 Problems with IMP H3 (Horde) when restarting apache2
-          ( bug was lied on fix_zval(), it didn't check IS_CONSTANT_INDEX flag. )
+	* fixes 1099498 Problems with IMP H3 (Horde) when restarting apache2
+	  ( bug was lied on fix_zval(), it didn't check IS_CONSTANT_INDEX flag. )
 
 2005-01-06  Shin Seung Woo <segv74 at gmail.com>
 
-        * fix for bug 1091815. ( Encoded files and php4.3.10 )
+	* fix for bug 1091815. ( Encoded files and php4.3.10 )
 
 2005-01-05  Shin Seung Woo <segv74 at gmail.com>
 
-        Fixed following bugs:
-        * 1092128 Horde-hashs int the sourcecode of eaccelerator.c
-        * 1091960 include_once include files multiple times
-        
+	Fixed following bugs:
+	* 1092128 Horde-hashs int the sourcecode of eaccelerator.c
+	* 1091960 include_once include files multiple times
+
 2004-12-28  Everaldo Canuto <everaldo_canuto at yahoo.com.br>
 
-        * encoder.php Fix references to "oloader".
+	* encoder.php Fix references to "oloader".
 
 2004-12-28 Reiner Jung <r.jung at think-e.com.br>
 
-        * eAccelerator 0.9.2a release
+	* eAccelerator 0.9.2a release
 
 2004-12-27  Everaldo Canuto <everaldo_canuto at yahoo.com.br>
 
-        * Move encoder version information to eaccelerator.h, today
-        this information are in two places, encoder.h and loader.h
-        now it is unified.
-        * Some updates "mmcache" -> "eAccelerator".
+	* Move encoder version information to eaccelerator.h, today
+	this information are in two places, encoder.h and loader.h
+	now it is unified.
+	* Some updates "mmcache" -> "eAccelerator".
 
 2004-12-27  Reiner Jung <r.jung at think-e.com.br>
 
-        * eAccelerator 0.9.2 release.
+	* eAccelerator 0.9.2 release.
 
 2004-12-27  Everaldo Canuto <everaldo_canuto at yahoo.com.br>
 
-        * encoder.c Increment encoder version.
-        * encoder.php Fix name of standalone loader "eloader".
-        * win32/* build files for VS6, Thanks to Lyle Arnot.
-        * accelerator_version.h Release updated to 0.9.2.
+	* encoder.c Increment encoder version.
+	* encoder.php Fix name of standalone loader "eloader".
+	* win32/* build files for VS6, Thanks to Lyle Arnot.
+	* accelerator_version.h Release updated to 0.9.2.
 
 2004-12-27  Shin Seung Woo <segv74 at gmail.com>
 
-        * optimize.c Fix array -= += .= bug in PHP5.
-        * Pretty disassembler's output.
-        * Change FE_FETCH's opcode type from EXT_FETCH to EXT_FE (FE = foreach).
+	* optimize.c Fix array -= += .= bug in PHP5.
+	* Pretty disassembler's output.
+	* Change FE_FETCH's opcode type from EXT_FETCH to EXT_FE (FE = foreach).
 
 2004-12-25  Everaldo Canuto <everaldo_canuto at yahoo.com.br>
 
-        * win32/* build files for Visual Studio, now works in Win32. Thanks 
-        Lyle Arnot for provide this files.
-        * eLoader added eLoader is a standalone loader for encode files.
-        * eaccelerator.name_space config parameter added. Patch 1090379.
-        * fix foreach error in PHP 4.3.10. Thanks to Ilkka Huotari.
-        * encoder.php fix error message when eAccelerator are not loaded.
+	* win32/* build files for Visual Studio, now works in Win32. Thanks
+	  Lyle Arnot for provide this files.
+	* eLoader added eLoader is a standalone loader for encode files.
+	* eaccelerator.name_space config parameter added. Patch 1090379.
+	* fix foreach error in PHP 4.3.10. Thanks to Ilkka Huotari.
+	* encoder.php fix error message when eAccelerator are not loaded.
 
 2004-12-24  Everaldo Canuto <everaldo_canuto at yahoo.com.br>
 
-        * loader.c fixed constant COMPILE_DL_ELOADER. Thanks to Lyle A. 
+	* loader.c fixed constant COMPILE_DL_ELOADER. Thanks to Lyle A.
 
 2004-12-23  Everaldo Canuto <everaldo_canuto at yahoo.com.br>
 
-        * COPYING license file fixed.
-        * Fixed compilation errors under Win32 and old versions of gcc.
+	* COPYING license file fixed.
+	* Fixed compilation errors under Win32 and old versions of gcc.
 
-2004-12-22 ReinerJ <reinerj at users.sourceforge.net>
+2004-12-22  ReinerJ <reinerj at users.sourceforge.net>
 
-        * eaccelerator.ini for distrib which have /etc/php.d
+	* eaccelerator.ini for distrib which have /etc/php.d
 
-2004-12-22 Franck34 <franck34 at users.sourceforge.net>
+2004-12-22  Franck34 <franck34 at users.sourceforge.net>
 
-        * README file updated
+	* README file updated
 
 2004-12-22  Everaldo Canuto <everaldo_canuto at yahoo.com.br>
 
-        * Segmentation fault problems fixed.
+	* Segmentation fault problems fixed.
 
 2004-12-19  Everaldo Canuto <everaldo_canuto at yahoo.com.br>
 
-        * Segv patchs for PHP5 applyed.
-        * Some bug fixes to work on PHP4 and PHP5.
+	* Segv patchs for PHP5 applyed.
+	* Some bug fixes to work on PHP4 and PHP5.
 
 2004-12-09  Everaldo Canuto <everaldo_canuto at yahoo.com.br>
 
-        * first public release 0.9.0 based on Turck MMCache.
+	* first public release 0.9.0 based on Turck MMCache.

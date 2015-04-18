@@ -135,6 +135,9 @@ typedef intptr_t;
 
 #ifdef ZEND_WIN32
 #  include <process.h>
+#  ifndef S_ISDIR
+#    define S_ISDIR(mode) (((mode)&S_IFMT) & S_IFDIR)
+#  endif
 #  ifndef S_ISREG
 #    define S_ISREG(mode) (((mode)&S_IFMT) & S_IFREG)
 #  endif
@@ -333,20 +336,21 @@ typedef struct _ea_fc_entry {
  */
 typedef struct _ea_cache_entry {
     struct _ea_cache_entry *next;
-    unsigned int hv;			/* hash value                            */
-    off_t filesize;				/* file size */
-    time_t mtime;				/* file last modification time           */
-    time_t ttl;				/* expiration time (updated on each hit) */
-    time_t ts;				/* timestamp of cache entry              */
-    unsigned int size;			/* entry size (bytes)                    */
-    unsigned int nhits;			/* hits count                            */
-    unsigned int nreloads;			/* count of reloads                      */
-    int use_cnt;			/* how many processes uses the entry     */
-    ea_op_array *op_array;	/* script's global scope code        */
-    ea_fc_entry *f_head;		/* list of nested functions          */
-    ea_fc_entry *c_head;		/* list of nested classes            */
-    zend_bool removed;			/* the entry is scheduled to remove  */
-    char realfilename[1];		/* real file name (must be last el.) */
+    unsigned int hv;        /* hash value */
+    off_t filesize;         /* file size  */
+    time_t mtime;           /* file last modification time  */
+    time_t ttl;             /* expiration time (updated on each hit) */
+    time_t ts;              /* timestamp of cache entry     */
+    unsigned int size;      /* entry size (bytes)           */
+    unsigned int nhits;     /* hits count                   */
+    unsigned int nreloads;  /* count of reloads             */
+    int use_cnt;            /* how many processes uses the entry */
+    ea_op_array *op_array;  /* script's global scope code   */
+    ea_fc_entry *f_head;    /* list of nested functions     */
+    ea_fc_entry *c_head;    /* list of nested classes       */
+    zend_bool removed;      /* the entry is scheduled to remove  */
+    int realfilename_len;   /* length of real file name          */
+    char realfilename[1];   /* real file name (must be last el.) */
 } ea_cache_entry;
 
 /*

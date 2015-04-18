@@ -1083,6 +1083,7 @@ void eaccelerator_store_int(ea_cache_entry *entry, char *key, int len, zend_op_a
     entry->f_head = NULL;
     entry->c_head = NULL;
 
+    entry->realfilename_len = len;
     memcpy(entry->realfilename, key, len + 1);
     x = entry->realfilename;
     zend_hash_add(&EAG(strings), key, len + 1, &x, sizeof(char *), NULL);
