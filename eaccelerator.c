@@ -1905,7 +1905,7 @@ PHP_RINIT_FUNCTION(eaccelerator)
     EAG(in_request) = 1;
     EAG(used_entries) = NULL;
     EAG(refcount_helper) = 1;
-    EAG(req_start) = sapi_get_request_time(TSRMLS_C);	/* record request start time for later use */
+    EAG(req_start) = (time_t) sapi_get_request_time(TSRMLS_C);	/* record request start time for later use */
 
     zend_hash_init(&EAG(restored), 0, NULL, NULL, 0);
 

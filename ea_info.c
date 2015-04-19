@@ -35,7 +35,11 @@
 #include <fcntl.h>
 
 #ifndef O_BINARY
-#  define O_BINARY 0
+#  ifdef _O_BINARY
+#    define O_BINARY _O_BINARY
+#  else
+#    define O_BINARY 0
+#  endif
 #endif
 
 #ifdef WITH_EACCELERATOR_INFO
@@ -98,10 +102,7 @@ static void clear_filecache(const char* dir)
                 unlink(s);
             }
             if (stat(s, &dirstat) != -1) {
-                if (strcmp(entry->d_name, ".") == 0) {
-                    continue;
-                }
-                if (strcmp(entry->d_name, "..") == 0) {
+                if (entry->d_name[0] == '.') {
                     continue;
                 }
                 if (S_ISDIR(dirstat.st_mode)) {
