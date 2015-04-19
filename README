@@ -3,7 +3,7 @@ eAccelerator for PHP
 
 What is eAccelerator?
 ----------------------
-eAccelerator is a free open source PHP accelerator for PHP. It  increases  the
+eAccelerator is a free and open source accelerator for PHP. It  increases  the
 performance of PHP scripts by caching them in compiled state, so  the overhead
 of compiling is almost completely eliminated.
 
