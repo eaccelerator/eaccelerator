@@ -2,7 +2,7 @@
    +----------------------------------------------------------------------+
    | eAccelerator project                                                 |
    +----------------------------------------------------------------------+
-   | Copyright (c) 2004 - 2012 eAccelerator                               |
+   | Copyright (c) 2004 - 2015 eAccelerator                               |
    | http://eaccelerator.net                                              |
    +----------------------------------------------------------------------+
    | This program is free software; you can redistribute it and/or        |
@@ -2289,7 +2289,7 @@ ZEND_DLEXPORT zend_extension zend_extension_entry = {
     EACCELERATOR_VERSION,
     "eAccelerator",
     "http://eaccelerator.net",
-    "Copyright (c) 2004-2012 eAccelerator",
+    "Copyright (c) 2004-2015 eAccelerator",
     eaccelerator_zend_startup,
     NULL,
     NULL,   /* void (*activate)() */
@@ -2314,7 +2314,7 @@ static zend_extension eaccelerator_extension_entry = {
     EACCELERATOR_VERSION,
     "eAccelerator",
     "http://eaccelerator.net",
-    "Copyright (c) 2004-2012 eAccelerator",
+    "Copyright (c) 2004-2015 eAccelerator",
     eaccelerator_zend_startup,
     NULL,
     NULL,   /* void (*activate)() */

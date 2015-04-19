@@ -2,7 +2,7 @@
    +----------------------------------------------------------------------+
    | eAccelerator project                                                 |
    +----------------------------------------------------------------------+
-   | Copyright (c) 2004 - 2012 eAccelerator                               |
+   | Copyright (c) 2004 - 2015 eAccelerator                               |
    | http://eaccelerator.net                                  	          |
    +----------------------------------------------------------------------+
    | This program is free software; you can redistribute it and/or        |
