@@ -61,6 +61,8 @@
 #include <fcntl.h>
 
 #include "php.h"
+#include "TSRM.h"
+#include "SAPI.h"
 #include "php_ini.h"
 
 #ifndef ZEND_ENGINE_2_5
@@ -71,8 +73,6 @@
 #include "ext/standard/info.h"
 #include "ext/standard/php_incomplete_class.h"
 #include "ext/standard/md5.h"
-
-#include "SAPI.h"
 
 #ifndef O_BINARY
 #  ifdef _O_BINARY
@@ -619,7 +619,7 @@ static ea_cache_entry* hash_find_file(const char  *key, struct stat *buf TSRMLS_
         return NULL;
     }
 
-    if ((f = open(s, O_RDONLY | O_BINARY)) > 0) {
+    if ((f = VCWD_OPEN(s, O_RDONLY | O_BINARY)) >= 0) {
         EACCELERATOR_FLOCK(f, LOCK_SH);
         if (read(f, &hdr, sizeof(hdr)) != sizeof(hdr)) {
             EACCELERATOR_FLOCK(f, LOCK_UN);
@@ -718,12 +718,11 @@ static int hash_add_file(ea_cache_entry *p TSRMLS_DC)
 
     unlink(s);
 #ifndef ZEND_WIN32
-    f = open(s, O_CREAT | O_WRONLY | O_EXCL | O_BINARY, S_IRUSR | S_IWUSR);
-    if (f > 0) {
+    f = VCWD_OPEN_MODE(s, O_CREAT | O_WRONLY | O_EXCL | O_BINARY, S_IRUSR | S_IWUSR);
 #else
-    f = open(s, O_CREAT | O_WRONLY | O_EXCL | O_BINARY, _S_IREAD | _S_IWRITE);
-    if (f != -1) {
+    f = VCWD_OPEN(s, O_CREAT | O_WRONLY | O_EXCL | O_BINARY);
 #endif
+    if (f >= 0) {
         EACCELERATOR_FLOCK(f, LOCK_EX);
         init_header(&hdr);
         hdr.size  = p->size;

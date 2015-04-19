@@ -152,7 +152,7 @@ static inline void clean_file(char *file, time_t t)
 {
     int f;
 
-    if ((f = open(file, O_RDONLY | O_BINARY)) > 0) {
+    if ((f = open(file, O_RDONLY | O_BINARY)) >= 0) {
         ea_file_header hdr;
         EACCELERATOR_FLOCK (f, LOCK_SH);
         if (read(f, &hdr, sizeof(hdr)) != sizeof(hdr)
