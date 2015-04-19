@@ -1814,9 +1814,9 @@ PHP_MINIT_FUNCTION(eaccelerator)
     }
     if (!eaccelerator_check_php_version(TSRMLS_C)) {
         /*
-        	 * do not return FAILURE, because it causes PHP to completely fail.
-        	 * Just disable eAccelerator instead of making eA fail starting php
-        	 */
+         * do not return FAILURE, because it causes PHP to completely fail.
+         * Just disable eAccelerator instead of making eA fail starting php
+         */
         return SUCCESS;
     }
     ZEND_INIT_MODULE_GLOBALS(eaccelerator, eaccelerator_init_globals, NULL);

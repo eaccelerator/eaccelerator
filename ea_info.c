@@ -3,7 +3,7 @@
    | eAccelerator project                                                 |
    +----------------------------------------------------------------------+
    | Copyright (c) 2004 - 2015 eAccelerator                               |
-   | http://eaccelerator.net                                  	          |
+   | http://eaccelerator.net                                              |
    +----------------------------------------------------------------------+
    | This program is free software; you can redistribute it and/or        |
    | modify it under the terms of the GNU General Public License          |
@@ -157,7 +157,7 @@ static inline void clean_file(char *file, time_t t)
         ea_file_header hdr;
         EACCELERATOR_FLOCK (f, LOCK_SH);
         if (read(f, &hdr, sizeof(hdr)) != sizeof(hdr)
-                || strncmp (hdr.magic, EA_MAGIC,	8) != 0
+                || strncmp (hdr.magic, EA_MAGIC, 8) != 0
                 || (hdr.mtime != 0 && hdr.mtime < t)) {
             EACCELERATOR_FLOCK (f, LOCK_UN);
             close (f);
