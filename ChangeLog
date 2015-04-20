@@ -291,7 +291,7 @@
 
 	* Remove support for all php versions older than php 5.1
 
-2008-06-18  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
+2008-05-18  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
 	* Add patch from ticket 232: removes an unlock that isn't
 	  needed there.
@@ -351,6 +351,11 @@
 	* Use php_strtok_r instead of strtok_r (Thanks to Daan <daan at parse.nl>)
 	* Add fnmatch.c and fnmatch.h and use it on win32 (Thanks to Daan <daan at parse.nl>)
 	* Casting of var 'len' to (int) in decode_version() to get rid of an VC++ 6 warning (Thanks to Daan <daan at parse.nl>)
+
+2007-05-06  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
+
+	* Patch r283 from trunk
+	* Bump version for 0.9.5.1 release
 
 2007-04-21  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
@@ -442,6 +447,8 @@
 
 	* Reverse changeset 205 (doc-comment exclusion) from Tom Regner
 	  <t.regner at librics.de>.
+	* Some fixes to make eAccelerator compile with php 5.2, this fixes bug #150
+	* Restore __toString methods correctly with php 5.2
 	* only put the function that has the same name as the class as contructor
 	  if there isn't a __construct function. This fixes ticket #172
 	* Don't free memory with efree that has been allocated from the eA shm cache.
@@ -509,6 +516,10 @@
 	* Update config.w32, VC6 and VC2005 project files
 	* Fix debug build for win32, this fixes ticket #149
 	* Removed a debug statement and added return value in optimizer.c
+
+2006-07-27  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
+
+	* Fixed project files for win32 and made the debug version build again.
 
 2006-07-25  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 

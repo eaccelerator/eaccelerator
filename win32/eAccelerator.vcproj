@@ -48,7 +48,7 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalOptions="/D &quot;_CRT_SECURE_NO_DEPRECATE&quot; /D &quot;_CRT_NONSTDC_NO_DEPRECATE&quot;&#x0D;&#x0A;"
+				AdditionalOptions="/D &quot;_CRT_SECURE_NO_DEPRECATE&quot; /D &quot;_CRT_NONSTDC_NO_DEPRECATE&quot;"
 				Optimization="2"
 				InlineFunctionExpansion="1"
 				AdditionalIncludeDirectories="../../..,../../../zend,../../../TSRM,../../../main,../../"
@@ -142,7 +142,7 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalOptions="/D &quot;_CRT_SECURE_NO_DEPRECATE&quot; /D &quot;_CRT_NONSTDC_NO_DEPRECATE&quot;&#x0D;&#x0A;"
+				AdditionalOptions="/D &quot;_CRT_SECURE_NO_DEPRECATE&quot; /D &quot;_CRT_NONSTDC_NO_DEPRECATE&quot;"
 				Optimization="2"
 				InlineFunctionExpansion="1"
 				AdditionalIncludeDirectories="../../..,../../../zend,../../../TSRM,../../../main,../../"
@@ -236,7 +236,7 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalOptions="/D &quot;_CRT_SECURE_NO_DEPRECATE&quot; /D &quot;_CRT_NONSTDC_NO_DEPRECATE&quot;&#x0D;&#x0A;"
+				AdditionalOptions="/D &quot;_CRT_SECURE_NO_DEPRECATE&quot; /D &quot;_CRT_NONSTDC_NO_DEPRECATE&quot;"
 				Optimization="0"
 				AdditionalIncludeDirectories="../../..,../../../zend,../../../TSRM,../../../main,../../"
 				PreprocessorDefinitions="_DEBUG;ZEND_DEBUG=1;DEBUG;WIN32;_WINDOWS;_USRDLL;HAVE_EACCELERATOR;COMPILE_DL_EACCELERATOR;ZEND_WIN32;PHP_WIN32;ZTS=1;WITH_EACCELERATOR_CRASH_DETECTION;WITH_EACCELERATOR_INFO;WITH_EACCELERATOR_DOC_COMMENT_INCLUSION;WITH_EACCELERATOR_DEBUG"
