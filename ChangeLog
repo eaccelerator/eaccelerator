@@ -829,6 +829,13 @@
 	  seems to be coming along quite well. Please test with your applications/
 	  in your environment and report back with your experiences or possible problems!
 
+2006-06-21  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
+
+	* Branched the 0.9.4 release to fix win32
+	* Fixes from Simon Westwood
+	* Commit updated windows project files
+	* Removed some includes in debug.c and added on in mm.c
+
 2006-02-15  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
 	* Released version 0.9.4
