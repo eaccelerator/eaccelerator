@@ -1,3 +1,10 @@
+2015-04-20  NewEraCracker <neweracracker at gmail.com>
+
+	* Fix possible security issue in clear_filecache @ ea_info.c
+	  - It was possible to cause unknown behaviour with certain lengths of
+	    cache dir path on both Windows and Linux OS. This could lead to
+	    deletion of wrong files in limited cenarios.
+
 2015-04-18  NewEraCracker <neweracracker at gmail.com>
 
 	* Commits authored by Antony Dovgal <tony at daylessday.org> merged:

@@ -86,55 +86,58 @@ static int isAdminAllowed(TSRMLS_D)
 
 /* {{{ clear_filecache(): Helper function to eaccelerator_clear which finds diskcache entries in the hashed dirs and removes them */
 static void clear_filecache(const char* dir)
-#ifndef ZEND_WIN32
 {
+    char path[MAXPATHLEN + 1];
+    int len;
+#ifndef ZEND_WIN32
     DIR *dp;
     struct dirent *entry;
-    char s[MAXPATHLEN];
     struct stat dirstat;
 
-    if ((dp = opendir(dir)) != NULL) {
+    len = snprintf(path, MAXPATHLEN + 1, "%s", dir);
+    if(len < 0 || len > MAXPATHLEN) {
+        ea_debug_error("[%s] Could not open cachedir %s: name invalid or too long\n", EACCELERATOR_EXTENSION_NAME, dir);
+        return;
+    }
+
+    if ((dp = opendir(path)) != NULL) {
         while ((entry = readdir(dp)) != NULL) {
-            strncpy(s, dir, MAXPATHLEN - 1);
-            strlcat(s, "/", MAXPATHLEN);
-            strlcat(s, entry->d_name, MAXPATHLEN);
-            if (strstr(entry->d_name, "eaccelerator") == entry->d_name) {
-                unlink(s);
-            }
-            if (stat(s, &dirstat) != -1) {
-                if (entry->d_name[0] == '.') {
-                    continue;
+            len = snprintf(path, MAXPATHLEN + 1, "%s/%s", dir, entry->d_name);
+            if(len < 0 || len > MAXPATHLEN) {
+                ea_debug_error("[%s] Could not open cachedir %s: name invalid or too long\n", EACCELERATOR_EXTENSION_NAME, dir);
+                return;
+            } else if (strstr(entry->d_name, "eaccelerator") == entry->d_name) {
+                if(unlink(path) == -1) {
+                    ea_debug_error("[%s] Can't delete file %s: error %d\n", EACCELERATOR_EXTENSION_NAME, path, errno);
                 }
+            } else if (entry->d_name[0] != '.' && stat(path, &dirstat) != -1) {
                 if (S_ISDIR(dirstat.st_mode)) {
-                    clear_filecache(s);
+                    clear_filecache(path);
                 }
             }
         }
         closedir (dp);
     } else {
-        ea_debug_error("[%s] Could not open cachedir %s\n", EACCELERATOR_EXTENSION_NAME, dir);
+        ea_debug_error("[%s] Could not open cachedir %s: error %d\n", EACCELERATOR_EXTENSION_NAME, dir, errno);
     }
-}
 #else
-{
     HANDLE  hFind;
     WIN32_FIND_DATA wfd;
-    char path[MAXPATHLEN];
-    size_t dirlen = strlen(dir);
 
-    if(dirlen >= (size_t)(MAXPATHLEN - sizeof("\\*") - 1)) {
-        ea_debug_error("[%s] Could not open cachedir %s\n", EACCELERATOR_EXTENSION_NAME, dir);
+    len = snprintf(path, MAXPATHLEN + 1, "%s\\*", dir);
+    if(len < 0 || len > MAXPATHLEN) {
+        ea_debug_error("[%s] Could not open cachedir %s: name invalid or too long\n", EACCELERATOR_EXTENSION_NAME, dir);
         return;
     }
-
-    memcpy(path, dir, dirlen);
-    strlcpy(path + dirlen++, "\\*", (size_t)(MAXPATHLEN - dirlen));
 
     hFind = FindFirstFile(path, &wfd);
     if (hFind != INVALID_HANDLE_VALUE) {
         do {
-            strlcpy(path + dirlen, wfd.cFileName, (size_t)(MAXPATHLEN - dirlen));
-            if (wfd.cFileName[0] != '.' && (FILE_ATTRIBUTE_DIRECTORY & wfd.dwFileAttributes)) {
+            len = snprintf(path, MAXPATHLEN + 1, "%s\\%s", dir, wfd.cFileName);
+            if(len < 0 || len > MAXPATHLEN) {
+                ea_debug_error("[%s] Could not open cachedir %s: name invalid or too long\n", EACCELERATOR_EXTENSION_NAME, dir);
+                return;
+            } else if (wfd.cFileName[0] != '.' && (FILE_ATTRIBUTE_DIRECTORY & wfd.dwFileAttributes)) {
                 clear_filecache(path);
             } else if (strstr(wfd.cFileName, "eaccelerator") == wfd.cFileName) {
                 if (!DeleteFile(path)) {
@@ -142,10 +145,12 @@ static void clear_filecache(const char* dir)
                 }
             }
         } while (FindNextFile(hFind, &wfd));
+        FindClose (hFind);
+    } else {
+        ea_debug_error("[%s] Could not open cachedir %s: error %d\n", EACCELERATOR_EXTENSION_NAME, dir, GetLastError());
     }
-    FindClose (hFind);
-}
 #endif
+}
 /* }}} */
 
 /* {{{  clean_file: check if the given file is expired */
