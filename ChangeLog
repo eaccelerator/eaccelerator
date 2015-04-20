@@ -522,10 +522,6 @@
 	* Fix debug build for win32, this fixes ticket #149
 	* Removed a debug statement and added return value in optimizer.c
 
-2006-07-27  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
-
-	* Fixed project files for win32 and made the debug version build again.
-
 2006-07-25  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
 	* Fix restoring of opcode handler for php 5.0.5 when files are loaded
@@ -601,6 +597,13 @@
 
 	* Fix ticket #108
 	* Removed webui.[c|h] from the windows project files
+
+2006-06-21  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
+
+	* Branched the 0.9.4 release to fix win32
+	* Fixes from Simon Westwood
+	* Commit updated windows project files
+	* Removed some includes in debug.c and added on in mm.c
 
 2006-06-06  Hans Rakers <hans at parse dot nl>
 
@@ -844,13 +847,6 @@
 	  This revision works pretty well in my testing environment, PHP-5.1 support
 	  seems to be coming along quite well. Please test with your applications/
 	  in your environment and report back with your experiences or possible problems!
-
-2006-06-21  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
-
-	* Branched the 0.9.4 release to fix win32
-	* Fixes from Simon Westwood
-	* Commit updated windows project files
-	* Removed some includes in debug.c and added on in mm.c
 
 2006-02-15  Bart Vanbrabant <bart.vanbrabant at zoeloelip.be>
 
