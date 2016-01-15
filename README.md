@@ -1,4 +1,4 @@
-eAccelerator for PHP
+eAccelerator for PHP [![Build Status](https://travis-ci.org/NewEraCracker/eaccelerator.svg)](https://travis-ci.org/NewEraCracker/eaccelerator)
 =====================
 
 What is eAccelerator?
