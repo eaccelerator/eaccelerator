@@ -57,7 +57,7 @@ website at http://www.eaccelerator.net/
 Note(1): for Microsoft Windows installation, please refer to README.win32 file.
 
 Step 1. Compiling eAccelerator
-
+```
   export PHP_PREFIX="/usr"
 
   $PHP_PREFIX/bin/phpize
@@ -67,14 +67,14 @@ Step 1. Compiling eAccelerator
   --with-php-config=$PHP_PREFIX/bin/php-config
 
   make
-
+```
   You must specify the real prefix where PHP is installed in the "export"
   command. It may be "/usr" "/usr/local", or something else.
 
 Step 2. Installing eAccelerator
-
+```
   make install
-
+```
 Step 3. Configuring eAccelerator
 
 eAccelerator can be installed both as Zend or PHP extension.
@@ -84,7 +84,7 @@ For eaccelerator > 0.9.1, if you have /etc/php.d directory, you should copy eacc
 If not, you need to edit your php.ini file (usually /etc/php.ini).
 
 To install as Zend extension:
-
+```
   zend_extension="/usr/lib/php5/eaccelerator.so"
   eaccelerator.shm_size="16"
   eaccelerator.cache_dir="/tmp/eaccelerator"
@@ -95,12 +95,12 @@ To install as Zend extension:
   eaccelerator.shm_ttl="0"
   eaccelerator.shm_prune_period="0"
   eaccelerator.shm_only="0"
-
+```
   If you use thread safe build of PHP you must use "zend_extension_ts" instead
   of "zend_extension".
 
 To install as PHP extension:
-
+```
   extension="eaccelerator.so"
   eaccelerator.shm_size="16"
   eaccelerator.cache_dir="/tmp/eaccelerator"
@@ -111,12 +111,12 @@ To install as PHP extension:
   eaccelerator.shm_ttl="0"
   eaccelerator.shm_prune_period="0"
   eaccelerator.shm_only="0"
-
+```
 Step 4. Creating cache directory
-
+```
   mkdir /tmp/eaccelerator
   chmod 0777 /tmp/eaccelerator
-
+```
 
 Configuration Options
 ---------------------
