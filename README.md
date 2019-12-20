@@ -1,6 +1,8 @@
 eAccelerator for PHP
 =====================
 
+**DEPRECATED**: This project is deprecated and does not work with anything newer than PHP 5.3. Please use a recent version of PHP with OPcache instead!
+
 What is eAccelerator?
 ----------------------
 eAccelerator is a free open source PHP accelerator and optimizer for PHP. It
